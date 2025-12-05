@@ -25,13 +25,13 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     loop {
         if let Ok(incoming) = message_rx.recv() {
             tracing::info!("Received Message : {:?}", incoming);
-            sender_tx.send(LlmMessage::Exit).map_err(|_|Error::ExecutionError)?;
+            sender_tx.send(LlmMessage::Exit).map_err(|_|Error::ExecutionError("".to_string()))?;
             break;
         }
     }
 
     // We need to await the runtime 
-    worker.await.map_err(|_| Error::ExecutionError)?;
+    worker.await.map_err(|_| Error::ExecutionError("".to_string()))?;
 
     Ok(())
 }

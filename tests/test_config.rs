@@ -20,8 +20,8 @@ pub fn random_generation_seed() -> impl Strategy<Value = GenerationSeed> {
 pub fn random_model_config() -> impl Strategy<Value = ModelConfig> {
     (
         1usize..100usize,
-        0.0f32..1.0f32,
-        0.1f32..2.0f32,
+        0.0f64..1.0f64,
+        0.1f64..2.0f64,
         1.0f32..2.0f32,
         any::<String>(),
         random_model_file_type(),

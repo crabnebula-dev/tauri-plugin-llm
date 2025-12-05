@@ -31,7 +31,7 @@ pub struct LLMRuntime {
 
 pub trait LLMRuntimeModel: Send + Sync {
     /// Sends a [`LlmMessage`] to the loaded model
-    fn execute(&self, message: LlmMessage) -> Result<LlmMessage, Error>;
+    fn execute(&mut self, message: LlmMessage) -> Result<LlmMessage, Error>;
 
     /// Initializes the model
     ///
@@ -90,8 +90,9 @@ impl LLMRuntime {
                 temperature,
                 thinking,
                 weights: None,
+                logits_processor: None,
             }),
-            _ => Err(Error::ExecutionError),
+            _ => Err(Error::ExecutionError("".to_string())),
         }
     }
 

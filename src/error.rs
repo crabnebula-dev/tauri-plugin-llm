@@ -12,8 +12,8 @@ pub enum Error {
     #[error("No MCPurify config promided in tauri.conf.json or plugin Builder")]
     MissingConfig,
 
-    #[error("Error during execution")]
-    ExecutionError,
+    #[error("Error during execution ({0})")]
+    ExecutionError(String),
 
     #[error("Missing config ({0})")]
     MissingConfig(String),
@@ -26,6 +26,9 @@ pub enum Error {
 
     #[error("Error Loading File ({0})")]
     LoadingFile(String),
+
+    #[error("Error Encoding Message ({0})")]
+    MessageEncodingError(String),
 }
 
 impl Serialize for Error {

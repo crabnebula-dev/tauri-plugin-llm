@@ -41,11 +41,11 @@ pub struct ModelConfig {
 
     /// Nucleus sampling. Dynamically selects the smallest
     /// set of tokens whose cumulative probability exceeds P
-    pub top_p: f32,
+    pub top_p: f64,
 
     /// Lower Temperatures 0.1 - 0.5 select tokens with high confidence
     /// Higher Temperatures 0.5 - 1.0 consider more possibilities for the next token
-    pub temperature: f32,
+    pub temperature: f64,
 
     /// Name of the Model
     ///
@@ -97,7 +97,8 @@ impl LLMRuntimeConfig {
     where
         P: AsRef<Path>,
     {
-        let mut file = File::open(path.as_ref()).map_err(|_| Error::ExecutionError)?;
-        serde_json::from_reader(&mut file).map_err(|_| Error::ExecutionError)
+        let mut file =
+            File::open(path.as_ref()).map_err(|e| Error::ExecutionError(e.to_string()))?;
+        serde_json::from_reader(&mut file).map_err(|e| Error::ExecutionError(e.to_string()))
     }
 }
