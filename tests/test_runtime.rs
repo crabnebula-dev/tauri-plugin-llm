@@ -1,19 +1,19 @@
 use tauri_plugin_llm::{
     error::Error,
     llmconfig::LLMRuntimeConfig,
-    runtime::{LLMRuntime, LLM_Message},
+    runtime::{LLMRuntime, LlmMessage},
 };
 
 #[tokio::test]
 async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
 
-    let mut runtime = LLMRuntime::from_config(&config)?;
+    let mut runtime = LLMRuntime::from_config(config)?;
     let (response_tx, message_rx) = std::sync::mpsc::channel();
     let (sender_tx, worker) = runtime.run(response_tx).await?;
 
     if let Err(e) = sender_tx
-        .send(LLM_Message::Prompt {
+        .send(LlmMessage::Prompt {
             system: "You are a helpful assistent. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
             message: "Hello, World".to_string(),
         })
@@ -25,8 +25,7 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     loop {
         if let Ok(incoming) = message_rx.recv() {
             tracing::info!("Received Message : {:?}", incoming);
-
-            sender_tx.send(LLM_Message::Exit).map_err(|_|Error::ExecutionError)?;
+            sender_tx.send(LlmMessage::Exit).map_err(|_|Error::ExecutionError)?;
             break;
         }
     }

@@ -14,6 +14,18 @@ pub enum Error {
 
     #[error("Error during execution")]
     ExecutionError,
+
+    #[error("Missing config ({0})")]
+    MissingConfig(String),
+
+    #[error("Device is missing")]
+    MissingDevice,
+
+    #[error("Unexpected Message Variant")]
+    UnexpectedMessage,
+
+    #[error("Error Loading File ({0})")]
+    LoadingFile(String),
 }
 
 impl Serialize for Error {

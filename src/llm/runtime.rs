@@ -26,15 +26,23 @@ const CHANNEL_BUFFER_SIZE: usize = 10;
 
 pub struct LLMRuntime {
     model: Option<Box<dyn LLMRuntimeModel>>,
+    config: LLMRuntimeConfig,
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
-    fn execute(&self, message: &LLM_Message);
+    /// Sends a [`LlmMessage`] to the loaded model
+    fn execute(&self, message: LlmMessage) -> Result<LlmMessage, Error>;
+
+    /// Initializes the model
+    ///
+    /// This is a heavy process and needs to be run in a dedicated thread
+    fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error>;
 }
 
 #[derive(Debug)]
-pub enum LLM_Message {
+pub enum LlmMessage {
     Prompt { system: String, message: String },
+    Response { error: String, message: String },
     Exit,
 }
 
@@ -42,16 +50,17 @@ pub enum LLM_Message {
 
 impl LLMRuntime {
     /// Creates a new LLM
-    pub fn from_config(config: &LLMRuntimeConfig) -> Result<Self, Error> {
+    pub fn from_config(config: LLMRuntimeConfig) -> Result<Self, Error> {
+        if config.verbose {
+            let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
+            Registry::default().with(verbose).init();
+        }
         let device = Self::load_default_device();
         let model = Self::detect_model(&config, device)?;
 
-        // logging
-        let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
-        Registry::default().with(verbose).init();
-
         Ok(Self {
             model: Some(Box::new(model)),
+            config,
         })
     }
 
@@ -80,6 +89,7 @@ impl LLMRuntime {
                 top_p,
                 temperature,
                 thinking,
+                weights: None,
             }),
             _ => Err(Error::ExecutionError),
         }
@@ -89,7 +99,10 @@ impl LLMRuntime {
     fn load_default_device() -> Device {
         if cfg!(target_os = "macos") {
             match Device::new_metal(0) {
-                Ok(device) => device,
+                Ok(device) => {
+                    tracing::debug!("Select Metal Device (0)");
+                    device
+                }
                 Err(error) => {
                     tracing::error!("Could not detect Metal device. Fall back to CPU: {}", error);
                     Device::Cpu
@@ -97,7 +110,10 @@ impl LLMRuntime {
             }
         } else if cfg!(not(target_os = "macos")) {
             match Device::new_cuda(0) {
-                Ok(device) => device,
+                Ok(device) => {
+                    tracing::debug!("Select Cuda Device (0)");
+                    device
+                }
                 Err(error) => {
                     tracing::error!("Could not detect Cuda device. Fall back to CPU: {}", error);
                     Device::Cpu
@@ -116,25 +132,45 @@ impl LLMRuntime {
     /// - `response` Provide a [`Sender`] where the Model response should be send
     pub async fn run(
         &mut self,
-        response: Sender<LLM_Message>,
-    ) -> Result<(Sender<LLM_Message>, JoinHandle<()>), Error> {
-        let (tx, rx): (Sender<LLM_Message>, Receiver<LLM_Message>) = std::sync::mpsc::channel();
+        response: Sender<LlmMessage>,
+    ) -> Result<(Sender<LlmMessage>, JoinHandle<()>), Error> {
+        let (tx, rx): (Sender<LlmMessage>, Receiver<LlmMessage>) = std::sync::mpsc::channel();
 
-        let model = self.model.take().unwrap();
+        let mut model = self.model.take().unwrap();
+        let config = self.config.clone();
+
         tracing::debug!("Spawing Model in separate thread");
 
-        let worker = tokio::task::spawn_blocking(move || loop {
-            tracing::debug!("Awaiting prompt...");
-            if let Ok(message) = rx.recv() {
-                tracing::debug!("Sending message to model");
+        let worker = tokio::task::spawn_blocking(move || {
+            tracing::debug!("Initializing Model");
 
-                match message {
-                    LLM_Message::Prompt { .. } => model.execute(&message),
-                    LLM_Message::Exit => break,
-                }
+            if let Err(error) = model.init(&config) {
+                tracing::error!("Error initializing model: {}", error);
 
-                if let Err(error) = response.send(message) {
-                    tracing::error!("Error sending model response: {}", error)
+                // exit, because model failed to initialize
+                return;
+            }
+
+            loop {
+                if let Ok(message) = rx.recv() {
+                    tracing::debug!("Sending message to model");
+
+                    let model_response_message = match message {
+                        LlmMessage::Prompt { .. } => model.execute(message),
+                        LlmMessage::Exit => break,
+                        LlmMessage::Response { .. } => Err(Error::UnexpectedMessage),
+                    };
+
+                    match model_response_message {
+                        Ok(message) => {
+                            if let Err(error) = response.send(message) {
+                                tracing::error!("Error sending model response: {}", error)
+                            }
+                        }
+                        Err(error) => {
+                            tracing::error!("Message error: {}", error)
+                        }
+                    }
                 }
             }
         });
