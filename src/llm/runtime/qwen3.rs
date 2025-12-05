@@ -26,8 +26,18 @@ pub struct Qwen3Model {
 }
 
 impl LLMRuntimeModel for Qwen3Model {
+    /// TODO:
+    /// - apply penalty for repetitions
+    /// - enable thinking mode
+    /// - enable setting a system message
+    /// - make sampling method configurable
     fn execute(&mut self, message: LlmMessage) -> Result<LlmMessage, Error> {
-        if let LlmMessage::Prompt { system: _, message } = message {
+        if let LlmMessage::Prompt {
+            system: _,
+            message,
+            num_samples,
+        } = message
+        {
             tracing::debug!("Processing Message: {:?}", message);
 
             // get defaults
@@ -67,8 +77,7 @@ impl LLMRuntimeModel for Qwen3Model {
             let eos_token = *tokenizer.get_vocab(true).get("<|im_end|>").unwrap();
 
             // Start sampling
-            // TODO: apply penalty
-            for index in 0..100 {
+            for index in 0..num_samples {
                 let input = Tensor::new(&[next_token], &device)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
                     .unsqueeze(0)

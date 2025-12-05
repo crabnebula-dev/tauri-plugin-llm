@@ -30,7 +30,7 @@ pub struct LLMRuntime {
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
-    /// Sends a [`LlmMessage`] to the loaded model
+    /// Sends a [`LlmMessage`] to the loaded model and start sampling
     fn execute(&mut self, message: LlmMessage) -> Result<LlmMessage, Error>;
 
     /// Initializes the model
@@ -41,8 +41,15 @@ pub trait LLMRuntimeModel: Send + Sync {
 
 #[derive(Debug)]
 pub enum LlmMessage {
-    Prompt { system: String, message: String },
-    Response { error: String, message: String },
+    Prompt {
+        system: String,
+        message: String,
+        num_samples: usize,
+    },
+    Response {
+        error: String,
+        message: String,
+    },
     Exit,
 }
 
@@ -140,7 +147,7 @@ impl LLMRuntime {
         let mut model = self.model.take().unwrap();
         let config = self.config.clone();
 
-        tracing::debug!("Spawing Model in separate thread");
+        tracing::debug!("Spawning Model in separate thread");
 
         let worker = tokio::task::spawn_blocking(move || {
             tracing::debug!("Initializing Model");

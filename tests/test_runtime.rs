@@ -14,8 +14,9 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
 
     if let Err(e) = sender_tx
         .send(LlmMessage::Prompt {
-            system: "You are a helpful assistent. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
-            message: "Hello, World".to_string(),
+            system:"You are a helpful assistent. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
+            message:"Hello, World".to_string(), 
+            num_samples: 200 
         })
         
     {
