@@ -18,7 +18,7 @@ Default permissions for the plugin
 <tr>
 <td>
 
-`tauri-plugin-llm:allow-ping`
+`llm:allow-ping`
 
 </td>
 <td>
@@ -31,7 +31,7 @@ Enables the ping command without any pre-configured scope.
 <tr>
 <td>
 
-`tauri-plugin-llm:deny-ping`
+`llm:deny-ping`
 
 </td>
 <td>

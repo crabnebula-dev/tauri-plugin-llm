@@ -5,3 +5,4 @@ debug/
 target/
 models/
 taskfile.yml
+tests/test_config.proptest-regressions

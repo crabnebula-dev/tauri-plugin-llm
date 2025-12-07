@@ -1,12 +1,12 @@
 [package]
-name = "tauri-plugin-tauri-plugin-llm"
+name = "tauri-plugin-llm"
 version = "0.1.0"
 authors = ["You"]
 description = ""
 edition = "2021"
 rust-version = "1.77.2"
 exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
-links = "tauri-plugin-tauri-plugin-llm"
+links = "tauri-plugin-llm"
 
 [dependencies]
 tauri = { version = "2.9.4" }
@@ -15,6 +15,7 @@ thiserror = "2"
 mcpurify = { path = "../mcpurify" }
 anyhow              = {version = "1.0"}
 serde_json          = {version = "1.0"}
+tokio               = {version = "1.48.0", features = ["full"]}
 
 # for LLM inference
 candle-core         = { git = "https://github.com/huggingface/candle.git", features = ["metal"] }
@@ -22,9 +23,19 @@ candle-nn           = { git = "https://github.com/huggingface/candle.git", featu
 candle-transformers = { git = "https://github.com/huggingface/candle.git", features = ["metal"] }
 tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
+# for tracing 
+tracing             = {version = "0.1", optional = true}
+tracing-subscriber  = {version = "0.3.20", features = ["json"], optional = true}
+tracing-appender    = {version = "0.2.3", optional = true}
+
 [build-dependencies]
 tauri-plugin = { version = "2.5.2", features = ["build"] }
 
+[dev-dependencies]
+proptest            = { version = "1.9.0" }
+
 [features]
-default = ["feat_safetensors"]
+default = ["feat_safetensors", "apple_metal"]
 feat_safetensors = []
+cuda    = []
+apple_metal   = []

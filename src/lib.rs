@@ -16,6 +16,8 @@ mod models;
 
 mod llm;
 
+pub use llm::llmconfig;
+
 pub use error::{Error, Result};
 
 #[cfg(desktop)]
