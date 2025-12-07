@@ -1,10 +1,12 @@
 //! LLM Inference
+mod qwen3;
 
-use crate::llm::{error::Tauri_LLM_PluginError, llmconfig::LLMRuntimeConfig};
+use crate::error::Error;
+use crate::{llm::llmconfig::LLMRuntimeConfig, llmconfig::ModelConfig, runtime::qwen3::Qwen3Model};
 use candle_core::Device;
 use serde::Deserialize;
+use std::sync::mpsc::{Receiver, Sender};
 use tokenizers::Tokenizer;
-use tokio::sync::mpsc::{Receiver, Sender};
 
 use anyhow::{Error as E, Result};
 use candle_core::{quantized::gguf_file, DType, Tensor};
@@ -15,83 +17,94 @@ use candle_transformers::{
     generation::{LogitsProcessor, Sampling},
     models::quantized_qwen3::ModelWeights as Qwen3,
 };
+use std::future::Future;
 use std::{fs::File, io::Write, path::PathBuf};
+use tokio::task::JoinHandle;
+use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
 const CHANNEL_BUFFER_SIZE: usize = 10;
 
-pub struct LLMRuntime<M>
-where
-    M: LLMRuntimeModel,
-{
-    /// Enable streaming model responses
-    streaming: bool,
-
-    /// The execution device
-    device: Device,
-
-    tokenizer: Option<Tokenizer>,
-
-    top_k: usize,
-
-    top_p: f32,
-
-    temperature: f32,
-
-    /// Enable thinking mode
-    thinking: bool,
-
-    /// The actual model to execute
-    model: Option<M>,
+pub struct LLMRuntime {
+    model: Option<Box<dyn LLMRuntimeModel>>,
 }
 
-pub struct Qwen3Model {}
-
-pub trait LLMRuntimeModel: Send + Sync + 'static {
-    fn execute<M>(&self, message: &M)
-    where
-        M: Send + Sync + 'static;
+pub trait LLMRuntimeModel: Send + Sync {
+    fn execute(&self, message: &LLM_Message);
 }
 
-pub trait LLMMessage {}
+#[derive(Debug)]
+pub enum LLM_Message {
+    Prompt { system: String, message: String },
+    Exit,
+}
 
-impl<M> LLMRuntime<M>
-where
-    M: LLMRuntimeModel,
-{
+/// Enable streaming model responses
+
+impl LLMRuntime {
     /// Creates a new LLM
-    pub fn from_config(config: LLMRuntimeConfig) -> Self {
-        let device = {
-            if cfg!(target_os = "macos") {
-                match Device::new_metal(0) {
-                    Ok(device) => device,
-                    Err(error) => {
-                        // log error
+    pub fn from_config(config: &LLMRuntimeConfig) -> Result<Self, Error> {
+        let device = Self::load_default_device();
+        let model = Self::detect_model(&config, device)?;
 
-                        Device::Cpu
-                    }
+        // logging
+        let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
+        Registry::default().with(verbose).init();
+
+        Ok(Self {
+            model: Some(Box::new(model)),
+        })
+    }
+
+    fn detect_model(
+        config: &LLMRuntimeConfig,
+        device: Device,
+    ) -> Result<impl LLMRuntimeModel, Error> {
+        let LLMRuntimeConfig { model_config, .. } = config.clone();
+
+        let ModelConfig {
+            top_k,
+            top_p,
+            temperature,
+            name,
+            thinking,
+            streaming,
+            ..
+        } = model_config;
+
+        match &name {
+            _ if name.contains("Qwen3") => Ok(Qwen3Model {
+                streaming,
+                device: Some(device),
+                tokenizer: None,
+                top_k,
+                top_p,
+                temperature,
+                thinking,
+            }),
+            _ => Err(Error::ExecutionError),
+        }
+    }
+
+    /// Loads the best default device that can be detected
+    fn load_default_device() -> Device {
+        if cfg!(target_os = "macos") {
+            match Device::new_metal(0) {
+                Ok(device) => device,
+                Err(error) => {
+                    tracing::error!("Could not detect Metal device. Fall back to CPU: {}", error);
+                    Device::Cpu
                 }
-            } else if cfg!(not(target_os = "macos")) {
-                match Device::new_cuda(0) {
-                    Ok(device) => device,
-                    Err(error) => {
-                        // log error
-                        Device::Cpu
-                    }
-                }
-            } else {
-                Device::Cpu
             }
-        };
-
-        Self {
-            device,
-            streaming: true,
-            top_k: 20,
-            top_p: 0.8,
-            temperature: 0.9,
-            tokenizer: None,
-            thinking: false,
-            model: None,
+        } else if cfg!(not(target_os = "macos")) {
+            match Device::new_cuda(0) {
+                Ok(device) => device,
+                Err(error) => {
+                    tracing::error!("Could not detect Cuda device. Fall back to CPU: {}", error);
+                    Device::Cpu
+                }
+            }
+        } else {
+            Device::Cpu
         }
     }
 
@@ -101,29 +114,30 @@ where
     ///
     /// ## Parameters
     /// - `response` Provide a [`Sender`] where the Model response should be send
-    pub async fn run<T>(&mut self, response: Sender<T>) -> Result<Sender<T>, Tauri_LLM_PluginError>
-    where
-        T: Send + Sync + 'static,
-    {
-        let (tx, mut rx): (Sender<T>, Receiver<T>) =
-            tokio::sync::mpsc::channel(CHANNEL_BUFFER_SIZE);
+    pub async fn run(
+        &mut self,
+        response: Sender<LLM_Message>,
+    ) -> Result<(Sender<LLM_Message>, JoinHandle<()>), Error> {
+        let (tx, rx): (Sender<LLM_Message>, Receiver<LLM_Message>) = std::sync::mpsc::channel();
 
         let model = self.model.take().unwrap();
+        tracing::debug!("Spawing Model in separate thread");
 
-        tokio::task::spawn_blocking(async move || {
-            loop {
-                if let Some(message) = rx.recv().await {
-                    // decide if message is control message or just a prompt
+        let worker = tokio::task::spawn_blocking(move || loop {
+            tracing::debug!("Awaiting prompt...");
+            if let Ok(message) = rx.recv() {
+                tracing::debug!("Sending message to model");
 
-                    model.execute(&message);
+                match message {
+                    LLM_Message::Prompt { .. } => model.execute(&message),
+                    LLM_Message::Exit => break,
+                }
 
-                    if let Err(error) = response.send(message).await {
-                        // log error
-                    }
+                if let Err(error) = response.send(message) {
+                    tracing::error!("Error sending model response: {}", error)
                 }
             }
         });
-
-        Ok(tx)
+        Ok((tx, worker))
     }
 }

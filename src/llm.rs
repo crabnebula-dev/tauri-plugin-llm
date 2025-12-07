@@ -4,6 +4,5 @@
 //! their available formats. For now the LLM loader supports `*.safetensors` files
 //! and text generation models.
 
-mod error;
 pub mod llmconfig;
 pub mod runtime;

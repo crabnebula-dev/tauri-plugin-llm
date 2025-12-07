@@ -24,9 +24,9 @@ candle-transformers = { git = "https://github.com/huggingface/candle.git", featu
 tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
 # for tracing 
-tracing             = {version = "0.1", optional = true}
-tracing-subscriber  = {version = "0.3.20", features = ["json"], optional = true}
-tracing-appender    = {version = "0.2.3", optional = true}
+tracing             = {version = "0.1"}
+tracing-subscriber  = {version = "0.3.20", features = ["json"]}
+tracing-appender    = {version = "0.2.3"}
 
 [build-dependencies]
 tauri-plugin = { version = "2.5.2", features = ["build"] }

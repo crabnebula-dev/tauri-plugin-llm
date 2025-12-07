@@ -11,6 +11,9 @@ pub enum Error {
     PluginInvoke(#[from] tauri::plugin::mobile::PluginInvokeError),
     #[error("No MCPurify config promided in tauri.conf.json or plugin Builder")]
     MissingConfig,
+
+    #[error("Error during execution")]
+    ExecutionError,
 }
 
 impl Serialize for Error {

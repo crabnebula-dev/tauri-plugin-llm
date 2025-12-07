@@ -1,5 +1,9 @@
+use crate::error::Error;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct LLMRuntimeConfig {
@@ -25,6 +29,9 @@ pub struct LLMRuntimeConfig {
 
     /// The Modelconfiguration
     pub model_config: ModelConfig,
+
+    /// Enables logging
+    pub verbose: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -56,6 +63,12 @@ pub struct ModelConfig {
     /// This can either be a fixed value or random where random is the default, if no explicit
     /// value has been set.
     pub seed: GenerationSeed,
+
+    /// Enabl thinking mode, if model supports it
+    pub thinking: bool,
+
+    /// Enable streaming responses
+    pub streaming: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
@@ -76,4 +89,15 @@ pub enum ModelFileType {
 
     // *.pth
     Pickle,
+}
+
+impl LLMRuntimeConfig {
+    ///Loads a config from path
+    pub fn from_path<P>(path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let mut file = File::open(path.as_ref()).map_err(|_| Error::ExecutionError)?;
+        serde_json::from_reader(&mut file).map_err(|_| Error::ExecutionError)
+    }
 }

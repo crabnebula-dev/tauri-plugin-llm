@@ -17,6 +17,7 @@ mod models;
 mod llm;
 
 pub use llm::llmconfig;
+pub use llm::runtime;
 
 pub use error::{Error, Result};
 
