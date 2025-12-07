@@ -1,5 +1,5 @@
 use tauri_plugin_llm::{
-    error::Error,
+    Error,
     llmconfig::LLMRuntimeConfig,
     runtime::{LLMRuntime, LlmMessage},
 };

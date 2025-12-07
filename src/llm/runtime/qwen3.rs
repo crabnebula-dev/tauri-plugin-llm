@@ -119,7 +119,7 @@ impl LLMRuntimeModel for Qwen3Model {
         // Initialize the tokenizer
         self.tokenizer = Some(
             Tokenizer::from_file(&config.tokenizer_config_file.as_ref().ok_or(
-                Error::MissingConfig("Tokenizer config is missing".to_owned()),
+                Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
             )?)
             .map_err(|e| Error::LoadingFile(e.to_string()))?,
         );
@@ -127,7 +127,7 @@ impl LLMRuntimeModel for Qwen3Model {
         // Load weights
         self.weights = {
             let mut model_file = File::open(config.model_file.as_ref().ok_or(
-                Error::MissingConfig("Model config file is missing".to_owned()),
+                Error::MissingConfigLLM("Model config file is missing".to_owned()),
             )?)?;
             let model = gguf_file::Content::read(&mut model_file)
                 .map_err(|e| Error::LoadingFile(e.to_string()))?;

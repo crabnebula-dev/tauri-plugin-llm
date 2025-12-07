@@ -16,7 +16,7 @@ pub enum Error {
     ExecutionError(String),
 
     #[error("Missing config ({0})")]
-    MissingConfig(String),
+    MissingConfigLLM(String),
 
     #[error("Device is missing")]
     MissingDevice,
