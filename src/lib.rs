@@ -1,30 +1,24 @@
+mod commands;
+#[cfg(desktop)]
+mod desktop;
+mod error;
+mod llm;
+#[cfg(mobile)]
+mod mobile;
+mod models;
+
+#[cfg(desktop)]
+use desktop::TauriPluginLlm;
+pub use error::{Error, Result};
+pub use llm::llmconfig;
+pub use llm::runtime;
+#[cfg(mobile)]
+use mobile::TauriPluginLlm;
+pub use models::*;
 use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
     Manager, Runtime,
 };
-
-pub use models::*;
-
-#[cfg(desktop)]
-mod desktop;
-#[cfg(mobile)]
-mod mobile;
-
-mod commands;
-mod error;
-mod models;
-
-mod llm;
-
-pub use llm::llmconfig;
-pub use llm::runtime;
-
-pub use error::{Error, Result};
-
-#[cfg(desktop)]
-use desktop::TauriPluginLlm;
-#[cfg(mobile)]
-use mobile::TauriPluginLlm;
 
 /// Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the tauri-plugin-llm APIs.
 pub trait TauriPluginLlmExt<R: Runtime> {

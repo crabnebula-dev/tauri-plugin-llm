@@ -93,11 +93,8 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(1))]
     #[test]
     fn test_runtime_config(input in random()) {
-        // test roundtrip
         let serialized = serde_json::to_string_pretty(&input);
         assert!(serialized.is_ok(), "{:?}", serialized);
-
-        println!("{}", serialized.as_ref().unwrap());
 
         let result = serde_json::from_str::<LLMRuntimeConfig>(&serialized.unwrap());
         assert!(result.is_ok(), "{:?}", result)
