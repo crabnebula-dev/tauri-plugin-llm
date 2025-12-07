@@ -13,6 +13,18 @@ tauri = { version = "2.9.4" }
 serde = "1.0"
 thiserror = "2"
 mcpurify = { path = "../mcpurify" }
+anyhow              = {version = "1.0"}
+serde_json          = {version = "1.0"}
+
+# for LLM inference
+candle-core         = { git = "https://github.com/huggingface/candle.git", features = ["metal"] }
+candle-nn           = { git = "https://github.com/huggingface/candle.git", features = ["metal"] }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", features = ["metal"] }
+tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
 [build-dependencies]
 tauri-plugin = { version = "2.5.2", features = ["build"] }
+
+[features]
+default = ["feat_safetensors"]
+feat_safetensors = []

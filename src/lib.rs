@@ -14,6 +14,8 @@ mod commands;
 mod error;
 mod models;
 
+mod llm;
+
 pub use error::{Error, Result};
 
 #[cfg(desktop)]
