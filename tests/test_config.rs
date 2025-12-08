@@ -1,6 +1,8 @@
 use proptest::prelude::*;
 use std::path::PathBuf;
-use tauri_plugin_llm::llmconfig::{GenerationSeed, LLMRuntimeConfig, ModelConfig, ModelFileType};
+use tauri_plugin_llm::llmconfig::{
+    GenerationSeed, LLMRuntimeConfig, ModelConfig, ModelFileType, SamplingConfig,
+};
 
 pub fn random_model_file_type() -> impl Strategy<Value = ModelFileType> {
     prop_oneof![
@@ -17,6 +19,17 @@ pub fn random_generation_seed() -> impl Strategy<Value = GenerationSeed> {
     ]
 }
 
+pub fn random_sampling_config() -> impl Strategy<Value = SamplingConfig> {
+    prop_oneof![
+        Just(SamplingConfig::All),
+        Just(SamplingConfig::ArgMax),
+        Just(SamplingConfig::GumbelSoftmax),
+        Just(SamplingConfig::TopK),
+        Just(SamplingConfig::TopKThenTopP),
+        Just(SamplingConfig::TopP)
+    ]
+}
+
 pub fn random_model_config() -> impl Strategy<Value = ModelConfig> {
     (
         1usize..100usize,
@@ -28,9 +41,21 @@ pub fn random_model_config() -> impl Strategy<Value = ModelConfig> {
         random_generation_seed(),
         any::<bool>(),
         any::<bool>(),
+        random_sampling_config(),
     )
         .prop_map(
-            |(top_k, top_p, temperature, penalty, name, file_type, seed, thinking, streaming)| {
+            |(
+                top_k,
+                top_p,
+                temperature,
+                penalty,
+                name,
+                file_type,
+                seed,
+                thinking,
+                streaming,
+                sampling_config,
+            )| {
                 ModelConfig {
                     top_k,
                     top_p,
@@ -41,6 +66,7 @@ pub fn random_model_config() -> impl Strategy<Value = ModelConfig> {
                     seed,
                     thinking,
                     streaming,
+                    sampling_config,
                 }
             },
         )

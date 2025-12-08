@@ -113,7 +113,11 @@ impl LLMRuntimeModel for Qwen3Model {
     }
 
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), crate::Error> {
-        let ModelConfig { seed, .. } = config.model_config.clone();
+        let ModelConfig {
+            seed,
+            sampling_config,
+            ..
+        } = config.model_config.clone();
 
         // Initialize the tokenizer
         self.tokenizer = Some(
@@ -143,10 +147,27 @@ impl LLMRuntimeModel for Qwen3Model {
 
         // Initialize Logits Processor
         self.logits_processor = {
-            // TODO: make configurable
-            let sampling = Sampling::TopK {
-                k: self.top_k,
-                temperature: self.temperature,
+            let sampling = match sampling_config {
+                crate::llmconfig::SamplingConfig::ArgMax => Sampling::ArgMax,
+                crate::llmconfig::SamplingConfig::All => Sampling::All {
+                    temperature: self.temperature,
+                },
+                crate::llmconfig::SamplingConfig::TopK => Sampling::TopK {
+                    k: self.top_k,
+                    temperature: self.temperature,
+                },
+                crate::llmconfig::SamplingConfig::TopP => Sampling::TopP {
+                    p: self.top_p,
+                    temperature: self.temperature,
+                },
+                crate::llmconfig::SamplingConfig::TopKThenTopP => Sampling::TopKThenTopP {
+                    k: self.top_k,
+                    p: self.top_p,
+                    temperature: self.temperature,
+                },
+                crate::llmconfig::SamplingConfig::GumbelSoftmax => Sampling::GumbelSoftmax {
+                    temperature: self.temperature,
+                },
             };
 
             let seed = match seed {

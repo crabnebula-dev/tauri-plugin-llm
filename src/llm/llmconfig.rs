@@ -69,6 +69,9 @@ pub struct ModelConfig {
 
     /// Enable streaming responses
     pub streaming: bool,
+
+    /// Sampling configuration
+    pub sampling_config: SamplingConfig,
 }
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
@@ -90,6 +93,20 @@ pub enum ModelFileType {
 
     // *.pth
     Pickle,
+}
+
+/// SampleConfig is copied 1:1 from
+/// candle_transformers::generation::Sampling
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub enum SamplingConfig {
+    ArgMax,
+
+    #[default]
+    All, // { temperature: f64 },
+    TopK,          // { k: usize, temperature: f64 },
+    TopP,          // { p: f64, temperature: f64 },
+    TopKThenTopP,  // { k: usize, p: f64, temperature: f64 },
+    GumbelSoftmax, // { temperature: f64 },
 }
 
 impl LLMRuntimeConfig {
