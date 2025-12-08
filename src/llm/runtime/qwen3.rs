@@ -185,4 +185,6 @@ impl LLMRuntimeModel for Qwen3Model {
 
         Ok(())
     }
+
+    fn apply_chat_template(&mut self, template: String) {}
 }

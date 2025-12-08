@@ -2,6 +2,7 @@
 mod qwen3;
 
 use crate::error::Error;
+use crate::LlmMessage;
 use crate::{llm::llmconfig::LLMRuntimeConfig, llmconfig::ModelConfig, runtime::qwen3::Qwen3Model};
 use candle_core::Device;
 use serde::Deserialize;
@@ -37,20 +38,9 @@ pub trait LLMRuntimeModel: Send + Sync {
     ///
     /// This is a heavy process and needs to be run in a dedicated thread
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error>;
-}
 
-#[derive(Debug)]
-pub enum LlmMessage {
-    Prompt {
-        system: String,
-        message: String,
-        num_samples: usize,
-    },
-    Response {
-        error: Option<String>,
-        message: String,
-    },
-    Exit,
+    /// Apply a chat template
+    fn apply_chat_template(&mut self, template: String);
 }
 
 /// Enable streaming model responses
