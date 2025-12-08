@@ -1,7 +1,7 @@
 use serde::de::DeserializeOwned;
 use tauri::{
-  plugin::{PluginApi, PluginHandle},
-  AppHandle, Runtime,
+    plugin::{PluginApi, PluginHandle},
+    AppHandle, Runtime,
 };
 
 use crate::models::*;
@@ -11,24 +11,30 @@ tauri::ios_plugin_binding!(init_plugin_tauri_plugin_llm);
 
 // initializes the Kotlin or Swift plugin classes
 pub fn init<R: Runtime, C: DeserializeOwned>(
-  _app: &AppHandle<R>,
-  api: PluginApi<R, C>,
+    app: &AppHandle<R>,
+    api: PluginApi<R, C>,
+    config: mcpurify::Config,
 ) -> crate::Result<TauriPluginLlm<R>> {
-  #[cfg(target_os = "android")]
-  let handle = api.register_android_plugin("", "ExamplePlugin")?;
-  #[cfg(target_os = "ios")]
-  let handle = api.register_ios_plugin(init_plugin_tauri_plugin_llm)?;
-  Ok(TauriPluginLlm(handle))
+    #[cfg(target_os = "android")]
+    let handle = api.register_android_plugin("", "ExamplePlugin")?;
+    #[cfg(target_os = "ios")]
+    let handle = api.register_ios_plugin(init_plugin_tauri_plugin_llm)?;
+    Ok(TauriPluginLlm {
+        handle: app.clone(),
+        mcpurify_config: config,
+    })
 }
 
 /// Access to the tauri-plugin-llm APIs.
-pub struct TauriPluginLlm<R: Runtime>(PluginHandle<R>);
+pub struct TauriPluginLlm<R: Runtime> {
+    handle: AppHandle<R>,
+    mcpurify_config: mcpurify::Config,
+}
 
 impl<R: Runtime> TauriPluginLlm<R> {
-  pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
-    self
-      .0
-      .run_mobile_plugin("ping", payload)
-      .map_err(Into::into)
-  }
+    pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
+        self.0
+            .run_mobile_plugin("ping", payload)
+            .map_err(Into::into)
+    }
 }

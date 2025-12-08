@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc d0042cf42de318089d1ebe788337f8e04c6c705abc839ac14681b2434bfb0112 # shrinks to input = LLMRuntimeConfig { tokenizer_config_file: Some("aaa/aaa"), model_config_file: Some("aaa/aaa"), model_index_file: Some("aaa/aaa"), model_file: Some("aaa/aaa"), model_dir: Some("aaa/aaa"), model_config: ModelConfig { top_k: 1, top_p: 0.0, temperature: 0.1, name: "", file_type: GGUF, penalty: 1.0, seed: Fixed(1234) } }
