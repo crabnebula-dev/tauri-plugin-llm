@@ -5,7 +5,6 @@ debug/
 **/*.rs.bk
 target/
 models/
-taskfile.yml
 tests/test_config.proptest-regressions
 node_modules
 package-lock.json

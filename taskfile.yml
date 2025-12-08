@@ -1,0 +1,63 @@
+version: '3'
+
+env:
+  GIT_LFS_SKIP_SMUDGE: 1
+
+tasks:
+  default:
+    silent: true
+    desc: List all available tasks 
+    cmds:
+      - task --list-all
+
+  reset:
+    silent: true
+    desc: Resets all large files to git lfs/xet file pointers to reclaim disk space
+    dir: models/
+    cmds:
+      - find . -maxdepth 1 -mindepth 1 -type d -exec bash -c 'cd $0 && git read-tree HEAD && git checkout -f HEAD' {} \;
+
+# - - - - - - - - - - - - - - - - - - model weights
+
+  model_dir:
+    desc: Create the directory 'model', if it does not exist
+    silent: true
+    cmds: 
+      - mkdir models
+    status:
+      - test -d models
+
+  fetch_Qwen3_4B_Instruct_2507_FP8:
+    deps: [model_dir]
+    silent: true
+    desc: Fetches Qwen3-4B-Instruct-2507-FP8 if  not available. This directory contains the `config.json`, `tokenizer.json`
+    dir: models/
+    cmds: 
+      - git clone https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507-FP8
+      - cd Qwen3-4B-Instruct-2507-FP8 && git lfs pull --inlude "model.safetensors"
+    status:
+      - test -d Qwen3-4B-Instruct-2507-FP8
+
+  # Qwen3-4B Repo with all model weights
+  fetch_Qwen3_4B_GGUF:
+    deps: [model_dir, fetch_Qwen3_4B_Instruct_2507_FP8]
+    silent: true
+    dir: models
+    cmds:
+      - git clone https://huggingface.co/unsloth/Qwen3-4B-GGUF
+    status:
+      - test -d Qwen3-4B-GGUF
+
+  # Install individual Qwen3 model weight
+  fetch_Qwen3_4B_K_M_GGUF:
+    deps: [model_dir, fetch_Qwen3_4B_GGUF, fetch_Qwen3_4B_Instruct_2507_FP8]
+    silent: true
+    desc: Fetches Qwen3-4B-GGUF_M_M model weights
+    dir: models/Qwen3-4B-GGUF
+    cmds:
+      - git lfs pull --include "Qwen3-4B-Q4_K_M.gguf"
+    status:
+      - bash -c 'git lfs pointer --check --file Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf'
+
+
+
