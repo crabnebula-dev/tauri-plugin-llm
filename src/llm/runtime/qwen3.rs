@@ -4,7 +4,7 @@ use crate::error::Error;
 use crate::llmconfig::{LLMRuntimeConfig, ModelConfig};
 use crate::runtime::{LLMRuntimeModel, LlmMessage};
 use candle_core::Device;
-use candle_core::{quantized::gguf_file, DType, Tensor};
+use candle_core::{quantized::gguf_file, Tensor};
 use candle_transformers::{
     generation::{LogitsProcessor, Sampling},
     models::quantized_qwen3::ModelWeights as Qwen3,
@@ -29,7 +29,6 @@ impl LLMRuntimeModel for Qwen3Model {
     /// - apply penalty for repetitions
     /// - enable thinking mode
     /// - enable setting a system message
-    /// - make sampling method configurable
     fn execute(&mut self, message: LlmMessage) -> Result<LlmMessage, Error> {
         if let LlmMessage::Prompt {
             system: _,

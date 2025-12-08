@@ -18,6 +18,12 @@ tasks:
     cmds:
       - find . -maxdepth 1 -mindepth 1 -type d -exec bash -c 'cd $0 && git read-tree HEAD && git checkout -f HEAD' {} \;
 
+  container:
+    silent: true
+    desc: Runs a container and mounts the current directory into /code
+    cmds:
+      - container run -ti -v $(pwd):/code --cpus 8 -m 16G development
+
   # ensure 'models' dir exists
   model_dir:
     desc: Create the directory 'model', if it does not exist
@@ -60,5 +66,34 @@ tasks:
     status:
       - bash -c 'git lfs pointer --check --file Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf'
 
+  # fetch llama 3.2 3B instruct
+  fetch_Llama_3.2_3B_Instruct:
+    silent: true
+    desc: Fetches Llama_3.2_3B_Instruct
+    dir: models/
+    cmds:
+      - git clone https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct
+    status:
+      - test -d Llama-3.2-3B-Instruct
 
+  fetch_gemma_3_27b_it_macos:
+    silent: true
+    platforms: [darwin]
+    desc: Fetches gemma-3-27b-it
+    dir: models/
+    env:  
+      HF_TOKEN:
+        sh: security find-generic-password -s "huggingface-token" -w
+    cmds:
+      - git clone https://x:$HF_TOKEN@huggingface.co/google/gemma-3-27b-it
+    status:
+      - test -d gemma-3-27b-it
+
+  fetch_gemma_3_27b_it_safetensors:
+    deps: [fetch_gemma_3_27b_it_macos]
+    silent: true
+    desc: Fetch all safetensors parts
+    dir: models/gemma-3-27b-it
+    cmds:
+      - git lfs pull --include "*.safetensors"
 
