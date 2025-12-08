@@ -1,6 +1,7 @@
 version: '3'
 
 env:
+  # global env setting to eny resolving large file pointers to actual blobs
   GIT_LFS_SKIP_SMUDGE: 1
 
 tasks:
@@ -17,8 +18,7 @@ tasks:
     cmds:
       - find . -maxdepth 1 -mindepth 1 -type d -exec bash -c 'cd $0 && git read-tree HEAD && git checkout -f HEAD' {} \;
 
-# - - - - - - - - - - - - - - - - - - model weights
-
+  # ensure 'models' dir exists
   model_dir:
     desc: Create the directory 'model', if it does not exist
     silent: true
@@ -27,6 +27,7 @@ tasks:
     status:
       - test -d models
 
+  # qwen3 4b instruct base model for configuration etc
   fetch_Qwen3_4B_Instruct_2507_FP8:
     deps: [model_dir]
     silent: true

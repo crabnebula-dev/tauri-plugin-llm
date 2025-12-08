@@ -5,7 +5,6 @@ use crate::llmconfig::{LLMRuntimeConfig, ModelConfig};
 use crate::runtime::{LLMRuntimeModel, LlmMessage};
 use candle_core::Device;
 use candle_core::{quantized::gguf_file, DType, Tensor};
-use candle_nn::VarBuilder;
 use candle_transformers::{
     generation::{LogitsProcessor, Sampling},
     models::quantized_qwen3::ModelWeights as Qwen3,
@@ -105,7 +104,7 @@ impl LLMRuntimeModel for Qwen3Model {
             };
 
             return Ok(LlmMessage::Response {
-                error: String::new(),
+                error: None,
                 message,
             });
         }

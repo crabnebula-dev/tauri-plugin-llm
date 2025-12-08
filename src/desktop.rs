@@ -21,9 +21,9 @@ pub struct TauriPluginLlm<R: Runtime> {
 }
 
 impl<R: Runtime> TauriPluginLlm<R> {
-    pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
-        Ok(PingResponse {
-            value: payload.value,
-        })
-    }
+    // pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
+    //     Ok(PingResponse {
+    //         value: payload.value,
+    //     })
+    // }
 }

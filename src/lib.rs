@@ -62,7 +62,8 @@ impl Builder {
 
     pub fn build<R: Runtime>(self) -> TauriPlugin<R, Option<LLMPluginConfig>> {
         PluginBuilder::<R, Option<LLMPluginConfig>>::new("tauri-plugin-llm")
-            .invoke_handler(tauri::generate_handler![commands::ping])
+            .invoke_handler(tauri::generate_handler![commands::send_message])
+            .invoke_handler(tauri::generate_handler![commands::check_status])
             .setup(|app, api| {
                 let config = self
                     .plugin_config
@@ -71,6 +72,7 @@ impl Builder {
 
                 #[cfg(mobile)]
                 let tauri_plugin_llm = mobile::init(app, api, config)?;
+
                 #[cfg(desktop)]
                 let tauri_plugin_llm = desktop::init(app, api, config)?;
                 app.manage(tauri_plugin_llm);

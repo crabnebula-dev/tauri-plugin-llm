@@ -47,7 +47,7 @@ pub enum LlmMessage {
         num_samples: usize,
     },
     Response {
-        error: String,
+        error: Option<String>,
         message: String,
     },
     Exit,
