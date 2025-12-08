@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct LLMRuntimeConfig {
     /// Path to `tokenizer.json`
     pub tokenizer_config_file: Option<PathBuf>,
@@ -34,7 +34,7 @@ pub struct LLMRuntimeConfig {
     pub verbose: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct ModelConfig {
     /// Limits sampling to the K most likely next tokens.
     pub top_k: usize,
@@ -79,12 +79,13 @@ pub enum GenerationSeed {
     Random,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub enum ModelFileType {
     // *.gguf
     GGUF,
 
     // *.safetensors
+    #[default]
     Safetensors,
 
     // *.pth

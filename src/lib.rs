@@ -15,10 +15,14 @@ pub use llm::runtime;
 #[cfg(mobile)]
 use mobile::TauriPluginLlm;
 pub use models::*;
+use serde::Deserialize;
+use serde::Serialize;
 use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
     Manager, Runtime,
 };
+
+use crate::llm::llmconfig::LLMRuntimeConfig;
 
 /// Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the tauri-plugin-llm APIs.
 pub trait TauriPluginLlmExt<R: Runtime> {
@@ -31,9 +35,17 @@ impl<R: Runtime, T: Manager<R>> crate::TauriPluginLlmExt<R> for T {
     }
 }
 
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+pub struct LLMPluginConfig {
+    #[cfg(feature = "mcpurify")]
+    mcpurify_config: Option<mcpurify::Config>,
+
+    llmconfig: LLMRuntimeConfig,
+}
+
 #[derive(Default)]
 pub struct Builder {
-    mcpurify_config: Option<mcpurify::Config>,
+    plugin_config: Option<LLMPluginConfig>,
 }
 
 impl Builder {
@@ -42,18 +54,18 @@ impl Builder {
         Self::default()
     }
 
-    /// Programmatically provide a MCPurify config. Overwrites tauri.conf.json.
-    pub fn mcpurify_config(mut self, config: mcpurify::Config) -> Self {
-        self.mcpurify_config = Some(config);
+    /// Programmatically provide a [`LLMPluginConfig`] config. Overwrites tauri.conf.json.
+    pub fn config(mut self, config: LLMPluginConfig) -> Self {
+        self.plugin_config = Some(config);
         self
     }
 
-    pub fn build<R: Runtime>(self) -> TauriPlugin<R, Option<mcpurify::Config>> {
-        PluginBuilder::<R, Option<mcpurify::Config>>::new("tauri-plugin-llm")
+    pub fn build<R: Runtime>(self) -> TauriPlugin<R, Option<LLMPluginConfig>> {
+        PluginBuilder::<R, Option<LLMPluginConfig>>::new("tauri-plugin-llm")
             .invoke_handler(tauri::generate_handler![commands::ping])
             .setup(|app, api| {
                 let config = self
-                    .mcpurify_config
+                    .plugin_config
                     .or((*api.config()).clone())
                     .ok_or(Error::MissingConfig)?;
 
@@ -70,6 +82,6 @@ impl Builder {
 }
 
 /// Initializes the plugin.
-pub fn init<R: Runtime>() -> TauriPlugin<R, Option<mcpurify::Config>> {
+pub fn init<R: Runtime>() -> TauriPlugin<R, Option<LLMPluginConfig>> {
     Builder::default().build()
 }
