@@ -149,7 +149,7 @@ impl LLMRuntime {
     ///
     /// ## Parameters
     /// - `response` Provide a [`Sender`] where the Model response should be send
-    pub async fn run(&mut self) {
+    pub fn run(&mut self) {
         let mut model = self.model.take().unwrap();
         let config = self.config.clone();
 

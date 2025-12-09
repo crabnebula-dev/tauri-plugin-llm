@@ -80,10 +80,14 @@ impl Builder {
 
                 // manage llm runtime ?
                 app.manage({
-                    let worker = LLMRuntime::from_config(config.llmconfig.clone())?;
+                    // initialize runtime by config
+                    let mut runtime = LLMRuntime::from_config(config.llmconfig.clone())?;
+
+                    // start background thread
+                    runtime.run();
 
                     PluginState {
-                        runtime: Arc::new(Mutex::new(worker)),
+                        runtime: Arc::new(Mutex::new(runtime)),
                     }
                 });
 

@@ -22,8 +22,11 @@ tasks:
   container:
     silent: true
     desc: Runs a container and mounts the current directory into /code
+    env:  
+      HF_TOKEN:
+        sh: security find-generic-password -s "huggingface-token" -w
     cmds:
-      - $CONTAINER_RUNTIME run -ti -v $(pwd):/code --cpus 8 -m 16G development
+      - $CONTAINER_RUNTIME run -ti -e HF_TOKEN=$HF_TOKEN -v $(pwd):/code --cpus 8 -m 16G development
 
   # ensure 'models' dir exists
   model_dir:
@@ -84,9 +87,17 @@ tasks:
     desc: Fetches Llama_3.2_3B_Instruct
     dir: models/
     cmds:
-      - git clone https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct
+      - git clone https://x:$HF_TOKEN@huggingface.co/meta-llama/Llama-3.2-3B-Instruct
     status:
       - test -d Llama-3.2-3B-Instruct
+
+  fetch_Llama_3.2_3B_Instruct_safetensors:
+    silent: false
+    desc: Fetches Llama_3.2_3B_Instruct safetensors
+    dir: models/Llama-3.2-3B-Instruct
+    cmds:
+      -  git lfs pull --include "*.safetensors"
+    
 
   fetch_gemma_3_27b_it_macos:
     silent: true

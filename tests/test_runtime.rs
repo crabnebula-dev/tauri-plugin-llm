@@ -5,7 +5,7 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
-    runtime.run().await;
+    runtime.run();
 
     if let Err(_) = runtime.send(LlmMessage::Prompt {
             system:"You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
