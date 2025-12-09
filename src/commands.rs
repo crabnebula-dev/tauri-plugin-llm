@@ -5,16 +5,15 @@ use tauri::State;
 
 #[command]
 pub(crate) async fn send_message(
-    app: State<'_, PluginState>,
-    payload: LlmMessage,
+    state: State<'_, PluginState>,
+    message: LlmMessage,
 ) -> Result<LlmMessage> {
-    let runtime = app.runtime.lock().unwrap();
-
-    runtime.send(payload)
+    let runtime = state.runtime.lock().unwrap();
+    runtime.send(message)
 }
 
 #[command]
-pub(crate) async fn retry_recv(app: State<'_, PluginState>) -> Result<LlmMessage> {
-    let runtime = app.runtime.lock().unwrap();
+pub(crate) async fn retry_recv(state: State<'_, PluginState>) -> Result<LlmMessage> {
+    let runtime = state.runtime.lock().unwrap();
     runtime.retry_recv()
 }
