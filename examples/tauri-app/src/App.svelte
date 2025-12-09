@@ -1,16 +1,29 @@
 <script>
-  import Greet from './lib/Greet.svelte'
-  import { ping } from 'tauri-plugin-tauri-plugin-llm-api'
+  import Greet from "./lib/Greet.svelte";
+  import { sendMessage, retryRecv } from "tauri-plugin-llm-api";
 
-	let response = $state('')
+  let response = $state("");
 
-	function updateResponse(returnValue) {
-		response += `[${new Date().toLocaleTimeString()}] ` + (typeof returnValue === 'string' ? returnValue : JSON.stringify(returnValue)) + '<br>'
-	}
+  function updateResponse(returnValue) {
+    response +=
+      `[${new Date().toLocaleTimeString()}] ` +
+      (typeof returnValue === "string"
+        ? returnValue
+        : JSON.stringify(returnValue)) +
+      "<br>";
+  }
 
-	function _ping() {
-		ping("Pong!").then(updateResponse).catch(updateResponse)
-	}
+  function _ping() {
+    sendMessage({
+      type: "Prompt",
+      system:
+        "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ",
+      message: "Hello, World",
+      num_samples: 200,
+    })
+      .then(updateResponse)
+      .catch(updateResponse);
+  }
 </script>
 
 <main class="container">
@@ -28,19 +41,16 @@
     </a>
   </div>
 
-  <p>
-    Click on the Tauri, Vite, and Svelte logos to learn more.
-  </p>
+  <p>Click on the Tauri, Vite, and Svelte logos to learn more.</p>
 
   <div class="row">
     <Greet />
   </div>
 
   <div>
-    <button onclick="{_ping}">Ping</button>
+    <button onclick={_ping}>Ping</button>
     <div>{@html response}</div>
   </div>
-
 </main>
 
 <style>

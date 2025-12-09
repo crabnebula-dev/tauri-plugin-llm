@@ -12,6 +12,6 @@ type LlmMessage = {
 } | {
     type: "Status";
 };
-export declare function send_message(message: LlmMessage): Promise<LlmMessage | null>;
-export declare function retry_recv(): Promise<LlmMessage | null>;
+export declare function sendMessage(message: LlmMessage): Promise<LlmMessage | null>;
+export declare function retryRecv(): Promise<LlmMessage | null>;
 export {};

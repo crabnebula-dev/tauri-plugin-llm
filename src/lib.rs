@@ -69,9 +69,11 @@ impl Builder {
     }
 
     pub fn build<R: Runtime>(self) -> TauriPlugin<R, LLMPluginConfig> {
-        PluginBuilder::<R, LLMPluginConfig>::new("tauri-plugin-llm")
-            .invoke_handler(tauri::generate_handler![commands::send_message])
-            .invoke_handler(tauri::generate_handler![commands::retry_recv])
+        PluginBuilder::<R, LLMPluginConfig>::new("llm")
+            .invoke_handler(tauri::generate_handler![
+                commands::send_message,
+                commands::retry_recv
+            ])
             .setup(|app, api| {
                 let config = self
                     .plugin_config

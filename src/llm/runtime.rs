@@ -21,7 +21,6 @@ use candle_transformers::{
 };
 use std::future::Future;
 use std::{fs::File, io::Write, path::PathBuf};
-use tokio::task::JoinHandle;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
 const CHANNEL_BUFFER_SIZE: usize = 10;
@@ -30,7 +29,7 @@ pub struct LLMRuntime {
     model: Option<Box<dyn LLMRuntimeModel>>,
     config: LLMRuntimeConfig,
 
-    worker: Option<JoinHandle<()>>,
+    worker: Option<tauri::async_runtime::JoinHandle<()>>,
     control: (Sender<LlmMessage>, Option<Receiver<LlmMessage>>),
     response: (Option<Sender<LlmMessage>>, Receiver<LlmMessage>),
     exit: (Sender<()>, Option<Receiver<()>>),
@@ -159,7 +158,7 @@ impl LLMRuntime {
 
         tracing::debug!("Spawning Model in separate thread");
 
-        let worker = tokio::task::spawn_blocking(move || {
+        let worker = tauri::async_runtime::spawn_blocking(move || {
             tracing::debug!("Initializing Model");
 
             if let Err(error) = model.init(&config) {

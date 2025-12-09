@@ -26,6 +26,6 @@ impl<R: Runtime> TauriPluginLlm<R> {
     //         value: payload.value,
     //     })
     // }
-    // TODO: it probably makes sense to have send and try_recv here as well
+    // TODO: it probably makes sense to have send and retry_recv here as well
     // for those that want to use the plugin in rust
 }

@@ -89,7 +89,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
         "[a-z]{3,10}/[a-z]{3,10}"
             .prop_map(PathBuf::from)
             .prop_map(Some),
-        random_model_config(),
+        dbg!(random_model_config()),
         any::<bool>(),
     )
         .prop_map(
