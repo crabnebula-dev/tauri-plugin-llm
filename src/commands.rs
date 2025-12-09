@@ -1,22 +1,20 @@
 use crate::Result;
 use crate::{models::*, PluginState};
+use tauri::command;
 use tauri::State;
-use tauri::{command, AppHandle, Runtime};
 
 #[command]
 pub(crate) async fn send_message(
     app: State<'_, PluginState>,
     payload: LlmMessage,
 ) -> Result<LlmMessage> {
-    // access inner state
-    // app.inner().run(response)
-
     let runtime = app.runtime.lock().unwrap();
 
-    todo!()
+    runtime.send(payload)
 }
 
 #[command]
-pub(crate) async fn check_status<R: Runtime>(app: AppHandle<R>) -> Result<LlmMessage> {
-    todo!()
+pub(crate) async fn retry_recv(app: State<'_, PluginState>) -> Result<LlmMessage> {
+    let runtime = app.runtime.lock().unwrap();
+    runtime.retry_recv()
 }

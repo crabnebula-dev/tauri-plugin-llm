@@ -1,7 +1,5 @@
-use std::sync::mpsc::TryRecvError;
-
 use serde::{ser::Serializer, Serialize};
-
+use std::sync::mpsc::TryRecvError;
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
@@ -32,7 +30,7 @@ pub enum Error {
     #[error("Error Encoding Message ({0})")]
     MessageEncodingError(String),
 
-    #[error("Error receiveing message from sync channel ({0})")]
+    #[error("Error receiving message from sync channel ({0})")]
     ChannelReceiveError(#[from] TryRecvError),
 }
 
