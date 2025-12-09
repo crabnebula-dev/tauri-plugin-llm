@@ -157,6 +157,7 @@ impl LLMRuntime {
                         LlmMessage::Prompt { .. } => model.execute(message),
                         LlmMessage::Exit => break,
                         LlmMessage::Response { .. } => Err(Error::UnexpectedMessage),
+                        LlmMessage::Status => Err(Error::UnexpectedMessage),
                     };
 
                     match model_response_message {

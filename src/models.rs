@@ -12,4 +12,5 @@ pub enum LlmMessage {
         message: String,
     },
     Exit,
+    Status,
 }

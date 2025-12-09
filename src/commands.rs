@@ -1,19 +1,22 @@
+use crate::Result;
+use crate::{models::*, PluginState};
+use tauri::State;
 use tauri::{command, AppHandle, Runtime};
 
-use crate::models::*;
-use crate::Result;
-use crate::TauriPluginLlmExt;
+#[command]
+pub(crate) async fn send_message(
+    app: State<'_, PluginState>,
+    payload: LlmMessage,
+) -> Result<LlmMessage> {
+    // access inner state
+    // app.inner().run(response)
 
-// #[command]
-// pub(crate) async fn ping<R: Runtime>(
-//     app: AppHandle<R>,
-//     payload: PingRequest,
-// ) -> Result<PingResponse> {
-//     app.tauri_plugin_llm().ping(payload)
-// }
+    let runtime = app.runtime.lock().unwrap();
+
+    todo!()
+}
 
 #[command]
-pub(crate) async fn send_message<R: Runtime>(app: AppHandle<R>) {}
-
-#[command]
-pub(crate) async fn check_status<R: Runtime>(app: AppHandle<R>) {}
+pub(crate) async fn check_status<R: Runtime>(app: AppHandle<R>) -> Result<LlmMessage> {
+    todo!()
+}

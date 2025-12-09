@@ -7,6 +7,9 @@ mod llm;
 mod mobile;
 mod models;
 
+use std::sync::Arc;
+use std::sync::Mutex;
+
 #[cfg(desktop)]
 use desktop::TauriPluginLlm;
 pub use error::{Error, Result};
@@ -23,6 +26,7 @@ use tauri::{
 };
 
 use crate::llm::llmconfig::LLMRuntimeConfig;
+use crate::llm::runtime::LLMRuntime;
 
 /// Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the tauri-plugin-llm APIs.
 pub trait TauriPluginLlmExt<R: Runtime> {
@@ -48,6 +52,10 @@ pub struct Builder {
     plugin_config: Option<LLMPluginConfig>,
 }
 
+pub struct PluginState {
+    runtime: Arc<Mutex<LLMRuntime>>,
+}
+
 impl Builder {
     /// Create a new plugin builder
     pub fn new() -> Self {
@@ -60,15 +68,24 @@ impl Builder {
         self
     }
 
-    pub fn build<R: Runtime>(self) -> TauriPlugin<R, Option<LLMPluginConfig>> {
-        PluginBuilder::<R, Option<LLMPluginConfig>>::new("tauri-plugin-llm")
+    pub fn build<R: Runtime>(self) -> TauriPlugin<R, LLMPluginConfig> {
+        PluginBuilder::<R, LLMPluginConfig>::new("tauri-plugin-llm")
             .invoke_handler(tauri::generate_handler![commands::send_message])
             .invoke_handler(tauri::generate_handler![commands::check_status])
             .setup(|app, api| {
                 let config = self
                     .plugin_config
-                    .or((*api.config()).clone())
+                    .or(Some((*api.config()).clone()))
                     .ok_or(Error::MissingConfig)?;
+
+                // manage llm runtime ?
+                app.manage({
+                    let worker = LLMRuntime::from_config(config.llmconfig.clone())?;
+
+                    PluginState {
+                        runtime: Arc::new(Mutex::new(worker)),
+                    }
+                });
 
                 #[cfg(mobile)]
                 let tauri_plugin_llm = mobile::init(app, api, config)?;
@@ -84,6 +101,6 @@ impl Builder {
 }
 
 /// Initializes the plugin.
-pub fn init<R: Runtime>() -> TauriPlugin<R, Option<LLMPluginConfig>> {
+pub fn init<R: Runtime>() -> TauriPlugin<R, LLMPluginConfig> {
     Builder::default().build()
 }
