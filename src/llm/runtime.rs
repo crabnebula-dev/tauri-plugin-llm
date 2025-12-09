@@ -201,6 +201,10 @@ impl LLMRuntime {
     }
 
     pub fn send(&self, msg: LlmMessage) -> Result<LlmMessage, Error> {
+        // FIXME: this panics too often eg:
+        // 2025-12-09T21:19:58.382077Z ERROR tauri_plugin_llm::llm::runtime: Error initializing model: Missing config (Tokenizer config is missing)
+        // thread 'tokio-runtime-worker' (6661081) panicked at src/llm/runtime.rs:204:34:
+        // Failure to send message: SendError { .. }
         self.control.0.send(msg).expect("Failure to send message");
         Ok(self.response.1.try_recv()?)
     }
