@@ -1,5 +1,5 @@
 import path from "path";
-import { spawn, spawnSync } from "child_process";
+import { spawn, spawnSync, execSync } from "child_process";
 import { fileURLToPath } from "url";
 import { Socket } from "net";
 import { CrabNebulaCloudReporter } from "@crabnebula/webdriverio-cloud-reporter";
@@ -113,6 +113,8 @@ export const config = {
   onComplete: () => {
     killedTestRunnerBackend = true;
     testRunnerBackend?.kill();
+    // TODO: the runner backend just doesn't want to die
+    execSync("kill -9 $(lsof -t -i :3000)");
   },
 };
 
