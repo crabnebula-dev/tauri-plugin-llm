@@ -13,7 +13,8 @@
         "penalty": 1.0,
         "seed": "Random",
         "thinking": false,
-        "streaming": true
+        "streaming": true,
+        "sampling_config": "TopK"
     },
     "verbose": true
 }

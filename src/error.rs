@@ -1,3 +1,5 @@
+use std::sync::mpsc::TryRecvError;
+
 use serde::{ser::Serializer, Serialize};
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -25,10 +27,13 @@ pub enum Error {
     UnexpectedMessage,
 
     #[error("Error Loading File ({0})")]
-    LoadingFile(String),
+    LoadingFile(String, String),
 
     #[error("Error Encoding Message ({0})")]
     MessageEncodingError(String),
+
+    #[error("Error receiveing message from sync channel ({0})")]
+    ChannelReceiveError(#[from] TryRecvError),
 }
 
 impl Serialize for Error {

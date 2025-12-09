@@ -3,6 +3,7 @@ version: '3'
 env:
   # global env setting to eny resolving large file pointers to actual blobs
   GIT_LFS_SKIP_SMUDGE: 1
+  CONTAINER_RUNTIME: container
 
 tasks:
   default:
@@ -22,7 +23,7 @@ tasks:
     silent: true
     desc: Runs a container and mounts the current directory into /code
     cmds:
-      - container run -ti -v $(pwd):/code --cpus 8 -m 16G development
+      - $CONTAINER_RUNTIME run -ti -v $(pwd):/code --cpus 8 -m 16G development
 
   # ensure 'models' dir exists
   model_dir:
@@ -54,6 +55,17 @@ tasks:
       - git clone https://huggingface.co/unsloth/Qwen3-4B-GGUF
     status:
       - test -d Qwen3-4B-GGUF
+
+  # Install individual Qwen3 tokenizer.json
+  fetch_Qwen3_4B_Instruct_2507_FP8_tokenizer.json:
+    deps: [model_dir, fetch_Qwen3_4B_Instruct_2507_FP8]
+    silent: true
+    desc: Fetches Qwen3_4B_Instruct_2507_FP8 tokenizer.json
+    dir: models/Qwen3-4B-Instruct-2507-FP8
+    cmds:
+      - git lfs pull --include "tokenizer.json"
+    status:
+      - bash -c 'git lfs pointer --check --file Qwen3_4B_Instruct_2507_FP8/tokenizer.json'
 
   # Install individual Qwen3 model weight
   fetch_Qwen3_4B_K_M_GGUF:

@@ -8,6 +8,7 @@ use candle_core::Device;
 use serde::Deserialize;
 use std::sync::mpsc::{Receiver, Sender};
 use tokenizers::Tokenizer;
+use tracing::trace;
 
 use anyhow::{Error as E, Result};
 use candle_core::{quantized::gguf_file, DType, Tensor};
@@ -28,6 +29,11 @@ const CHANNEL_BUFFER_SIZE: usize = 10;
 pub struct LLMRuntime {
     model: Option<Box<dyn LLMRuntimeModel>>,
     config: LLMRuntimeConfig,
+
+    worker: Option<JoinHandle<()>>,
+    control: (Sender<LlmMessage>, Option<Receiver<LlmMessage>>),
+    response: (Option<Sender<LlmMessage>>, Receiver<LlmMessage>),
+    exit: (Sender<()>, Option<Receiver<()>>),
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
@@ -43,7 +49,13 @@ pub trait LLMRuntimeModel: Send + Sync {
     fn apply_chat_template(&mut self, template: String);
 }
 
-/// Enable streaming model responses
+impl Drop for LLMRuntime {
+    fn drop(&mut self) {
+        if let Err(error) = self.exit.0.send(()) {
+            tracing::error!("Unable to send Exit signal to LLMRuntime: {}", error);
+        }
+    }
+}
 
 impl LLMRuntime {
     /// Creates a new LLM
@@ -53,11 +65,20 @@ impl LLMRuntime {
             Registry::default().with(verbose).init();
         }
         let device = Self::load_default_device();
-        let model = Self::detect_model(&config, device)?;
+        let model = Self::detect_model(&config.clone(), device)?;
+
+        let (ctrl_tx, ctrl_rx) = std::sync::mpsc::channel();
+        let (response_tx, response_rx) = std::sync::mpsc::channel();
+        let (exit_tx, exit_rx) = std::sync::mpsc::channel();
 
         Ok(Self {
             model: Some(Box::new(model)),
             config,
+
+            worker: None,
+            control: (ctrl_tx, Some(ctrl_rx)),
+            response: (Some(response_tx), response_rx),
+            exit: (exit_tx, Some(exit_rx)),
         })
     }
 
@@ -128,14 +149,13 @@ impl LLMRuntime {
     ///
     /// ## Parameters
     /// - `response` Provide a [`Sender`] where the Model response should be send
-    pub async fn run(
-        &mut self,
-        response: Sender<LlmMessage>,
-    ) -> Result<(Sender<LlmMessage>, JoinHandle<()>), Error> {
-        let (tx, rx): (Sender<LlmMessage>, Receiver<LlmMessage>) = std::sync::mpsc::channel();
-
+    pub async fn run(&mut self) {
         let mut model = self.model.take().unwrap();
         let config = self.config.clone();
+
+        let control_rx = self.control.1.take().unwrap();
+        let response_tx = self.response.0.take().unwrap();
+        let exit_rx = self.exit.1.take().unwrap();
 
         tracing::debug!("Spawning Model in separate thread");
 
@@ -150,7 +170,7 @@ impl LLMRuntime {
             }
 
             loop {
-                if let Ok(message) = rx.recv() {
+                if let Ok(message) = control_rx.try_recv() {
                     tracing::debug!("Sending message to model");
 
                     let model_response_message = match message {
@@ -162,7 +182,7 @@ impl LLMRuntime {
 
                     match model_response_message {
                         Ok(message) => {
-                            if let Err(error) = response.send(message) {
+                            if let Err(error) = response_tx.send(message) {
                                 tracing::error!("Error sending model response: {}", error)
                             }
                         }
@@ -171,8 +191,29 @@ impl LLMRuntime {
                         }
                     }
                 }
+
+                if let Ok(_) = exit_rx.try_recv() {
+                    break;
+                }
             }
         });
-        Ok((tx, worker))
+
+        self.worker = Some(worker);
+    }
+
+    pub fn send(&self, msg: LlmMessage) -> Result<LlmMessage, Error> {
+        self.control.0.send(msg).expect("Failure to send message");
+        Ok(self.response.1.try_recv()?)
+    }
+
+    pub fn retry_recv(&self) -> Result<LlmMessage, Error> {
+        Ok(self.response.1.try_recv()?)
+    }
+
+    pub fn shutdown(&self) {
+        self.exit
+            .0
+            .send(())
+            .expect("Error sending termination signal")
     }
 }

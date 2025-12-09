@@ -123,7 +123,9 @@ impl LLMRuntimeModel for Qwen3Model {
             Tokenizer::from_file(&config.tokenizer_config_file.as_ref().ok_or(
                 Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
             )?)
-            .map_err(|e| Error::LoadingFile(e.to_string()))?,
+            .map_err(|e| {
+                Error::LoadingFile(format!("{:?}", config.tokenizer_config_file), e.to_string())
+            })?,
         );
 
         // Load weights
@@ -131,8 +133,9 @@ impl LLMRuntimeModel for Qwen3Model {
             let mut model_file = File::open(config.model_file.as_ref().ok_or(
                 Error::MissingConfigLLM("Model config file is missing".to_owned()),
             )?)?;
-            let model = gguf_file::Content::read(&mut model_file)
-                .map_err(|e| Error::LoadingFile(e.to_string()))?;
+            let model = gguf_file::Content::read(&mut model_file).map_err(|e| {
+                Error::LoadingFile(format!("{:?}", config.model_file), e.to_string())
+            })?;
 
             Some(
                 Qwen3::from_gguf(
@@ -140,7 +143,7 @@ impl LLMRuntimeModel for Qwen3Model {
                     &mut model_file,
                     self.device.as_ref().ok_or(Error::MissingDevice)?,
                 )
-                .map_err(|e| Error::LoadingFile(e.to_string()))?,
+                .map_err(|e| Error::LoadingFile(format!("{:?}", model_file), e.to_string()))?,
             )
         };
 
