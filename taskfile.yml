@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 env:
   # global env setting to eny resolving large file pointers to actual blobs
@@ -8,7 +8,7 @@ env:
 tasks:
   default:
     silent: true
-    desc: List all available tasks 
+    desc: List all available tasks
     cmds:
       - task --list-all
 
@@ -22,7 +22,7 @@ tasks:
   container:
     silent: true
     desc: Runs a container and mounts the current directory into /code
-    env:  
+    env:
       HF_TOKEN:
         sh: security find-generic-password -s "huggingface-token" -w
     cmds:
@@ -32,7 +32,7 @@ tasks:
   model_dir:
     desc: Create the directory 'model', if it does not exist
     silent: true
-    cmds: 
+    cmds:
       - mkdir models
     status:
       - test -d models
@@ -43,9 +43,9 @@ tasks:
     silent: true
     desc: Fetches Qwen3-4B-Instruct-2507-FP8 if  not available. This directory contains the `config.json`, `tokenizer.json`
     dir: models/
-    cmds: 
+    cmds:
       - git clone https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507-FP8
-      - cd Qwen3-4B-Instruct-2507-FP8 && git lfs pull --inlude "model.safetensors"
+      - cd Qwen3-4B-Instruct-2507-FP8 && git lfs pull --include "model.safetensors"
     status:
       - test -d Qwen3-4B-Instruct-2507-FP8
 
@@ -96,15 +96,14 @@ tasks:
     desc: Fetches Llama_3.2_3B_Instruct safetensors
     dir: models/Llama-3.2-3B-Instruct
     cmds:
-      -  git lfs pull --include "*.safetensors"
-    
+      - git lfs pull --include "*.safetensors"
 
   fetch_gemma_3_27b_it_macos:
     silent: true
     platforms: [darwin]
     desc: Fetches gemma-3-27b-it
     dir: models/
-    env:  
+    env:
       HF_TOKEN:
         sh: security find-generic-password -s "huggingface-token" -w
     cmds:
@@ -119,4 +118,3 @@ tasks:
     dir: models/gemma-3-27b-it
     cmds:
       - git lfs pull --include "*.safetensors"
-
