@@ -27,32 +27,25 @@ tokio = { version = "1.48", features = ["full"] }
 rand = "0.9"
 failsafe = "1"
 
-# for LLM inference
-
-
 # for tracing
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json"] }
-tracing-appender = "0.2"
+tracing             = {version = "0.1"}
+tracing-subscriber  = {version = "0.3.20", features = ["json"]}
+tracing-appender    = {version = "0.2.3"}
 
-tokenizers = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
+# for LLM inference
+tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
+# for LLM inference (without metal)
 [target.'cfg(not(target_os="macos"))'.dependencies]
-candle-core = { git = "https://github.com/huggingface/candle.git", features = [] }
-candle-nn = { git = "https://github.com/huggingface/candle.git", features = [] }
-candle-transformers = { git = "https://github.com/huggingface/candle.git", features = [] }
+candle-core         = { git = "https://github.com/huggingface/candle.git"  }
+candle-nn           = { git = "https://github.com/huggingface/candle.git"  }
+candle-transformers = { git = "https://github.com/huggingface/candle.git"  }
 
+# for LLM inference
 [target.'cfg(target_os="macos")'.dependencies]
-candle-core = { git = "https://github.com/huggingface/candle.git", features = [
-    "metal",
-] }
-candle-nn = { git = "https://github.com/huggingface/candle.git", features = [
-    "metal",
-] }
-candle-transformers = { git = "https://github.com/huggingface/candle.git", features = [
-    "metal",
-] }
-
+candle-core         = { git = "https://github.com/huggingface/candle.git", features = ["metal"] }
+candle-nn           = { git = "https://github.com/huggingface/candle.git", features = ["metal"] }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", features = ["metal"] }
 
 [build-dependencies]
 tauri-plugin = { version = "2.5.2", features = ["build"] }
