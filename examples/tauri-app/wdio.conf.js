@@ -5,8 +5,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-// TODO: relative path
-const applicationPath = "/Users/fabianlars/dev/_target/debug/tauri-app";
+const applicationPath = path.resolve(__dirname, "../../target/debug/tauri-app");
 
 // keep track of the `tauri-driver` child process
 let tauriDriver;
@@ -35,7 +34,7 @@ export const config = {
   // ensure the rust project is built since we expect this binary to exist for the webdriver sessions
   onPrepare: () => {
     spawnSync("pnpm", ["tauri", "build", "--debug", "--no-bundle"], {
-      cwd: path.resolve(__dirname, "../.."),
+      cwd: path.resolve(__dirname, "src-tauri"),
       stdio: "inherit",
       shell: true,
     });

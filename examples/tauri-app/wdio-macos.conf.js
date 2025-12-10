@@ -8,8 +8,7 @@ import { waitTestRunnerBackendReady } from "@crabnebula/test-runner-backend";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-// TODO: relative path
-const applicationPath = "/Users/fabianlars/dev/_target/debug/tauri-app";
+const applicationPath = path.resolve(__dirname, "../../target/debug/tauri-app");
 
 let wkwebdriver;
 // keep track of the `tauri-driver` child process
