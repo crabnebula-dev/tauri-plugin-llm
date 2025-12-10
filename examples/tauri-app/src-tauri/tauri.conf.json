@@ -37,11 +37,11 @@
   "plugins": {
     "llm": {
       "llmconfig": {
-        "tokenizer_config_file": "/Users/fabianlars/dev/crabnebula/tauri-plugin-llm/models/Qwen3-4B-Instruct-2507-FP8/tokenizer.json",
-        "model_config_file": "/Users/fabianlars/dev/crabnebula/tauri-plugin-llm/models/Qwen3-4B-Instruct-2507-FP8/config.json",
+        "tokenizer_config_file": "/code/models/Qwen3-4B-Instruct-2507-FP8/tokenizer.json",
+        "model_config_file": "/code/models/Qwen3-4B-Instruct-2507-FP8/config.json",
         "model_index_file": "",
-        "model_file": "/Users/fabianlars/dev/crabnebula/tauri-plugin-llm/models/Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf",
-        "model_dir": "/Users/fabianlars/dev/crabnebula/tauri-plugin-llm/models/Qwen3-4B-GGUF/",
+        "model_file": "/code/models/Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf",
+        "model_dir": "/code/models/Qwen3-4B-GGUF/",
         "model_config": {
           "top_k": 20,
           "top_p": 0.8,

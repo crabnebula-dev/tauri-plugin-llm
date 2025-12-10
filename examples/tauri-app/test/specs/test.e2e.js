@@ -10,7 +10,7 @@ describe("some description lol", () => {
         return (await this.getText()) !== "";
       },
       {
-        timeout: 60000,
+        timeout: 600000,
         timeoutMsg: "expected response after 60s",
         interval: 1000,
       }

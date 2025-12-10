@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 // TODO: relative path
-const applicationPath = "/Users/fabianlars/dev/_target/debug/tauri-app";
+const applicationPath = "/code/target/debug/tauri-app";
 
 // keep track of the `tauri-driver` child process
 let tauriDriver;

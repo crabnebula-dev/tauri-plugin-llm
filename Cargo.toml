@@ -19,13 +19,30 @@ tauri = { version = "2.9.4" }
 serde = "1"
 serde_json = "1"
 thiserror = "2"
-mcpurify = { path = "../mcpurify", optional = true }
+
+# mcpurify = { path = "../mcpurify", optional = true }
+
 anyhow = "1"
 tokio = { version = "1.48", features = ["full"] }
 rand = "0.9"
 failsafe = "1"
 
 # for LLM inference
+
+
+# for tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json"] }
+tracing-appender = "0.2"
+
+tokenizers = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
+
+[target.'cfg(not(target_os="macos"))'.dependencies]
+candle-core = { git = "https://github.com/huggingface/candle.git", features = [] }
+candle-nn = { git = "https://github.com/huggingface/candle.git", features = [] }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", features = [] }
+
+[target.'cfg(target_os="macos")'.dependencies]
 candle-core = { git = "https://github.com/huggingface/candle.git", features = [
     "metal",
 ] }
@@ -35,12 +52,7 @@ candle-nn = { git = "https://github.com/huggingface/candle.git", features = [
 candle-transformers = { git = "https://github.com/huggingface/candle.git", features = [
     "metal",
 ] }
-tokenizers = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
-# for tracing
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json"] }
-tracing-appender = "0.2"
 
 [build-dependencies]
 tauri-plugin = { version = "2.5.2", features = ["build"] }
@@ -49,8 +61,9 @@ tauri-plugin = { version = "2.5.2", features = ["build"] }
 proptest = "1"
 
 [features]
-default = ["feat_safetensors", "apple_metal"]
+default = ["feat_safetensors"]
 feat_safetensors = []
 cuda = []
 apple_metal = []
-mcpurify = ["dep:mcpurify"]
+
+# mcpurify = ["dep:mcpurify"]
