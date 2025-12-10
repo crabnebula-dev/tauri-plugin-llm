@@ -32,6 +32,9 @@ pub enum Error {
 
     #[error("Error receiving message from sync channel ({0})")]
     ChannelReceiveError(#[from] TryRecvError),
+
+    #[error("Error deserialization from JSON")]
+    JsonSerdeError(#[from] serde_json::Error),
 }
 
 impl Serialize for Error {

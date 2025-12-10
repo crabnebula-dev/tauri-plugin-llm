@@ -1,4 +1,5 @@
 //! LLM Inference
+mod llama3;
 mod mock;
 mod qwen3;
 
