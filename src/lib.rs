@@ -42,9 +42,9 @@ impl<R: Runtime, T: Manager<R>> crate::TauriPluginLlmExt<R> for T {
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct LLMPluginConfig {
     #[cfg(feature = "mcpurify")]
-    mcpurify_config: Option<mcpurify::Config>,
+    pub mcpurify_config: Option<mcpurify::Config>,
 
-    llmconfig: LLMRuntimeConfig,
+    pub llmconfig: LLMRuntimeConfig,
 }
 
 #[derive(Default)]
