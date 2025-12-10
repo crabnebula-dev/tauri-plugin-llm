@@ -1,4 +1,6 @@
 <script>
+  import { onMount } from "svelte";
+  import { platform } from "@tauri-apps/plugin-os";
   import { retryRecv, sendMessage } from "tauri-plugin-llm-api";
 
   let promptMsg = $state("");
@@ -30,6 +32,14 @@
 
     setTimeout(recv, 1000);
   }
+
+  onMount(() => {
+    if (platform() === "linux") {
+      // WebKitWebDriver doesn't seem to actually work well so we do the interaction here.
+      promptMsg = "Hello from Linux!";
+      send();
+    }
+  });
 </script>
 
 <div>

@@ -14,7 +14,6 @@ use std::sync::Mutex;
 use desktop::TauriPluginLlm;
 pub use error::{Error, Result};
 pub use llm::llmconfig;
-pub use llm::loaders;
 pub use llm::runtime;
 #[cfg(mobile)]
 use mobile::TauriPluginLlm;

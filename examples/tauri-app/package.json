@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-os": "~2.3.2",
     "tauri-plugin-llm-api": "file:../../"
   },
   "devDependencies": {
