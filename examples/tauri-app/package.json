@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "test": "wdio run wdio.conf.js"
+    "test": "wdio run wdio.conf.json",
+    "test:macos": "wdio run wdio-macos.conf.js"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
