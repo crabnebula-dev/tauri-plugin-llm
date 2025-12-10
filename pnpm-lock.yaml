@@ -32,7 +32,7 @@ importers:
         version: 2.9.1
       tauri-plugin-llm-api:
         specifier: file:../../
-        version: 'tauri-plugin-tauri-plugin-llm-api@file:'
+        version: 'file:'
     devDependencies:
       '@crabnebula/tauri-driver':
         specifier: ^2.0.8
@@ -2246,7 +2246,7 @@ packages:
   tar-stream@3.1.7:
     resolution: {integrity: sha512-qJj60CXt7IU1Ffyc3NJMjh6EkuCFej46zUqJ4J7pqYlThyd9bO0XBTmcOIhSzZJVWfsLks0+nle/j538YAW9RQ==}
 
-  'tauri-plugin-tauri-plugin-llm-api@file:':
+  'tauri-plugin-llm-api@file:':
     resolution: {directory: '', type: directory}
 
   text-decoder@1.2.3:
@@ -4676,7 +4676,7 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
-  'tauri-plugin-tauri-plugin-llm-api@file:':
+  'tauri-plugin-llm-api@file:':
     dependencies:
       '@tauri-apps/api': 2.9.1
 
