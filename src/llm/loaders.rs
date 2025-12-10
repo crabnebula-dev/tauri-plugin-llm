@@ -1,1 +1,1 @@
-mod safetensor;
+pub mod safetensor;

@@ -1,8 +1,10 @@
 //! LLM Inference
 mod llama3;
+mod mock;
 mod qwen3;
 
 use crate::error::Error;
+use crate::runtime::mock::Mock;
 use crate::LlmMessage;
 use crate::{llm::llmconfig::LLMRuntimeConfig, llmconfig::ModelConfig, runtime::qwen3::Qwen3Model};
 use candle_core::Device;
@@ -73,7 +75,7 @@ impl LLMRuntime {
         let (exit_tx, exit_rx) = std::sync::mpsc::channel();
 
         Ok(Self {
-            model: Some(Box::new(model)),
+            model: Some(model),
             config,
 
             worker: None,
@@ -86,7 +88,7 @@ impl LLMRuntime {
     fn detect_model(
         config: &LLMRuntimeConfig,
         device: Device,
-    ) -> Result<impl LLMRuntimeModel, Error> {
+    ) -> Result<Box<dyn LLMRuntimeModel>, Error> {
         let LLMRuntimeConfig { model_config, .. } = config.clone();
 
         let ModelConfig {
@@ -100,7 +102,7 @@ impl LLMRuntime {
         } = model_config;
 
         match &name {
-            _ if name.contains("Qwen3") => Ok(Qwen3Model {
+            _ if name.contains("Qwen3") => Ok(Box::new(Qwen3Model {
                 streaming,
                 device: Some(device),
                 tokenizer: None,
@@ -110,7 +112,8 @@ impl LLMRuntime {
                 thinking,
                 weights: None,
                 logits_processor: None,
-            }),
+            })),
+            _ if name.contains("Mock") => Ok(Box::new(Mock)),
             _ => Err(Error::ExecutionError("".to_string())),
         }
     }
