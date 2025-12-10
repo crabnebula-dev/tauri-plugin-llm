@@ -1,4 +1,5 @@
 use crate::Error;
+use candle_core::safetensors::MmapedSafetensors;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -52,3 +53,16 @@ impl IndexFile {
     }
 }
 
+pub fn load_memmapped_safetensors<P>(
+    idxf: &mut IndexFile,
+    dir: P,
+) -> Result<MmapedSafetensors, Error>
+where
+    P: AsRef<Path>,
+{
+    let files = idxf.files(dir);
+    unsafe {
+        MmapedSafetensors::multi(&files)
+            .map_err(|e| Error::LoadingFile(format!("{:?}", files), e.to_string()))
+    }
+}
