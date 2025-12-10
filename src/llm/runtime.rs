@@ -1,4 +1,5 @@
 //! LLM Inference
+mod llama3;
 mod qwen3;
 
 use crate::error::Error;

@@ -5,4 +5,5 @@
 //! and text generation models.
 
 pub mod llmconfig;
+pub mod loaders;
 pub mod runtime;

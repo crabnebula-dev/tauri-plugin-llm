@@ -1,12 +1,12 @@
 [package]
-name = "tauri-plugin-llm"
-version = "0.1.0"
-authors = ["Matthias Kandora<matthias@crabnebula.dev>", "Fabian-Lars Scheidt<fabianlars@crabnebula.dev>"]
-description = "Load LLMs and makes them accessible as Tauri plugin"
-edition = "2021"
-rust-version = "1.77.2"
-exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
-links = "tauri-plugin-llm"
+name                = "tauri-plugin-llm"
+version             = "0.1.0"
+authors             = ["Matthias Kandora<matthias@crabnebula.dev>", "Fabian-Lars Scheidt<fabianlars@crabnebula.dev>"]
+description         = "Load LLMs and makes them accessible as Tauri plugin"
+edition             = "2021"
+rust-version        = "1.77.2"
+links               = "tauri-plugin-llm"
+exclude             = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
 
 [dependencies]
 tauri = { version = "2.9.4" }
@@ -40,8 +40,8 @@ proptest                = { version = "1.9.0" }
 tauri-plugin-automation = { version = "0.1.1"}
 
 [features]
-default = ["feat_safetensors", "apple_metal"]
-feat_safetensors = []
-cuda    = []
-apple_metal   = []
-mcpurify  = ["dep:mcpurify"]
+default             = ["feat_safetensors", "apple_metal"]
+feat_safetensors    = []
+cuda                = []
+apple_metal         = []
+mcpurify            = ["dep:mcpurify"]
