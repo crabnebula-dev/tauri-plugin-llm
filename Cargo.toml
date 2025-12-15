@@ -12,7 +12,7 @@ exclude             = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
 tauri = { version = "2.9.4" }
 serde = "1.0"
 thiserror = "2"
-mcpurify = { path = "../mcpurify", optional = true }
+
 anyhow              = {version = "1.0"}
 serde_json          = {version = "1.0"}
 tokio               = {version = "1.48.0", features = ["full"]}
@@ -32,6 +32,9 @@ tokenizers          = { git = "https://github.com/huggingface/tokenizers", branc
 candle-core         = { git = "https://github.com/huggingface/candle.git"  }
 candle-nn           = { git = "https://github.com/huggingface/candle.git"  }
 candle-transformers = { git = "https://github.com/huggingface/candle.git"  }
+
+# Optional dependency to MCPurify. Please check the LICENSE before enabling MCPurify.
+mcpurify            = { git = "https://github.com/crabnebula-dev/MCPurify.git", optional = true }
 
 # for LLM inference
 [target.'cfg(target_os="macos")'.dependencies]

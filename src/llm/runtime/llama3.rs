@@ -7,7 +7,6 @@ use crate::runtime::{LLMRuntimeModel, LlmMessage};
 use candle_core::Device;
 use candle_core::Tensor;
 use candle_nn::VarBuilder;
-// use candle_transformers::quantized_var_builder::VarBuilder;
 
 use candle_transformers::models::llama as model;
 use model::{Llama, LlamaConfig};
