@@ -3,17 +3,11 @@ use crate::runtime::LLMRuntimeModel;
 pub struct Mock;
 
 impl LLMRuntimeModel for Mock {
-    fn execute(
-        &mut self,
-        message: crate::LlmMessage,
-    ) -> anyhow::Result<crate::LlmMessage, crate::Error> {
+    fn execute(&mut self, message: crate::LlmMessage) -> Result<crate::LlmMessage, crate::Error> {
         Ok(message)
     }
 
-    fn init(
-        &mut self,
-        config: &crate::llmconfig::LLMRuntimeConfig,
-    ) -> anyhow::Result<(), crate::Error> {
+    fn init(&mut self, config: &crate::llmconfig::LLMRuntimeConfig) -> Result<(), crate::Error> {
         Ok(())
     }
 
