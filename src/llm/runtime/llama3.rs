@@ -117,6 +117,15 @@ impl LLMRuntimeModel for LLama3Model {
             });
         }
 
+        if let LlmMessage::Binary {
+            system,
+            data,
+            num_samples,
+        } = message
+        {
+            // todo impl
+        }
+
         Err(Error::ExecutionError("".to_string()))
     }
 

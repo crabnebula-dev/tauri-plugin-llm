@@ -8,6 +8,11 @@ pub enum LlmMessage {
         message: String,
         num_samples: usize,
     },
+    Binary {
+        system: String,
+        data: Vec<u8>,
+        num_samples: usize,
+    },
     Response {
         error: Option<String>,
         message: String,

@@ -108,6 +108,16 @@ impl LLMRuntimeModel for Qwen3Model {
             });
         }
 
+        if let LlmMessage::Binary {
+            system,
+            data,
+            num_samples,
+        } = message
+        {
+
+            // todo impl
+        }
+
         Err(Error::ExecutionError("".to_string()))
     }
 

@@ -193,7 +193,10 @@ impl LLMRuntime {
                     tracing::debug!("Sending message to model");
 
                     let model_response_message = match message {
-                        LlmMessage::Prompt { .. } => model.execute(message),
+                        LlmMessage::Prompt { .. } | LlmMessage::Binary { .. } => {
+                            model.execute(message)
+                        }
+
                         LlmMessage::Exit => break,
                         LlmMessage::Response { .. } => Err(Error::UnexpectedMessage),
                         LlmMessage::Status => Err(Error::UnexpectedMessage),
