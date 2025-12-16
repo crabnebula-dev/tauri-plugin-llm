@@ -7,6 +7,7 @@
   ],
   "permissions": [
     "core:default",
-    "tauri-plugin-llm:default"
+    "llm:default",
+    "os:default"
   ]
 }

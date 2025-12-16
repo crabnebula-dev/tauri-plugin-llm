@@ -20,7 +20,7 @@ type LlmMessage =
     };
 
 /// Send a message to the LLM backend
-export async function send_message(
+export async function sendMessage(
   message: LlmMessage
 ): Promise<LlmMessage | null> {
   return await invoke("plugin:llm|send_message", {
@@ -28,6 +28,6 @@ export async function send_message(
   });
 }
 
-export async function retry_recv(): Promise<LlmMessage | null> {
-  return await invoke("plugin:llm|retry_recv", {});
+export async function retryRecv(): Promise<LlmMessage | null> {
+  return await invoke("plugin:llm|retry_recv");
 }

@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-const COMMANDS: &[&str] = &["ping"];
+const COMMANDS: &[&str] = &["ping", "send_message", "retry_recv"];
 
 fn main() {
     tauri_plugin::Builder::new(COMMANDS)
@@ -24,7 +24,7 @@ fn main() {
 
     println!("Building Go library with Clang...");
     let status = Command::new("go")
-        .args(&["build", "-buildmode=c-archive", "-o"])
+        .args(["build", "-buildmode=c-archive", "-o"])
         .arg(&lib_output)
         .arg("lib.go")
         .current_dir(&go_dir)
