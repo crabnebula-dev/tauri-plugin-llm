@@ -4,6 +4,7 @@ mod mock;
 mod qwen3;
 
 use crate::error::Error;
+use crate::runtime::llama3::LLama3Model;
 use crate::runtime::mock::Mock;
 use crate::LlmMessage;
 use crate::{llm::llmconfig::LLMRuntimeConfig, llmconfig::ModelConfig, runtime::qwen3::Qwen3Model};
@@ -97,6 +98,7 @@ impl LLMRuntime {
             name,
             thinking,
             streaming,
+            penalty,
             ..
         } = model_config;
 
@@ -113,7 +115,20 @@ impl LLMRuntime {
                 logits_processor: None,
             })),
             _ if name.contains("Mock") => Ok(Box::new(Mock)),
-            _ => Err(Error::ExecutionError("".to_string())),
+            _ if name.contains("Llama") => Ok(Box::new(LLama3Model {
+                streaming,
+                device: Some(device),
+                tokenizer: None,
+                top_k,
+                top_p,
+                temperature,
+                thinking,
+                weights: None,
+                logits_processor: None,
+                cache: None,
+                penalty,
+            })),
+            _ => Err(Error::ExecutionError(format!("Unknown Model Name: {name}"))),
         }
     }
 
@@ -177,7 +192,10 @@ impl LLMRuntime {
                     tracing::debug!("Sending message to model");
 
                     let model_response_message = match message {
-                        LlmMessage::Prompt { .. } => model.execute(message),
+                        LlmMessage::Prompt { .. } | LlmMessage::Binary { .. } => {
+                            model.execute(message)
+                        }
+
                         LlmMessage::Exit => break,
                         LlmMessage::Response { .. } => Err(Error::UnexpectedMessage),
                         LlmMessage::Status => Err(Error::UnexpectedMessage),

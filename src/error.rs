@@ -35,6 +35,9 @@ pub enum Error {
 
     #[error("Error deserialization from JSON")]
     JsonSerdeError(#[from] serde_json::Error),
+
+    #[error("Error calling foreign function: ({0})")]
+    Ffi(String),
 }
 
 impl Serialize for Error {

@@ -28,6 +28,17 @@ tasks:
     cmds:
       - $CONTAINER_RUNTIME run -ti -e HF_TOKEN=$HF_TOKEN -v $(pwd):/code --cpus 8 -m 16G development
 
+  build_ffi:
+    silent: false
+    desc: Build the foreign code dependencies. Requires Go >= 1.25. (Deprecated: Check build.rs)
+    env: 
+      CGO_ENABLED: 1
+      CC: clang
+      CXX: clang
+    dir: ffi/go
+    cmds:
+      - go build -buildmode=c-archive -o ../libs/libgotproc.a lib.go
+
   # ensure 'models' dir exists
   model_dir:
     desc: Create the directory 'model', if it does not exist
