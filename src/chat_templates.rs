@@ -77,20 +77,7 @@ impl TemplateProcessor {
     }
 
     fn render_go_template(&self, source: &str, input: &str) -> Result<String, Error> {
-        unsafe {
-            let c_template = CString::new(source).map_err(|e| Error::Ffi(e.to_string()))?;
-            let c_input_json = CString::new(input).map_err(|e| Error::Ffi(e.to_string()))?;
-            let result_ptr = RenderTemplateString(c_template.as_ptr(), c_input_json.as_ptr());
-            let result = CStr::from_ptr(result_ptr).to_string_lossy().into_owned();
-            FreeString(result_ptr as *const c_char);
-
-            // check for errors
-            if result.starts_with("ERROR: ") {
-                return Err(Error::Ffi(result));
-            }
-
-            Ok(result)
-        }
+        render_template(source, input)
     }
 
     fn render_jinja_template<S>(&self, source: &str, input: S) -> Result<String, Error>
@@ -111,9 +98,8 @@ impl TemplateProcessor {
     }
 }
 
-#[deprecated]
 /// Takes a Go template as &str, applies the json variables into it and returns the rendered template
-pub fn render_template(template: &str, input_json: &str) -> Result<String, Error> {
+fn render_template(template: &str, input_json: &str) -> Result<String, Error> {
     unsafe {
         let c_template = CString::new(template).map_err(|e| Error::Ffi(e.to_string()))?;
         let c_input_json = CString::new(input_json).map_err(|e| Error::Ffi(e.to_string()))?;

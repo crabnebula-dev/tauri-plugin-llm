@@ -7,7 +7,7 @@ impl LLMRuntimeModel for Mock {
         Ok(message)
     }
 
-    fn init(&mut self, config: &crate::llmconfig::LLMRuntimeConfig) -> Result<(), crate::Error> {
+    fn init(&mut self, config: &crate::LLMRuntimeConfig) -> Result<(), crate::Error> {
         Ok(())
     }
 

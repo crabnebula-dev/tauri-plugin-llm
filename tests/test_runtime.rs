@@ -1,4 +1,4 @@
-use tauri_plugin_llm::{llmconfig::LLMRuntimeConfig, runtime::LLMRuntime, Error, LlmMessage};
+use tauri_plugin_llm::{runtime::LLMRuntime, Error, LLMRuntimeConfig, LlmMessage};
 
 #[tokio::test]
 async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {

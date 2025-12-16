@@ -1,4 +1,4 @@
-use tauri_plugin_llm::render_template;
+use tauri_plugin_llm::{TemplateProcessor};
 
 #[test]
 fn test_qwen3_chat_go_template() {
@@ -16,7 +16,8 @@ fn test_qwen3_chat_go_template() {
     )
     .to_string();
 
-    let result = render_template(&chat_template_file_contents, &input_json);
+    let tmpl_proc = TemplateProcessor::new(tauri_plugin_llm::TemplateType::GoTemplate);
+    let result = tmpl_proc.render(&chat_template_file_contents, &input_json);
 
     assert!(result.is_ok(), "{:?}", result);
 

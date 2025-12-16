@@ -1,6 +1,6 @@
 use proptest::prelude::*;
 use std::path::PathBuf;
-use tauri_plugin_llm::llmconfig::{
+use tauri_plugin_llm::{
     GenerationSeed, LLMRuntimeConfig, ModelConfig, ModelFileType, SamplingConfig,
 };
 
