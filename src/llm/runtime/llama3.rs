@@ -131,6 +131,7 @@ impl LLMRuntimeModel for LLama3Model {
     fn init(&mut self, config: &LLMRuntimeConfig) -> anyhow::Result<(), Error> {
         let LLMRuntimeConfig {
             tokenizer_file: _,
+            tokenizer_config_file: _,
             model_config_file,
             model_index_file,
             model_file: _,

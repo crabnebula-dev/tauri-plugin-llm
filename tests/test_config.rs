@@ -89,12 +89,16 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
         "[a-z]{3,10}/[a-z]{3,10}"
             .prop_map(PathBuf::from)
             .prop_map(Some),
+        "[a-z]{3,10}/[a-z]{3,10}"
+            .prop_map(PathBuf::from)
+            .prop_map(Some),
         random_model_config(),
         any::<bool>(),
     )
         .prop_map(
             |(
                 tokenizer_file,
+                tokenizer_config_file,
                 model_config_file,
                 model_index_file,
                 model_file,
@@ -104,6 +108,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
             )| {
                 LLMRuntimeConfig {
                     tokenizer_file,
+                    tokenizer_config_file,
                     model_config_file,
                     model_index_file,
                     model_file,

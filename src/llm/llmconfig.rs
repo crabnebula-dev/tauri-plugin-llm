@@ -10,6 +10,9 @@ pub struct LLMRuntimeConfig {
     /// Path to `tokenizer.json`
     pub tokenizer_file: Option<PathBuf>,
 
+    /// Path to `tokenizer_config.json`
+    pub tokenizer_config_file: Option<PathBuf>,
+
     /// path to `config.json`
     pub model_config_file: Option<PathBuf>,
 

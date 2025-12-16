@@ -38,6 +38,9 @@ pub enum Error {
 
     #[error("Error calling foreign function: ({0})")]
     Ffi(String),
+
+    #[error("Error processing template: ({0})")]
+    TemplateError(String),
 }
 
 impl Serialize for Error {
