@@ -7,6 +7,10 @@ mod llm;
 mod mobile;
 mod models;
 
+mod gotemplate;
+
+pub use gotemplate::*;
+
 use std::sync::Arc;
 use std::sync::Mutex;
 

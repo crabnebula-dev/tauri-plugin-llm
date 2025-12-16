@@ -27,14 +27,19 @@ tracing-appender    = {version = "0.2.3"}
 # for LLM inference
 tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
+# templating. gtmpl-rust seems to be unmaintained but stable.
+minijinja           = { version = "2.14.0" }
+gtmpl               = { git = "https://github.com/fiji-flo/gtmpl-rust.git" }
+
 # for LLM inference (without metal)
 [target.'cfg(not(target_os="macos"))'.dependencies]
 candle-core         = { git = "https://github.com/huggingface/candle.git"  }
 candle-nn           = { git = "https://github.com/huggingface/candle.git"  }
 candle-transformers = { git = "https://github.com/huggingface/candle.git"  }
 
+
 # Optional dependency to MCPurify. Please check the LICENSE before enabling MCPurify.
-mcpurify            = { git = "https://github.com/crabnebula-dev/MCPurify.git", optional = true }
+# mcpurify            = { git = "https://github.com/crabnebula-dev/MCPurify.git", optional = true }
 
 # for LLM inference
 [target.'cfg(target_os="macos")'.dependencies]
@@ -49,9 +54,12 @@ tauri-plugin = { version = "2.5.2", features = ["build"] }
 proptest                = { version = "1.9.0" }
 tauri-plugin-automation = { version = "0.1.1"}
 
+# isn't that a duplicate ?
+# minijinja           = { version = "2.14.0" }
+
 [features]
 default             = ["feat_safetensors", "apple_metal"]
 feat_safetensors    = []
 cuda                = []
 apple_metal         = []
-mcpurify            = ["dep:mcpurify"]
+# mcpurify            = ["dep:mcpurify"]
