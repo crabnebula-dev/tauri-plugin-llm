@@ -1,8 +1,7 @@
 use std::{env::current_dir, path::PathBuf};
 
 use tauri_plugin_llm::{
-    llmconfig::{LLMRuntimeConfig, ModelConfig},
-    LLMPluginConfig,
+    LLMPluginConfig, {LLMRuntimeConfig, ModelConfig},
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -25,9 +24,8 @@ pub fn run() {
             .join("models");
         let config = LLMPluginConfig {
             llmconfig: LLMRuntimeConfig {
-                tokenizer_config_file: Some(
-                    basedir.join("Qwen3-4B-Instruct-2507-FP8/tokenizer.json"),
-                ),
+                tokenizer_config_file: None,
+                tokenizer_file: Some(basedir.join("Qwen3-4B-Instruct-2507-FP8/tokenizer.json")),
                 model_config_file: Some(basedir.join("Qwen3-4B-Instruct-2507-FP8/config.json")),
                 model_index_file: None,
                 model_file: Some(basedir.join("Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf")),
@@ -37,12 +35,12 @@ pub fn run() {
                     top_p: 0.8,
                     temperature: 0.4,
                     name: "Qwen3-4B-GGUF".to_string(),
-                    file_type: tauri_plugin_llm::llmconfig::ModelFileType::GGUF,
+                    file_type: tauri_plugin_llm::ModelFileType::GGUF,
                     penalty: 1.0,
-                    seed: tauri_plugin_llm::llmconfig::GenerationSeed::Random,
+                    seed: tauri_plugin_llm::GenerationSeed::Random,
                     thinking: false,
                     streaming: true,
-                    sampling_config: tauri_plugin_llm::llmconfig::SamplingConfig::All,
+                    sampling_config: tauri_plugin_llm::SamplingConfig::All,
                 },
                 verbose: true,
             },
