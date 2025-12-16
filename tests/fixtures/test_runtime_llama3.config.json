@@ -1,5 +1,5 @@
 {
-    "tokenizer_config_file": "./models/Llama-3.2-3B-Instruct/tokenizer.json",
+    "tokenizer_file": "./models/Llama-3.2-3B-Instruct/tokenizer.json",
     "model_config_file": "./models/Llama-3.2-3B-Instruct/config.json",
     "model_index_file": "./models/Llama-3.2-3B-Instruct/model.safetensors.index.json",
     "model_file": "",

@@ -1,8 +1,8 @@
 use std::fs::File;
 
 use crate::error::Error;
-use crate::llmconfig::{LLMRuntimeConfig, ModelConfig};
 use crate::runtime::{LLMRuntimeModel, LlmMessage};
+use crate::{LLMRuntimeConfig, ModelConfig};
 use candle_core::Device;
 use candle_core::{quantized::gguf_file, Tensor};
 use candle_transformers::{
@@ -130,11 +130,11 @@ impl LLMRuntimeModel for Qwen3Model {
 
         // Initialize the tokenizer
         self.tokenizer = Some(
-            Tokenizer::from_file(&config.tokenizer_config_file.as_ref().ok_or(
+            Tokenizer::from_file(&config.tokenizer_file.as_ref().ok_or(
                 Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
             )?)
             .map_err(|e| {
-                Error::LoadingFile(format!("{:?}", config.tokenizer_config_file), e.to_string())
+                Error::LoadingFile(format!("{:?}", config.tokenizer_file), e.to_string())
             })?,
         );
 
@@ -160,31 +160,31 @@ impl LLMRuntimeModel for Qwen3Model {
         // Initialize Logits Processor
         self.logits_processor = {
             let sampling = match sampling_config {
-                crate::llmconfig::SamplingConfig::ArgMax => Sampling::ArgMax,
-                crate::llmconfig::SamplingConfig::All => Sampling::All {
+                crate::SamplingConfig::ArgMax => Sampling::ArgMax,
+                crate::SamplingConfig::All => Sampling::All {
                     temperature: self.temperature,
                 },
-                crate::llmconfig::SamplingConfig::TopK => Sampling::TopK {
+                crate::SamplingConfig::TopK => Sampling::TopK {
                     k: self.top_k,
                     temperature: self.temperature,
                 },
-                crate::llmconfig::SamplingConfig::TopP => Sampling::TopP {
+                crate::SamplingConfig::TopP => Sampling::TopP {
                     p: self.top_p,
                     temperature: self.temperature,
                 },
-                crate::llmconfig::SamplingConfig::TopKThenTopP => Sampling::TopKThenTopP {
+                crate::SamplingConfig::TopKThenTopP => Sampling::TopKThenTopP {
                     k: self.top_k,
                     p: self.top_p,
                     temperature: self.temperature,
                 },
-                crate::llmconfig::SamplingConfig::GumbelSoftmax => Sampling::GumbelSoftmax {
+                crate::SamplingConfig::GumbelSoftmax => Sampling::GumbelSoftmax {
                     temperature: self.temperature,
                 },
             };
 
             let seed = match seed {
-                crate::llmconfig::GenerationSeed::Fixed(inner) => inner as u64,
-                crate::llmconfig::GenerationSeed::Random => {
+                crate::GenerationSeed::Fixed(inner) => inner as u64,
+                crate::GenerationSeed::Random => {
                     let mut rng = rand::rng();
                     let seed = rng.random_range(1..1e10 as u64);
                     tracing::debug!("Using seed for Logits Processor: {seed}");

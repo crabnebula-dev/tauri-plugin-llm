@@ -7,7 +7,7 @@ use crate::error::Error;
 use crate::runtime::llama3::LLama3Model;
 use crate::runtime::mock::Mock;
 use crate::LlmMessage;
-use crate::{llm::llmconfig::LLMRuntimeConfig, llmconfig::ModelConfig, runtime::qwen3::Qwen3Model};
+use crate::{runtime::qwen3::Qwen3Model, LLMRuntimeConfig, ModelConfig};
 use candle_core::Device;
 use serde::Deserialize;
 use std::sync::mpsc::{Receiver, Sender};

@@ -1,5 +1,5 @@
 {
-    "tokenizer_config_file": "",
+    "tokenizer_file": "",
     "model_config_file": "",
     "model_index_file": "",
     "model_file": "",

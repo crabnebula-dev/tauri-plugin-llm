@@ -7,9 +7,9 @@ mod llm;
 mod mobile;
 mod models;
 
-mod gotemplate;
+mod chat_templates;
 
-pub use gotemplate::*;
+pub use chat_templates::*;
 
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -17,7 +17,6 @@ use std::sync::Mutex;
 #[cfg(desktop)]
 use desktop::TauriPluginLlm;
 pub use error::{Error, Result};
-pub use llm::llmconfig;
 pub use llm::loaders;
 pub use llm::runtime;
 #[cfg(mobile)]
@@ -30,7 +29,6 @@ use tauri::{
     Manager, Runtime,
 };
 
-use crate::llm::llmconfig::LLMRuntimeConfig;
 use crate::llm::runtime::LLMRuntime;
 
 /// Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the tauri-plugin-llm APIs.

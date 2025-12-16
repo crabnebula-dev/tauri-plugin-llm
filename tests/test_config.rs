@@ -1,6 +1,6 @@
 use proptest::prelude::*;
 use std::path::PathBuf;
-use tauri_plugin_llm::llmconfig::{
+use tauri_plugin_llm::{
     GenerationSeed, LLMRuntimeConfig, ModelConfig, ModelFileType, SamplingConfig,
 };
 
@@ -89,11 +89,15 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
         "[a-z]{3,10}/[a-z]{3,10}"
             .prop_map(PathBuf::from)
             .prop_map(Some),
-        dbg!(random_model_config()),
+        "[a-z]{3,10}/[a-z]{3,10}"
+            .prop_map(PathBuf::from)
+            .prop_map(Some),
+        random_model_config(),
         any::<bool>(),
     )
         .prop_map(
             |(
+                tokenizer_file,
                 tokenizer_config_file,
                 model_config_file,
                 model_index_file,
@@ -103,6 +107,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
                 verbose,
             )| {
                 LLMRuntimeConfig {
+                    tokenizer_file,
                     tokenizer_config_file,
                     model_config_file,
                     model_index_file,
