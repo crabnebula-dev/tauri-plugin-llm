@@ -130,7 +130,7 @@ impl LLMRuntimeModel for LLama3Model {
 
     fn init(&mut self, config: &LLMRuntimeConfig) -> anyhow::Result<(), Error> {
         let LLMRuntimeConfig {
-            tokenizer_config_file: _,
+            tokenizer_file: _,
             model_config_file,
             model_index_file,
             model_file: _,
@@ -150,11 +150,11 @@ impl LLMRuntimeModel for LLama3Model {
 
         // Initialize the tokenizer
         self.tokenizer = Some(
-            Tokenizer::from_file(&config.tokenizer_config_file.as_ref().ok_or(
+            Tokenizer::from_file(&config.tokenizer_file.as_ref().ok_or(
                 Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
             )?)
             .map_err(|e| {
-                Error::LoadingFile(format!("{:?}", config.tokenizer_config_file), e.to_string())
+                Error::LoadingFile(format!("{:?}", config.tokenizer_file), e.to_string())
             })?,
         );
 

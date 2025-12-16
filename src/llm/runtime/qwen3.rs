@@ -130,11 +130,11 @@ impl LLMRuntimeModel for Qwen3Model {
 
         // Initialize the tokenizer
         self.tokenizer = Some(
-            Tokenizer::from_file(&config.tokenizer_config_file.as_ref().ok_or(
+            Tokenizer::from_file(&config.tokenizer_file.as_ref().ok_or(
                 Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
             )?)
             .map_err(|e| {
-                Error::LoadingFile(format!("{:?}", config.tokenizer_config_file), e.to_string())
+                Error::LoadingFile(format!("{:?}", config.tokenizer_file), e.to_string())
             })?,
         );
 

@@ -94,7 +94,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
     )
         .prop_map(
             |(
-                tokenizer_config_file,
+                tokenizer_file,
                 model_config_file,
                 model_index_file,
                 model_file,
@@ -103,7 +103,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
                 verbose,
             )| {
                 LLMRuntimeConfig {
-                    tokenizer_config_file,
+                    tokenizer_file,
                     model_config_file,
                     model_index_file,
                     model_file,
