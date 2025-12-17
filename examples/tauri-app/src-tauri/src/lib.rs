@@ -42,7 +42,7 @@ pub fn run() {
                     sampling_config: tauri_plugin_llm::SamplingConfig::All,
                 },
                 verbose: true,
-                template: None,
+                template_file: None,
             },
         };
         builder = builder.plugin(tauri_plugin_llm::Builder::new().config(config).build())

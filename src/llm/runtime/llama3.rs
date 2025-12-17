@@ -141,7 +141,7 @@ impl LLMRuntimeModel for LLama3Model {
             model_dir,
             model_config: _,
             verbose: _,
-            template: _,
+            template_file: _,
         } = config;
 
         let ModelConfig {

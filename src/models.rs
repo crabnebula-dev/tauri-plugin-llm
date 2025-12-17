@@ -59,7 +59,7 @@ pub struct LLMRuntimeConfig {
 
     /// If the models ships with a separate template file, this can be configure here
     /// Given a `tokenizer_config_file`, the template file setting will be ignored
-    pub template: Option<PathBuf>,
+    pub template_file: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -140,12 +140,12 @@ pub enum SamplingConfig {
 /// Use this to deserialize the `tokenizer_config.json`
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct TokenizerConfig {
-    pub(crate) bos_token: Option<String>,
-    pub(crate) chat_template: Option<String>,
-    pub(crate) clean_up_tokenization_spaces: bool,
-    pub(crate) eos_token: Option<String>,
-    pub(crate) model_max_length: Option<usize>,
-    pub(crate) tokenizer_class: Option<String>,
+    pub bos_token: Option<String>,
+    pub chat_template: Option<String>,
+    pub clean_up_tokenization_spaces: bool,
+    pub eos_token: Option<String>,
+    pub model_max_length: Option<usize>,
+    pub tokenizer_class: Option<String>,
 }
 
 impl LLMRuntimeConfig {

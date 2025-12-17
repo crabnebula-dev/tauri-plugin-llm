@@ -8,6 +8,8 @@ use std::path::Path;
 #[link(name = "gotproc")]
 extern "C" {
     fn RenderTemplateString(template: *const c_char, input_json: *const c_char) -> *mut c_char;
+    fn RenderTemplateStringJinja(template: *const c_char, input_json: *const c_char)
+        -> *mut c_char;
     fn FreeString(input: *const c_char);
 }
 
@@ -94,21 +96,20 @@ impl TemplateProcessor {
         render_template(source, input)
     }
 
-    fn render_jinja_template<S>(&self, source: &str, input: S) -> Result<String, Error>
-    where
-        S: Serialize,
-    {
-        let mut env = minijinja::Environment::new();
-        env.add_template("jinja", source)
-            .map_err(|e| Error::TemplateError(e.to_string()))?;
+    fn render_jinja_template(&self, source: &str, input: &str) -> Result<String, Error> {
+        // let mut env = minijinja::Environment::new();
+        // env.add_template("jinja", source)
+        //     .map_err(|e| Error::TemplateError(e.to_string()))?;
 
-        let templ = env
-            .get_template("jinja")
-            .map_err(|e| Error::TemplateError(e.to_string()))?;
+        // let templ = env
+        //     .get_template("jinja")
+        //     .map_err(|e| Error::TemplateError(e.to_string()))?;
 
-        templ
-            .render(input)
-            .map_err(|e| Error::TemplateError(e.to_string()))
+        // templ
+        //     .render(input)
+        //     .map_err(|e| Error::TemplateError(e.to_string()))
+
+        render_template_jinja(source, input)
     }
 }
 
@@ -117,7 +118,29 @@ fn render_template(template: &str, input_json: &str) -> Result<String, Error> {
     unsafe {
         let c_template = CString::new(template).map_err(|e| Error::Ffi(e.to_string()))?;
         let c_input_json = CString::new(input_json).map_err(|e| Error::Ffi(e.to_string()))?;
+
         let result_ptr = RenderTemplateString(c_template.as_ptr(), c_input_json.as_ptr());
+
+        let result = CStr::from_ptr(result_ptr).to_string_lossy().into_owned();
+        FreeString(result_ptr as *const c_char);
+
+        // check for errors
+        if result.starts_with("ERROR: ") {
+            return Err(Error::Ffi(result));
+        }
+
+        Ok(result)
+    }
+}
+
+/// CODE DUPLICATE! Combine with render_template
+fn render_template_jinja(template: &str, input_json: &str) -> Result<String, Error> {
+    unsafe {
+        let c_template = CString::new(template).map_err(|e| Error::Ffi(e.to_string()))?;
+        let c_input_json = CString::new(input_json).map_err(|e| Error::Ffi(e.to_string()))?;
+
+        let result_ptr = RenderTemplateStringJinja(c_template.as_ptr(), c_input_json.as_ptr());
+
         let result = CStr::from_ptr(result_ptr).to_string_lossy().into_owned();
         FreeString(result_ptr as *const c_char);
 

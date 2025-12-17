@@ -119,7 +119,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
                     model_dir,
                     model_config,
                     verbose,
-                    template,
+                    template_file: template,
                 }
             },
         )

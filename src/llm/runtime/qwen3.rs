@@ -2,7 +2,7 @@ use std::fs::File;
 
 use crate::error::Error;
 use crate::runtime::{LLMRuntimeModel, LlmMessage};
-use crate::{LLMRuntimeConfig, ModelConfig, TemplateProcessor};
+use crate::{LLMRuntimeConfig, ModelConfig, TemplateProcessor, TokenizerConfig};
 use candle_core::Device;
 use candle_core::{quantized::gguf_file, Tensor};
 use candle_transformers::{
@@ -160,7 +160,7 @@ impl LLMRuntimeModel for Qwen3Model {
             model_dir,
             model_config,
             verbose,
-            template,
+            template_file,
         } = config;
 
         let ModelConfig {
@@ -169,11 +169,22 @@ impl LLMRuntimeModel for Qwen3Model {
             ..
         } = model_config.clone();
 
-        self.template = Some({
-            // load template
+        self.template = {
+            if let Some(t) = tokenizer_config_file {
+                let mut file = File::open(t)?;
+                let tokenizer_config_json: TokenizerConfig = serde_json::from_reader(&mut file)?;
 
-            String::new()
-        });
+                if let Some(template) = tokenizer_config_json.chat_template {
+                    Some(template)
+                } else {
+                    None
+                }
+            } else if let Some(t) = template_file {
+                Some(std::fs::read_to_string(t)?)
+            } else {
+                None
+            }
+        };
 
         // Initialize the tokenizer
         self.tokenizer = Some(

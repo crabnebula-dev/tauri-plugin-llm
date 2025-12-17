@@ -1,5 +1,6 @@
 {
     "tokenizer_file": "./models/Qwen3-4B-Instruct-2507-FP8/tokenizer.json",
+    "tokenizer_config_file": "./models/Qwen3-4B-Instruct-2507-FP8/tokenizer_config.json",
     "model_config_file": "./models/Qwen3-4B-Instruct-2507-FP8/config.json",
     "model_index_file": "",
     "model_file": "./models/Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf",
