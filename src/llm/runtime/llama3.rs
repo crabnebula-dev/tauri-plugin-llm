@@ -3,7 +3,7 @@ use std::fs::File;
 use crate::error::Error;
 use crate::loaders::IndexFile;
 use crate::runtime::{LLMRuntimeModel, LlmMessage};
-use crate::{LLMRuntimeConfig, ModelConfig};
+use crate::{LLMRuntimeConfig, ModelConfig, TemplateProcessor};
 use candle_core::Device;
 use candle_core::Tensor;
 use candle_nn::VarBuilder;
@@ -29,6 +29,7 @@ pub struct LLama3Model {
     pub(crate) penalty: f32,
 
     pub(crate) template: Option<String>,
+    pub(crate) template_proc: Option<TemplateProcessor>,
 }
 
 impl LLMRuntimeModel for LLama3Model {

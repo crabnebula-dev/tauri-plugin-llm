@@ -2,7 +2,7 @@ use std::fs::File;
 
 use crate::error::Error;
 use crate::runtime::{LLMRuntimeModel, LlmMessage};
-use crate::{LLMRuntimeConfig, ModelConfig};
+use crate::{LLMRuntimeConfig, ModelConfig, TemplateProcessor};
 use candle_core::Device;
 use candle_core::{quantized::gguf_file, Tensor};
 use candle_transformers::{
@@ -24,6 +24,8 @@ pub struct Qwen3Model {
     pub(crate) logits_processor: Option<LogitsProcessor>,
 
     pub(crate) template: Option<String>,
+
+    pub(crate) template_proc: Option<TemplateProcessor>,
 }
 
 impl LLMRuntimeModel for Qwen3Model {
@@ -34,13 +36,34 @@ impl LLMRuntimeModel for Qwen3Model {
     /// - enable setting a system message
     fn execute(&mut self, message: LlmMessage) -> Result<LlmMessage, Error> {
         if let LlmMessage::Prompt {
-            system: _,
+            system,
             message,
             num_samples,
         } = message
         {
             // preprocess message by applying chat template
-            
+            let message = if let Some(tmpl) = self.template.take() {
+                let proc = if let Some(proc) = self.template_proc.as_ref() {
+                    proc
+                } else {
+                    self.template_proc = Some(TemplateProcessor::from_raw_template(tmpl.clone())?);
+                    self.template_proc.as_ref().unwrap()
+                };
+
+                proc.render(
+                    &tmpl,
+                    &serde_json::json!({
+                        "System" : system,
+                        "Messages" : [
+                            { "Role" : "user", "Content" : message },
+                        ]
+                    })
+                    .to_string(),
+                )?
+            } else {
+                tracing::warn!("No chat template for model found");
+                message
+            };
 
             tracing::debug!("Processing Message: {:?}", message);
 
@@ -128,11 +151,29 @@ impl LLMRuntimeModel for Qwen3Model {
     }
 
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), crate::Error> {
+        let LLMRuntimeConfig {
+            tokenizer_file,
+            tokenizer_config_file,
+            model_config_file,
+            model_index_file,
+            model_file,
+            model_dir,
+            model_config,
+            verbose,
+            template,
+        } = config;
+
         let ModelConfig {
             seed,
             sampling_config,
             ..
-        } = config.model_config.clone();
+        } = model_config.clone();
+
+        self.template = Some({
+            // load template
+
+            String::new()
+        });
 
         // Initialize the tokenizer
         self.tokenizer = Some(

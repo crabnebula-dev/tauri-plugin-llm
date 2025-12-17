@@ -30,7 +30,7 @@ tasks:
 
   build_ffi:
     silent: false
-    desc: Build the foreign code dependencies. Requires Go >= 1.25. (Deprecated: Check build.rs)
+    desc: Build the foreign code dependencies. Requires Go >= 1.25. (Deprecated Check build.rs)
     env: 
       CGO_ENABLED: 1
       CC: clang
@@ -129,3 +129,11 @@ tasks:
     dir: models/gemma-3-27b-it
     cmds:
       - git lfs pull --include "*.safetensors"
+
+# -- utils
+  find_intersecting_tokenizer_config_keys:
+    silent: true 
+    dir: models/
+    cmds:
+      - |
+        jq -s 'map(keys) | reduce .[1:][] as $keys (.[0]; . - (. - $keys))' $(find . -name "tokenizer_config.json")

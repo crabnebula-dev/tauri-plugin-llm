@@ -137,6 +137,17 @@ pub enum SamplingConfig {
     GumbelSoftmax, // { temperature: f64 },
 }
 
+/// Use this to deserialize the `tokenizer_config.json`
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub struct TokenizerConfig {
+    pub(crate) bos_token: Option<String>,
+    pub(crate) chat_template: Option<String>,
+    pub(crate) clean_up_tokenization_spaces: bool,
+    pub(crate) eos_token: Option<String>,
+    pub(crate) model_max_length: Option<usize>,
+    pub(crate) tokenizer_class: Option<String>,
+}
+
 impl LLMRuntimeConfig {
     ///Loads a config from path
     pub fn from_path<P>(path: P) -> Result<Self, Error>

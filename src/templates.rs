@@ -69,14 +69,17 @@ impl TemplateProcessor {
         }
     }
 
+    pub fn from_raw_template(input: String) -> Result<Self, Error> {
+        let kind = TemplateType::detect(&input);
+
+        Ok(Self { kind })
+    }
+
     pub fn from_file<P>(source: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
-        let contents = std::fs::read_to_string(source)?;
-        let kind = TemplateType::detect(&contents);
-
-        Ok(Self { kind })
+        Self::from_raw_template(std::fs::read_to_string(source)?)
     }
 
     pub fn render(&self, source: &str, input: &str) -> Result<String, Error> {

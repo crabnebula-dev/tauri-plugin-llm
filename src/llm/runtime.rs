@@ -100,6 +100,7 @@ impl LLMRuntime {
                 weights: None,
                 logits_processor: None,
                 template: None,
+                template_proc: None,
             })),
             _ if name.contains("Mock") => Ok(Box::new(Mock)),
             _ if name.contains("Llama") => Ok(Box::new(LLama3Model {
@@ -115,6 +116,7 @@ impl LLMRuntime {
                 cache: None,
                 penalty,
                 template: None,
+                template_proc: None,
             })),
             _ => Err(Error::ExecutionError(format!("Unknown Model Name: {name}"))),
         }
