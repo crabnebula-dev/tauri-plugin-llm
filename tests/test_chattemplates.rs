@@ -16,7 +16,7 @@ fn test_qwen3_chat_go_template() {
     )
     .to_string();
 
-    let tmpl_proc = TemplateProcessor::new(tauri_plugin_llm::TemplateType::GoTemplate);
+    let tmpl_proc = TemplateProcessor::new(tauri_plugin_llm::TemplateType::Go);
     let result = tmpl_proc.render(&chat_template_file_contents, &input_json);
 
     assert!(result.is_ok(), "{:?}", result);

@@ -15,7 +15,7 @@ extern "C" {
 pub enum TemplateType {
     #[default]
     Jinja,
-    GoTemplate,
+    Go,
     Unknown,
 }
 
@@ -38,7 +38,7 @@ impl TemplateType {
             return inner;
         } else if let Ok(inner) = {
             let input_json = serde_json::json!({}).to_string();
-            render_template(source, &input_json).map(|_| Self::GoTemplate)
+            render_template(source, &input_json).map(|_| Self::Go)
         } {
             return inner;
         }
@@ -59,7 +59,7 @@ impl TemplateProcessor {
 
     pub fn with_go_template() -> Self {
         Self {
-            kind: TemplateType::GoTemplate,
+            kind: TemplateType::Go,
         }
     }
 
@@ -81,7 +81,7 @@ impl TemplateProcessor {
 
     pub fn render(&self, source: &str, input: &str) -> Result<String, Error> {
         match self.kind {
-            TemplateType::GoTemplate => self.render_go_template(source, input),
+            TemplateType::Go => self.render_go_template(source, input),
             TemplateType::Jinja => self.render_jinja_template(source, input),
             TemplateType::Unknown => Err(Error::TemplateError("Unknown template type".to_owned())),
         }
