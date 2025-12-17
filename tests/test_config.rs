@@ -121,7 +121,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1))]
+    #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
     fn test_runtime_config(input in random()) {
         let serialized = serde_json::to_string_pretty(&input);

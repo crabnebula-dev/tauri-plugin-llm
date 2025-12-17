@@ -1,4 +1,4 @@
-use tauri_plugin_llm::{loaders::safetensor::IndexFile, Error};
+use tauri_plugin_llm::{loaders::IndexFile, Error};
 
 #[test]
 fn test_load_safetensors_index_file() -> Result<(), Error> {

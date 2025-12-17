@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use crate::error::Error;
-use crate::loaders::safetensor::IndexFile;
+use crate::loaders::IndexFile;
 use crate::runtime::{LLMRuntimeModel, LlmMessage};
 use crate::{LLMRuntimeConfig, ModelConfig};
 use candle_core::Device;

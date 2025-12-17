@@ -227,12 +227,24 @@ impl LLMRuntime {
         // 2025-12-09T21:19:58.382077Z ERROR tauri_plugin_llm::llm::runtime: Error initializing model: Missing config (Tokenizer config is missing)
         // thread 'tokio-runtime-worker' (6661081) panicked at src/llm/runtime.rs:204:34:
         // Failure to send message: SendError { .. }
-        self.control.0.send(msg).expect("Failure to send message");
-        Ok(self.response.1.try_recv()?)
+        self.control
+            .0
+            .send(msg)
+            .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
+        // Ok(self.response.1.try_recv()?)
+        self.retry_recv()
     }
 
     pub fn retry_recv(&self) -> Result<LlmMessage, Error> {
-        Ok(self.response.1.try_recv()?)
+        let response = self.response.1.try_recv();
+
+        #[cfg(feature = "mcpurify")]
+        if let Ok(response) = response {
+            return Ok(response);
+        }
+
+        Ok(response?)
     }
 
     pub fn shutdown(&self) {
