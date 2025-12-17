@@ -94,6 +94,9 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
             .prop_map(Some),
         random_model_config(),
         any::<bool>(),
+        "[a-z]{3,10}/[a-z]{3,10}"
+            .prop_map(PathBuf::from)
+            .prop_map(Some),
     )
         .prop_map(
             |(
@@ -105,6 +108,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
                 model_dir,
                 model_config,
                 verbose,
+                template,
             )| {
                 LLMRuntimeConfig {
                     tokenizer_file,
@@ -115,6 +119,7 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
                     model_dir,
                     model_config,
                     verbose,
+                    template,
                 }
             },
         )

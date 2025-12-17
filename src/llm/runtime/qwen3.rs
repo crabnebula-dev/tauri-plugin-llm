@@ -27,6 +27,7 @@ pub struct Qwen3Model {
 impl LLMRuntimeModel for Qwen3Model {
     /// TODO:
     /// - apply penalty for repetitions
+    ///
     /// - enable thinking mode
     /// - enable setting a system message
     fn execute(&mut self, message: LlmMessage) -> Result<LlmMessage, Error> {
@@ -36,6 +37,9 @@ impl LLMRuntimeModel for Qwen3Model {
             num_samples,
         } = message
         {
+            // preprocess message by applying chat template
+            
+
             tracing::debug!("Processing Message: {:?}", message);
 
             // get defaults

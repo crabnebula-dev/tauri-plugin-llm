@@ -58,6 +58,18 @@ impl TemplateProcessor {
         Self { kind }
     }
 
+    pub fn with_go_template() -> Self {
+        Self {
+            kind: TemplateType::GoTemplate,
+        }
+    }
+
+    pub fn with_jinja_template() -> Self {
+        Self {
+            kind: TemplateType::Jinija,
+        }
+    }
+
     pub fn from_file<P>(source: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,

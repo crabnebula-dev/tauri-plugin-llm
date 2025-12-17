@@ -56,6 +56,10 @@ pub struct LLMRuntimeConfig {
 
     /// Enables logging
     pub verbose: bool,
+
+    /// If the models ships with a separate template file, this can be configure here
+    /// Given a `tokenizer_config_file`, the template file setting will be ignored
+    pub template: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
