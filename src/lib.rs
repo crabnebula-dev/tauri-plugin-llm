@@ -7,9 +7,9 @@ mod llm;
 mod mobile;
 mod models;
 
-mod chat_templates;
+mod templates;
 
-pub use chat_templates::*;
+pub use templates::*;
 
 use std::sync::Arc;
 use std::sync::Mutex;

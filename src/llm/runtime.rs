@@ -8,26 +8,10 @@ use crate::runtime::llama3::LLama3Model;
 use crate::runtime::mock::Mock;
 use crate::LlmMessage;
 use crate::{runtime::qwen3::Qwen3Model, LLMRuntimeConfig, ModelConfig};
+use anyhow::Result;
 use candle_core::Device;
-use serde::Deserialize;
 use std::sync::mpsc::{Receiver, Sender};
-use tokenizers::Tokenizer;
-use tracing::trace;
-
-use anyhow::{Error as E, Result};
-use candle_core::{quantized::gguf_file, DType, Tensor};
-use candle_nn::VarBuilder;
-
-/// This needs to be adapted
-use candle_transformers::{
-    generation::{LogitsProcessor, Sampling},
-    models::quantized_qwen3::ModelWeights as Qwen3,
-};
-use std::future::Future;
-use std::{fs::File, io::Write, path::PathBuf};
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
-
-const CHANNEL_BUFFER_SIZE: usize = 10;
 
 pub struct LLMRuntime {
     model: Option<Box<dyn LLMRuntimeModel>>,
@@ -102,6 +86,8 @@ impl LLMRuntime {
             ..
         } = model_config;
 
+        // TODO:
+        // - move initializers to individual constructor functions
         match &name {
             _ if name.contains("Qwen3") => Ok(Box::new(Qwen3Model {
                 streaming,
@@ -113,6 +99,7 @@ impl LLMRuntime {
                 thinking,
                 weights: None,
                 logits_processor: None,
+                template: None,
             })),
             _ if name.contains("Mock") => Ok(Box::new(Mock)),
             _ if name.contains("Llama") => Ok(Box::new(LLama3Model {
@@ -127,6 +114,7 @@ impl LLMRuntime {
                 logits_processor: None,
                 cache: None,
                 penalty,
+                template: None,
             })),
             _ => Err(Error::ExecutionError(format!("Unknown Model Name: {name}"))),
         }
@@ -163,7 +151,7 @@ impl LLMRuntime {
 
     /// ## Description
     ///
-    /// Executes the LLM and returns a [`Sender`] to interact with the Model.
+    /// Executes the LLM.
     ///
     /// ## Parameters
     /// - `response` Provide a [`Sender`] where the Model response should be send
@@ -227,12 +215,14 @@ impl LLMRuntime {
         // 2025-12-09T21:19:58.382077Z ERROR tauri_plugin_llm::llm::runtime: Error initializing model: Missing config (Tokenizer config is missing)
         // thread 'tokio-runtime-worker' (6661081) panicked at src/llm/runtime.rs:204:34:
         // Failure to send message: SendError { .. }
+        //
+        // TODO:
+        // - Check fix. Error handling has been moved to caller
         self.control
             .0
             .send(msg)
             .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
-        // Ok(self.response.1.try_recv()?)
         self.retry_recv()
     }
 
@@ -241,6 +231,8 @@ impl LLMRuntime {
 
         #[cfg(feature = "mcpurify")]
         if let Ok(response) = response {
+            // TODO:
+            // - integrate mcpurify
             return Ok(response);
         }
 

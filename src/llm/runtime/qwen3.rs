@@ -22,6 +22,8 @@ pub struct Qwen3Model {
     pub(crate) thinking: bool,
     pub(crate) weights: Option<Qwen3>,
     pub(crate) logits_processor: Option<LogitsProcessor>,
+
+    pub(crate) template: Option<String>,
 }
 
 impl LLMRuntimeModel for Qwen3Model {
