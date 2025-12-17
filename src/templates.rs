@@ -13,10 +13,9 @@ extern "C" {
 
 #[derive(Default)]
 pub enum TemplateType {
-    GoTemplate,
-
     #[default]
-    Jinija,
+    Jinja,
+    GoTemplate,
     Unknown,
 }
 
@@ -34,7 +33,7 @@ impl TemplateType {
             let mut env = minijinja::Environment::new();
             env.add_template("jinja", source)
                 .map_err(|e| Error::TemplateError(e.to_string()))
-                .map(|_| Self::Jinija)
+                .map(|_| Self::Jinja)
         } {
             return inner;
         } else if let Ok(inner) = {
@@ -66,7 +65,7 @@ impl TemplateProcessor {
 
     pub fn with_jinja_template() -> Self {
         Self {
-            kind: TemplateType::Jinija,
+            kind: TemplateType::Jinja,
         }
     }
 
@@ -83,7 +82,7 @@ impl TemplateProcessor {
     pub fn render(&self, source: &str, input: &str) -> Result<String, Error> {
         match self.kind {
             TemplateType::GoTemplate => self.render_go_template(source, input),
-            TemplateType::Jinija => self.render_jinja_template(source, input),
+            TemplateType::Jinja => self.render_jinja_template(source, input),
             TemplateType::Unknown => Err(Error::TemplateError("Unknown template type".to_owned())),
         }
     }
