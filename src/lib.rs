@@ -14,6 +14,7 @@ pub use templates::*;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use crate::llm::runtime::LLMRuntime;
 #[cfg(desktop)]
 use desktop::TauriPluginLlm;
 pub use error::{Error, Result};
@@ -28,8 +29,6 @@ use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
     Manager, Runtime,
 };
-
-use crate::llm::runtime::LLMRuntime;
 
 /// Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the tauri-plugin-llm APIs.
 pub trait TauriPluginLlmExt<R: Runtime> {

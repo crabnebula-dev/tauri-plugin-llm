@@ -44,6 +44,8 @@ pub fn run() {
                 verbose: true,
                 template_file: None,
             },
+            #[cfg(feature = "mcpurify")]
+            mcpurify_config: None,
         };
         builder = builder.plugin(tauri_plugin_llm::Builder::new().config(config).build())
     }

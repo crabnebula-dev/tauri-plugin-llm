@@ -33,6 +33,10 @@ tokenizers          = { git = "https://github.com/huggingface/tokenizers", branc
 # templating. gtmpl-rust seems to be unmaintained but stable.
 tera                = { version = "1.20.1" }
 
+# Optional dependency to MCPurify. Please check the LICENSE before enabling MCPurify.
+# mcpurify            = { git = "git@github.com:crabnebula-dev/MCPurify.git", optional = true }
+# mcpurify              = { path = "../mcpurify", optional = true }
+
 # for LLM inference (without metal)
 [target.'cfg(not(target_os="macos"))'.dependencies]
 candle-core         = { git = "https://github.com/huggingface/candle.git"  }
@@ -40,8 +44,8 @@ candle-nn           = { git = "https://github.com/huggingface/candle.git"  }
 candle-transformers = { git = "https://github.com/huggingface/candle.git"  }
 
 
-# Optional dependency to MCPurify. Please check the LICENSE before enabling MCPurify.
-# mcpurify            = { git = "git@github.com:crabnebula-dev/MCPurify.git", optional = true }
+
+
 
 # for LLM inference
 [target.'cfg(target_os="macos")'.dependencies]
@@ -62,6 +66,3 @@ feat_safetensors    = []
 cuda                = []
 apple_metal         = []
 # mcpurify            = ["dep:mcpurify"]
-
-# remove this and use the mcpurify feature with the proper dependency
-mcpurify            = []

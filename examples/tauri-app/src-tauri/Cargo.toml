@@ -24,3 +24,7 @@ tauri-plugin-automation = "0.1"
 serde = "1"
 serde_json = "1"
 tauri-plugin-os = "2"
+
+[features]
+default     = []
+mcpurify    = []

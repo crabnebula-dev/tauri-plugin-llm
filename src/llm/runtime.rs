@@ -245,4 +245,51 @@ impl LLMRuntime {
             .send(())
             .expect("Error sending termination signal")
     }
+
+    #[cfg(feature = "mcpurify")]
+    pub async fn setup_mcpurify(config: &mcpurify::Config) {
+        use mcpurify::converter::Converter;
+        use mcpurify::filter::FilterServer;
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+
+        let mcpurify::Config {
+            aiprovider,
+            repl,
+            timeout,
+            telemetry,
+            proxy,
+        } = config.clone();
+
+        let (mut filter_server, request_tx, response_rx) = FilterServer::new(None);
+
+        // load filterserver
+        filter_server
+            .insert_all_filters(&config.aiprovider)
+            .expect("Add all AI-Providers");
+
+        // split execution of the FilterServer
+        tokio::spawn(async move { filter_server.process().await });
+
+        let proxy = proxy.unwrap();
+
+        let response_converter = proxy.converter.clone();
+
+        // This operation is blocking and lets the service
+        // proxy run until it is terminated manually.
+        proxy
+            .start(
+                request_tx,
+                Arc::new(Mutex::new(response_rx)),
+                move |body_str| {
+                    // impl of the function requires calling a converter type,
+                    // to effectively convert a model response which may potentially
+                    // contain a tool call into a filter request. the input will always
+                    // be a simple utf8 string.
+
+                    response_converter.convert(body_str.to_owned())
+                },
+            )
+            .await;
+    }
 }
