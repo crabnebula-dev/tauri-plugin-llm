@@ -31,8 +31,7 @@ tracing-appender    = {version = "0.2.3"}
 tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
 # templating. gtmpl-rust seems to be unmaintained but stable.
-minijinja           = { version = "2.14.0" }
-gtmpl               = { git = "https://github.com/fiji-flo/gtmpl-rust.git" }
+tera                = { version = "1.20.1" }
 
 # for LLM inference (without metal)
 [target.'cfg(not(target_os="macos"))'.dependencies]

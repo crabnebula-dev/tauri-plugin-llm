@@ -24,7 +24,6 @@ fn test_qwen3_chat_go_template() {
     assert!(result.is_ok(), "{:?}", result);
 
     let result = result.unwrap();
-    println!("{result}");
 }
 
 #[test]
@@ -80,7 +79,5 @@ fn test_raw_jinja_template() {
     let result = tmpl_proc.render(&tokenizer_config.chat_template.unwrap(), &input_json);
 
     assert!(result.is_ok(), "{:?}", result);
-
-    println!("{}", result.unwrap())
-
+    println!("Template: \n{}", result.unwrap());
 }

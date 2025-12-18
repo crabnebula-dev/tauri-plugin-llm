@@ -1,4 +1,8 @@
-use tauri_plugin_llm::{runtime::LLMRuntime, Error, LLMRuntimeConfig, LlmMessage};
+use std::vec;
+
+use tauri_plugin_llm::{
+    runtime::LLMRuntime, Error, LLMRuntimeConfig, Query, QueryConfig, QueryMessage,
+};
 
 #[tokio::test]
 async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
@@ -7,13 +11,19 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
 
     runtime.run();
 
-    if let Err(_) = runtime.send(LlmMessage::Prompt {
-            system:"You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
-            message:"Hello, World".to_string(), 
-            num_samples: 200
+    if let Err(_) = runtime.send(Query::Prompt {
+        messages: vec![QueryMessage {
+            role: "user".to_string(),
+            content: "Hello, World".to_string() },
+            QueryMessage {
+            role: "system".to_string(),
+            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string()},
+        ],
+        tools: vec![],
+        config: Some(QueryConfig::default()),
     }) {
         loop {
-            if let Ok(message) = runtime.retry_recv()  {
+            if let Ok(message) = runtime.retry_recv() {
                 tracing::info!("Received Message : {:?}", message);
                 break;
             }
@@ -30,13 +40,19 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
 
     runtime.run();
 
-    if let Err(_) = runtime.send(LlmMessage::Prompt {
-            system:"You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
-            message:"Hello, World".to_string(), 
-            num_samples: 200
+    if let Err(_) = runtime.send(Query::Prompt {
+        messages: vec![QueryMessage {
+            role: "user".to_string(),
+            content: "Hello, World".to_string() },
+            QueryMessage {
+            role: "system".to_string(),
+            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string()},
+        ],
+        tools: vec![],
+        config: Some(QueryConfig::default()),
     }) {
         loop {
-            if let Ok(message) = runtime.retry_recv()  {
+            if let Ok(message) = runtime.retry_recv() {
                 tracing::info!("Received Message : {:?}", message);
                 break;
             }
@@ -53,13 +69,19 @@ async fn test_runtime_mock() -> Result<(), Error> {
 
     runtime.run();
 
-    if let Err(_) = runtime.send(LlmMessage::Prompt {
-            system:"You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
-            message:"Hello, World".to_string(), 
-            num_samples: 200
+    if let Err(_) = runtime.send(Query::Prompt {
+        messages: vec![QueryMessage {
+            role: "user".to_string(),
+            content: "Hello, World".to_string() },
+            QueryMessage {
+            role: "system".to_string(),
+            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string()},
+        ],
+        tools: vec![],
+        config: Some(QueryConfig::default()),
     }) {
         loop {
-            if let Ok(message) = runtime.retry_recv()  {
+            if let Ok(message) = runtime.retry_recv() {
                 tracing::info!("Received Message : {:?}", message);
                 break;
             }

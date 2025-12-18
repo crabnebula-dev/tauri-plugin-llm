@@ -1,4 +1,5 @@
 use serde::Serialize;
+use tera::Context;
 
 use crate::Error;
 use std::ffi::{CStr, CString};
@@ -30,15 +31,17 @@ impl TemplateType {
     ///
     /// Use this function in case the template type is unknown, or requires active detection. Normally, you
     /// wouldn't use this function.
-    pub fn detect(source: &str) -> Self {
+    pub fn detect_from_source(source: &str) -> Self {
         if let Ok(inner) = {
-            let mut env = minijinja::Environment::new();
-            env.add_template("jinja", source)
+            let mut tmpl = tera::Tera::default();
+            tmpl.add_raw_template("jinja", source)
                 .map_err(|e| Error::TemplateError(e.to_string()))
                 .map(|_| Self::Jinja)
         } {
             return inner;
         } else if let Ok(inner) = {
+            // TODO: this needs to be fixed. The FFI call to render a go template
+            // is misused to detect the go template.
             let input_json = serde_json::json!({}).to_string();
             render_template(source, &input_json).map(|_| Self::Go)
         } {
@@ -72,7 +75,7 @@ impl TemplateProcessor {
     }
 
     pub fn from_raw_template(input: String) -> Result<Self, Error> {
-        let kind = TemplateType::detect(&input);
+        let kind = TemplateType::detect_from_source(&input);
 
         Ok(Self { kind })
     }
@@ -97,16 +100,15 @@ impl TemplateProcessor {
     }
 
     fn render_jinja_template(&self, source: &str, input: &str) -> Result<String, Error> {
-        // let mut env = minijinja::Environment::new();
-        // env.add_template("jinja", source)
-        //     .map_err(|e| Error::TemplateError(e.to_string()))?;
+        // let mut tmpl = tera::Tera::default();
+        // tmpl.add_raw_template("jinja", source).map_err(|e| {
+        //     Error::TemplateError(format!("parsing template error occured: {}", e.to_string()))
+        // })?;
 
-        // let templ = env
-        //     .get_template("jinja")
-        //     .map_err(|e| Error::TemplateError(e.to_string()))?;
+        // let context =
+        //     Context::from_serialize(input).map_err(|e| Error::TemplateError(e.to_string()))?;
 
-        // templ
-        //     .render(input)
+        // tmpl.render("jinja", &context)
         //     .map_err(|e| Error::TemplateError(e.to_string()))
 
         render_template_jinja(source, input)

@@ -1,7 +1,8 @@
 use proptest::prelude::*;
 use std::path::PathBuf;
 use tauri_plugin_llm::{
-    GenerationSeed, LLMRuntimeConfig, ModelConfig, ModelFileType, SamplingConfig,
+    GenerationSeed, LLMRuntimeConfig, ModelConfig, ModelFileType, Query, QueryConfig,
+    SamplingConfig,
 };
 
 pub fn random_model_file_type() -> impl Strategy<Value = ModelFileType> {
@@ -135,4 +136,31 @@ proptest! {
         let result = serde_json::from_str::<LLMRuntimeConfig>(&serialized.unwrap());
         assert!(result.is_ok(), "{:?}", result)
     }
+}
+
+#[test]
+fn test_deserialize_default() {
+    let query = Query::Prompt {
+        messages: vec![],
+        tools: vec![],
+        config: Some(QueryConfig::default()),
+    };
+
+    let json = serde_json::to_string_pretty(&query).unwrap();
+    println!("{json}");
+
+    let json = serde_json::json!(
+        {
+        "type": "Prompt",
+        "messages": [],
+        "tools": [],
+        "config": null
+        }
+    )
+    .to_string();
+
+    let result: Result<Query, _> = serde_json::from_str(json.as_str());
+    assert!(result.is_ok(), "{:?}", result);
+
+    println!("{:?}", result.unwrap())
 }

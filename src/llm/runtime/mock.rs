@@ -3,7 +3,7 @@ use crate::runtime::LLMRuntimeModel;
 pub struct Mock;
 
 impl LLMRuntimeModel for Mock {
-    fn execute(&mut self, message: crate::LlmMessage) -> Result<crate::LlmMessage, crate::Error> {
+    fn execute(&mut self, message: crate::Query) -> Result<crate::Query, crate::Error> {
         Ok(message)
     }
 

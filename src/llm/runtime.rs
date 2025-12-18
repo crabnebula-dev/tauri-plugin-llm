@@ -6,7 +6,7 @@ mod qwen3;
 use crate::error::Error;
 use crate::runtime::llama3::LLama3Model;
 use crate::runtime::mock::Mock;
-use crate::LlmMessage;
+use crate::Query;
 use crate::{runtime::qwen3::Qwen3Model, LLMRuntimeConfig, ModelConfig};
 use anyhow::Result;
 use candle_core::Device;
@@ -18,14 +18,14 @@ pub struct LLMRuntime {
     config: LLMRuntimeConfig,
 
     worker: Option<tauri::async_runtime::JoinHandle<()>>,
-    control: (Sender<LlmMessage>, Option<Receiver<LlmMessage>>),
-    response: (Option<Sender<LlmMessage>>, Receiver<LlmMessage>),
+    control: (Sender<Query>, Option<Receiver<Query>>),
+    response: (Option<Sender<Query>>, Receiver<Query>),
     exit: (Sender<()>, Option<Receiver<()>>),
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
-    /// Sends a [`LlmMessage`] to the loaded model and start sampling
-    fn execute(&mut self, message: LlmMessage) -> Result<LlmMessage, Error>;
+    /// Sends a [`Query`] to the loaded model and start sampling
+    fn execute(&mut self, message: Query) -> Result<Query, Error>;
 
     /// Initializes the model
     ///
@@ -182,13 +182,11 @@ impl LLMRuntime {
                     tracing::debug!("Sending message to model");
 
                     let model_response_message = match message {
-                        LlmMessage::Prompt { .. } | LlmMessage::Binary { .. } => {
-                            model.execute(message)
-                        }
+                        Query::Prompt { .. } | Query::Binary { .. } => model.execute(message),
 
-                        LlmMessage::Exit => break,
-                        LlmMessage::Response { .. } => Err(Error::UnexpectedMessage),
-                        LlmMessage::Status => Err(Error::UnexpectedMessage),
+                        Query::Exit => break,
+                        Query::Response { .. } => Err(Error::UnexpectedMessage),
+                        Query::Status => Err(Error::UnexpectedMessage),
                     };
 
                     match model_response_message {
@@ -212,7 +210,7 @@ impl LLMRuntime {
         self.worker = Some(worker);
     }
 
-    pub fn send(&self, msg: LlmMessage) -> Result<LlmMessage, Error> {
+    pub fn send(&self, msg: Query) -> Result<Query, Error> {
         // FIXME: this panics too often eg:
         // 2025-12-09T21:19:58.382077Z ERROR tauri_plugin_llm::llm::runtime: Error initializing model: Missing config (Tokenizer config is missing)
         // thread 'tokio-runtime-worker' (6661081) panicked at src/llm/runtime.rs:204:34:
@@ -228,7 +226,7 @@ impl LLMRuntime {
         self.retry_recv()
     }
 
-    pub fn retry_recv(&self) -> Result<LlmMessage, Error> {
+    pub fn retry_recv(&self) -> Result<Query, Error> {
         let response = self.response.1.try_recv();
 
         #[cfg(feature = "mcpurify")]

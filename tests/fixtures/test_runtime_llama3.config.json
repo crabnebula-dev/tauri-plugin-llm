@@ -1,5 +1,6 @@
 {
     "tokenizer_file": "./models/Llama-3.2-3B-Instruct/tokenizer.json",
+    "tokenizer_config_file": "./models/Llama-3.2-3B-Instruct/tokenizer_config.json",
     "model_config_file": "./models/Llama-3.2-3B-Instruct/config.json",
     "model_index_file": "./models/Llama-3.2-3B-Instruct/model.safetensors.index.json",
     "model_file": "",
@@ -7,7 +8,7 @@
     "model_config": {
         "top_k": 20,
         "top_p": 0.8,
-        "temperature": 0.4,
+        "temperature": 0.1,
         "name": "Llama-3.2-3B-Instruct",
         "file_type": "Safetensors",
         "penalty": 1.0,

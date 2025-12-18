@@ -1,8 +1,10 @@
 use std::fs::File;
 
 use crate::error::Error;
-use crate::runtime::{LLMRuntimeModel, LlmMessage};
-use crate::{LLMRuntimeConfig, ModelConfig, TemplateProcessor, TokenizerConfig};
+use crate::runtime::{LLMRuntimeModel, Query};
+use crate::{
+    LLMRuntimeConfig, ModelConfig, QueryConfig, QueryMessage, TemplateProcessor, TokenizerConfig,
+};
 use candle_core::Device;
 use candle_core::{quantized::gguf_file, Tensor};
 use candle_transformers::{
@@ -24,7 +26,6 @@ pub struct Qwen3Model {
     pub(crate) logits_processor: Option<LogitsProcessor>,
 
     pub(crate) template: Option<String>,
-
     pub(crate) template_proc: Option<TemplateProcessor>,
 }
 
@@ -34,36 +35,30 @@ impl LLMRuntimeModel for Qwen3Model {
     ///
     /// - enable thinking mode
     /// - enable setting a system message
-    fn execute(&mut self, message: LlmMessage) -> Result<LlmMessage, Error> {
-        if let LlmMessage::Prompt {
-            system,
-            message,
-            num_samples,
-        } = message
+    fn execute(&mut self, message: Query) -> Result<Query, Error> {
+        if let Query::Prompt {
+            messages: _,
+            tools,
+            config,
+        } = message.clone()
         {
             // preprocess message by applying chat template
-            let message = if let Some(tmpl) = self.template.take() {
-                let proc = if let Some(proc) = self.template_proc.as_ref() {
-                    proc
-                } else {
-                    self.template_proc = Some(TemplateProcessor::from_raw_template(tmpl.clone())?);
-                    self.template_proc.as_ref().unwrap()
-                };
-
-                proc.render(
-                    &tmpl,
-                    &serde_json::json!({
-                        "System" : system,
-                        "Messages" : [
-                            { "Role" : "user", "Content" : message },
-                        ]
-                    })
-                    .to_string(),
-                )?
-            } else {
-                tracing::warn!("No chat template for model found");
-                message
+            let message = {
+                let template = self.template.as_ref().ok_or(Error::ExecutionError(format!(
+                    "Template is missing in config!"
+                )))?;
+                let proc = self
+                    .template_proc
+                    .as_ref()
+                    .ok_or(Error::ExecutionError(format!(
+                        "Template processor is not intialized"
+                    )))?;
+                message.render(&template, proc)?
             };
+
+            let QueryConfig {
+                generate_num_samples,
+            } = config.unwrap();
 
             tracing::debug!("Processing Message: {:?}", message);
 
@@ -104,7 +99,7 @@ impl LLMRuntimeModel for Qwen3Model {
             let eos_token = *tokenizer.get_vocab(true).get("<|im_end|>").unwrap();
 
             // Start sampling
-            for index in 0..num_samples {
+            for index in 0..generate_num_samples {
                 let input = Tensor::new(&[next_token], &device)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
                     .unsqueeze(0)
@@ -131,23 +126,19 @@ impl LLMRuntimeModel for Qwen3Model {
                 Err(e) => return Err(Error::ExecutionError(e.to_string())),
             };
 
-            return Ok(LlmMessage::Response {
+            return Ok(Query::Response {
                 error: None,
-                message,
+                messages: vec![QueryMessage {
+                    role: "assistant".to_owned(),
+                    content: message,
+                }],
+                tools,
             });
         }
 
-        if let LlmMessage::Binary {
-            system,
-            data,
-            num_samples,
-        } = message
-        {
-
-            // todo impl
-        }
-
-        Err(Error::ExecutionError("".to_string()))
+        Err(Error::ExecutionError(
+            "Cannot handle Query type".to_string(),
+        ))
     }
 
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), crate::Error> {
@@ -169,21 +160,34 @@ impl LLMRuntimeModel for Qwen3Model {
             ..
         } = model_config.clone();
 
+        // set template
         self.template = {
             if let Some(t) = tokenizer_config_file {
                 let mut file = File::open(t)?;
                 let tokenizer_config_json: TokenizerConfig = serde_json::from_reader(&mut file)?;
 
                 if let Some(template) = tokenizer_config_json.chat_template {
+                    tracing::info!("Loaded Template from tokenizer_config file");
                     Some(template)
                 } else {
+                    tracing::info!("The tokenizer_config file does not provide a chat template");
                     None
                 }
             } else if let Some(t) = template_file {
+                tracing::info!("Loading extra provided template file");
                 Some(std::fs::read_to_string(t)?)
             } else {
+                tracing::info!("No extra template file has been provided");
                 None
             }
+        };
+
+        self.template_proc = if tokenizer_config_file.is_some() && self.template.is_some() {
+            Some(TemplateProcessor::with_jinja_template())
+        } else if template_file.is_some() {
+            Some(TemplateProcessor::with_go_template())
+        } else {
+            None
         };
 
         // Initialize the tokenizer

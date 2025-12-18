@@ -1,29 +1,72 @@
-use crate::error::Error;
+use crate::{error::Error, TemplateProcessor};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     path::{Path, PathBuf},
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+// check chat templates
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
-pub enum LlmMessage {
+pub enum Query {
     Prompt {
-        system: String,
-        message: String,
-        num_samples: usize,
+        messages: Vec<QueryMessage>,
+
+        /// We keep the tools info as generic as possible.
+        /// This may change in the future. For now a model can be
+        /// informed about available tools by a json encoded message
+        /// as defined by the MCP standard
+        tools: Vec<String>,
+
+        /// Optional config for the query.
+        /// If no value has been set, the default is assumed
+        #[serde(default, deserialize_with = "null_to_default")]
+        config: Option<QueryConfig>,
     },
-    Binary {
-        system: String,
-        data: Vec<u8>,
-        num_samples: usize,
-    },
+    Binary {},
     Response {
         error: Option<String>,
-        message: String,
+        messages: Vec<QueryMessage>,
+        tools: Vec<String>,
     },
     Exit,
     Status,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
+pub struct QueryConfig {
+    pub generate_num_samples: usize,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct QueryMessage {
+    pub role: String,
+    pub content: String,
+}
+
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct QueryMessageContentType {
+//     pub r#type: String,
+//     pub content: String,
+// }
+
+impl Query {
+    /// Renders [`Self`] with the given template adnd returns the rendered version as String
+    pub fn render(&self, template: &String, tp: &TemplateProcessor) -> Result<String, Error> {
+        let json_context = serde_json::to_string(self)?;
+
+        tracing::debug!("Query as JSON: {}", json_context);
+        tp.render(&template, &json_context)
+    }
+}
+
+impl Default for QueryConfig {
+    fn default() -> Self {
+        QueryConfig {
+            generate_num_samples: 100,
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -158,4 +201,12 @@ impl LLMRuntimeConfig {
             File::open(path.as_ref()).map_err(|e| Error::ExecutionError(e.to_string()))?;
         serde_json::from_reader(&mut file).map_err(|e| Error::ExecutionError(e.to_string()))
     }
+}
+
+fn null_to_default<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Default + serde::Deserialize<'de>,
+{
+    Ok(Some(Option::deserialize(deserializer)?.unwrap_or_default()))
 }

@@ -2,8 +2,10 @@ use std::fs::File;
 
 use crate::error::Error;
 use crate::loaders::IndexFile;
-use crate::runtime::{LLMRuntimeModel, LlmMessage};
-use crate::{LLMRuntimeConfig, ModelConfig, TemplateProcessor};
+use crate::runtime::{LLMRuntimeModel, Query};
+use crate::{
+    LLMRuntimeConfig, ModelConfig, QueryConfig, QueryMessage, TemplateProcessor, TokenizerConfig,
+};
 use candle_core::Device;
 use candle_core::Tensor;
 use candle_nn::VarBuilder;
@@ -33,13 +35,31 @@ pub struct LLama3Model {
 }
 
 impl LLMRuntimeModel for LLama3Model {
-    fn execute(&mut self, message: LlmMessage) -> anyhow::Result<LlmMessage, Error> {
-        if let LlmMessage::Prompt {
-            system: _,
-            message,
-            num_samples,
-        } = message
+    fn execute(&mut self, message: Query) -> anyhow::Result<Query, Error> {
+        if let Query::Prompt {
+            messages: _,
+            tools,
+            config,
+        } = message.clone()
         {
+            // preprocess message by applying chat template
+            let message = {
+                let template = self.template.as_ref().ok_or(Error::ExecutionError(format!(
+                    "Template is missing in config!"
+                )))?;
+                let proc = self
+                    .template_proc
+                    .as_ref()
+                    .ok_or(Error::ExecutionError(format!(
+                        "Template processor is not intialized"
+                    )))?;
+                message.render(&template, proc)?
+            };
+
+            let QueryConfig {
+                generate_num_samples,
+            } = config.unwrap();
+
             tracing::debug!("Processing Message: {:?}", message);
 
             // get defaults
@@ -79,7 +99,7 @@ impl LLMRuntimeModel for LLama3Model {
             let eos_token = *tokenizer.get_vocab(true).get("<|end_of_text|>").unwrap();
 
             // Start sampling
-            for index in 0..num_samples {
+            for index in 0..generate_num_samples {
                 let input = Tensor::new(&[next_token], &device)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
                     .unsqueeze(0)
@@ -113,35 +133,32 @@ impl LLMRuntimeModel for LLama3Model {
                 Err(e) => return Err(Error::ExecutionError(e.to_string())),
             };
 
-            return Ok(LlmMessage::Response {
+            return Ok(Query::Response {
                 error: None,
-                message,
+                messages: vec![QueryMessage {
+                    role: "assistant".to_owned(),
+                    content: message,
+                }],
+                tools,
             });
         }
 
-        if let LlmMessage::Binary {
-            system,
-            data,
-            num_samples,
-        } = message
-        {
-            // todo impl
-        }
-
-        Err(Error::ExecutionError("".to_string()))
+        Err(Error::ExecutionError(
+            "Cannot handle Query type".to_string(),
+        ))
     }
 
     fn init(&mut self, config: &LLMRuntimeConfig) -> anyhow::Result<(), Error> {
         let LLMRuntimeConfig {
             tokenizer_file: _,
-            tokenizer_config_file: _,
+            tokenizer_config_file,
             model_config_file,
             model_index_file,
             model_file: _,
             model_dir,
             model_config: _,
             verbose: _,
-            template_file: _,
+            template_file,
         } = config;
 
         let ModelConfig {
@@ -152,6 +169,36 @@ impl LLMRuntimeModel for LLama3Model {
         } = config.model_config.clone();
 
         self.penalty = penalty;
+
+        // set template
+        self.template = {
+            if let Some(t) = tokenizer_config_file {
+                let mut file = File::open(t)?;
+                let tokenizer_config_json: TokenizerConfig = serde_json::from_reader(&mut file)?;
+
+                if let Some(template) = tokenizer_config_json.chat_template {
+                    tracing::info!("Loaded Template from tokenizer_config file");
+                    Some(template)
+                } else {
+                    tracing::info!("The tokenizer_config file does not provide a chat template");
+                    None
+                }
+            } else if let Some(t) = template_file {
+                tracing::info!("Loading extra provided template file");
+                Some(std::fs::read_to_string(t)?)
+            } else {
+                tracing::info!("No extra template file has been provided");
+                None
+            }
+        };
+
+        self.template_proc = if tokenizer_config_file.is_some() && self.template.is_some() {
+            Some(TemplateProcessor::with_jinja_template())
+        } else if template_file.is_some() {
+            Some(TemplateProcessor::with_go_template())
+        } else {
+            None
+        };
 
         // Initialize the tokenizer
         self.tokenizer = Some(
