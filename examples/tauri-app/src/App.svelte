@@ -1,16 +1,5 @@
 <script>
-  import Greet from './lib/Greet.svelte'
-  import { ping } from 'tauri-plugin-tauri-plugin-llm-api'
-
-	let response = $state('')
-
-	function updateResponse(returnValue) {
-		response += `[${new Date().toLocaleTimeString()}] ` + (typeof returnValue === 'string' ? returnValue : JSON.stringify(returnValue)) + '<br>'
-	}
-
-	function _ping() {
-		ping("Pong!").then(updateResponse).catch(updateResponse)
-	}
+  import Prompt from "./lib/Prompt.svelte";
 </script>
 
 <main class="container">
@@ -28,19 +17,11 @@
     </a>
   </div>
 
-  <p>
-    Click on the Tauri, Vite, and Svelte logos to learn more.
-  </p>
+  <p>Click on the Tauri, Vite, and Svelte logos to learn more.</p>
 
   <div class="row">
-    <Greet />
+    <Prompt />
   </div>
-
-  <div>
-    <button onclick="{_ping}">Ping</button>
-    <div>{@html response}</div>
-  </div>
-
 </main>
 
 <style>

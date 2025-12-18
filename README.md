@@ -10,9 +10,12 @@ This Tauri plugin allows loading and running inference on various large language
 | Android  | ?         |
 | iOS      | ?         |
 
+# Requirements
+
+- Rust >= 1.77
+- Go >= 1.20 
+
 # Install
-
-
 
 # Usage
 

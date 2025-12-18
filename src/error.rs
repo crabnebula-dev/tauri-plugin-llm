@@ -1,5 +1,5 @@
 use serde::{ser::Serializer, Serialize};
-
+use std::sync::mpsc::TryRecvError;
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
@@ -25,10 +25,22 @@ pub enum Error {
     UnexpectedMessage,
 
     #[error("Error Loading File ({0})")]
-    LoadingFile(String),
+    LoadingFile(String, String),
 
     #[error("Error Encoding Message ({0})")]
     MessageEncodingError(String),
+
+    #[error("Error receiving message from sync channel ({0})")]
+    ChannelReceiveError(#[from] TryRecvError),
+
+    #[error("Error deserialization from JSON")]
+    JsonSerdeError(#[from] serde_json::Error),
+
+    #[error("Error calling foreign function: ({0})")]
+    Ffi(String),
+
+    #[error("Error processing template: ({0})")]
+    TemplateError(String),
 }
 
 impl Serialize for Error {

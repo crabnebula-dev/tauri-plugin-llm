@@ -1,7 +1,7 @@
 {
   "productName": "tauri-app",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "dev.crabnebula.plugin-llm-example",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -33,5 +33,29 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "llm": {
+      "llmconfig": {
+        "tokenizer_config_file": "",
+        "model_config_file": "",
+        "model_index_file": "",
+        "model_file": "",
+        "model_dir": "",
+        "model_config": {
+            "top_k": 0,
+            "top_p": 0.0,
+            "temperature": 0.0,
+            "name": "Mock",
+            "file_type": "GGUF",
+            "penalty": 1.0,
+            "seed": "Random",
+            "thinking": false,
+            "streaming": true,
+            "sampling_config": "TopK"
+        },
+        "verbose": false
+      }
+    }
   }
 }
