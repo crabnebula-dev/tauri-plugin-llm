@@ -5,7 +5,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-// check chat templates
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum Query {
@@ -52,7 +51,7 @@ pub struct QueryMessage {
 // }
 
 impl Query {
-    /// Renders [`Self`] with the given template adnd returns the rendered version as String
+    /// Renders [`Self`] with the given template and returns the rendered version as String
     pub fn render(&self, template: &String, tp: &TemplateProcessor) -> Result<String, Error> {
         let json_context = serde_json::to_string(self)?;
 
