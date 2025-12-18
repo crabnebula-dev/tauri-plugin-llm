@@ -1,7 +1,7 @@
 use proptest::prelude::*;
 use std::path::PathBuf;
 use tauri_plugin_llm::{
-    GenerationSeed, LLMRuntimeConfig, ModelConfig, ModelFileType, Query, QueryConfig,
+    GenerationSeed, LLMRuntimeConfig, ModelConfig, ModelFileType, Query, QueryConfig, QueryMessage,
     SamplingConfig,
 };
 
@@ -141,12 +141,15 @@ proptest! {
 #[test]
 fn test_deserialize_default() {
     let query = Query::Prompt {
-        messages: vec![],
+        messages: vec![QueryMessage {
+            role: "user".to_string(),
+            content: "Hello, World!".to_string(),
+        }],
         tools: vec![],
         config: Some(QueryConfig::default()),
     };
 
-    let json = serde_json::to_string_pretty(&query).unwrap();
+    let json = serde_json::to_string(&query).unwrap();
     println!("{json}");
 
     let json = serde_json::json!(

@@ -1,9 +1,9 @@
-describe("some description lol", () => {
+describe("A basic end to end test to call a model from the frontend and display the response", () => {
   it("should get some response for simple prompts", async () => {
     // Linux' WebKitWebDriver can't send anything to the webview for some reason
     if (process.platform !== "linux") {
       const promptInput = await $("input#prompt-input");
-      await promptInput.setValue("Hello from e2e Test.");
+      await promptInput.setValue('{"type":"Prompt","messages":[{"role":"user","content":"Hello, World!"}],"tools":[],"config":{"generate_num_samples":100}}');
       const promptButton = await $("button#prompt-send-btn");
       await promptButton.click();
     }
