@@ -1,7 +1,7 @@
 version: "3"
 
 env:
-  # global env setting to eny resolving large file pointers to actual blobs
+  # global env setting to skip resolving large file pointers to actual blobs
   GIT_LFS_SKIP_SMUDGE: 1
   CONTAINER_RUNTIME: container
 
