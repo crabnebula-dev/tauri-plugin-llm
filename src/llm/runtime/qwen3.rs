@@ -131,6 +131,7 @@ impl LLMRuntimeModel for Qwen3Model {
                 messages: vec![QueryMessage {
                     role: "assistant".to_owned(),
                     content: message,
+                    timestamp: None,
                 }],
                 tools,
             });

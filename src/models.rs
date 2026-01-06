@@ -42,6 +42,8 @@ pub struct QueryConfig {
 pub struct QueryMessage {
     pub role: String,
     pub content: String,
+
+    pub timestamp: Option<u64>,
 }
 
 // #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -144,6 +144,7 @@ fn test_deserialize_default() {
         messages: vec![QueryMessage {
             role: "user".to_string(),
             content: "Hello, World!".to_string(),
+            timestamp: None,
         }],
         tools: vec![],
         config: Some(QueryConfig::default()),

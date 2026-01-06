@@ -138,6 +138,7 @@ impl LLMRuntimeModel for LLama3Model {
                 messages: vec![QueryMessage {
                     role: "assistant".to_owned(),
                     content: message,
+                    timestamp: None,
                 }],
                 tools,
             });
