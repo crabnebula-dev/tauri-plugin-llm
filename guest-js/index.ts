@@ -38,6 +38,7 @@ interface QueryConfig {
 interface QueryMessage {
   role: string;
   content: string;
+  timestamp?: number
 }
 
 /// Send a message to the LLM backend
