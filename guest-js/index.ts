@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-type Query =
+export type Query =
   | {
     type: "Prompt";
     messages: QueryMessage[];
@@ -31,11 +31,11 @@ type Query =
     type: "Status";
   };
 
-interface QueryConfig {
+export interface QueryConfig {
   generate_num_samples: number;
 }
 
-interface QueryMessage {
+export interface QueryMessage {
   role: string;
   content: string;
 }
