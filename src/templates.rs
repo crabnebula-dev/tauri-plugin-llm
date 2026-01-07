@@ -1,6 +1,3 @@
-use serde::Serialize;
-use tera::Context;
-
 use crate::Error;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
@@ -100,17 +97,6 @@ impl TemplateProcessor {
     }
 
     fn render_jinja_template(&self, source: &str, input: &str) -> Result<String, Error> {
-        // let mut tmpl = tera::Tera::default();
-        // tmpl.add_raw_template("jinja", source).map_err(|e| {
-        //     Error::TemplateError(format!("parsing template error occured: {}", e.to_string()))
-        // })?;
-
-        // let context =
-        //     Context::from_serialize(input).map_err(|e| Error::TemplateError(e.to_string()))?;
-
-        // tmpl.render("jinja", &context)
-        //     .map_err(|e| Error::TemplateError(e.to_string()))
-
         render_template_jinja(source, input)
     }
 }

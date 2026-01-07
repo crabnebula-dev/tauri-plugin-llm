@@ -1,9 +1,11 @@
 use crate::{error::Error, TemplateProcessor};
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     fs::File,
     path::{Path, PathBuf},
 };
+use tokenizers::AddedToken;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
@@ -45,12 +47,6 @@ pub struct QueryMessage {
 
     pub timestamp: Option<u64>,
 }
-
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// pub struct QueryMessageContentType {
-//     pub r#type: String,
-//     pub content: String,
-// }
 
 impl Query {
     /// Renders [`Self`] with the given template and returns the rendered version as String
@@ -136,7 +132,7 @@ pub struct ModelConfig {
     /// value has been set.
     pub seed: GenerationSeed,
 
-    /// Enabl thinking mode, if model supports it
+    /// Enable thinking mode, if model supports it
     pub thinking: bool,
 
     /// Enable streaming responses
@@ -190,7 +186,19 @@ pub struct TokenizerConfig {
     pub eos_token: Option<String>,
     pub model_max_length: Option<usize>,
     pub tokenizer_class: Option<String>,
+
+    pub added_tokens_decoder: Option<HashMap<String, AddedToken>>,
 }
+
+// #[derive(Deserialize, Serialize, Debug, Clone, Default)]
+// pub struct AddedToken {
+//     content: String,
+//     lstrip: bool,
+//     normalized: bool,
+//     rstrip: bool,
+//     single_word: bool,
+//     special: bool,
+// }
 
 impl LLMRuntimeConfig {
     ///Loads a config from path

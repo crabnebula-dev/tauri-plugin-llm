@@ -15,7 +15,7 @@ use model::{Llama, LlamaConfig};
 
 use candle_transformers::generation::{LogitsProcessor, Sampling};
 use rand::Rng;
-use tokenizers::Tokenizer;
+use tokenizers::{AddedToken, Tokenizer};
 
 pub struct LLama3Model {
     pub(crate) streaming: bool,
@@ -64,6 +64,7 @@ impl LLMRuntimeModel for LLama3Model {
 
             // get defaults
             let tokenizer = self.tokenizer.as_ref().unwrap();
+
             let model = self.weights.as_mut().unwrap();
             let logits_processor = self.logits_processor.as_mut().unwrap();
             let device = self.device.as_ref().unwrap();
@@ -96,7 +97,9 @@ impl LLMRuntimeModel for LLama3Model {
             all_tokens.push(next_token);
 
             // TODO: set end of stream token
-            let eos_token = *tokenizer.get_vocab(true).get("<|end_of_text|>").unwrap();
+            let eos_token = *tokenizer.get_vocab(true).get("<|eot_id|>").unwrap();
+
+            tracing::info!("Encoded eos token: {eos_token}");
 
             // Start sampling
             for index in 0..generate_num_samples {
@@ -194,6 +197,7 @@ impl LLMRuntimeModel for LLama3Model {
         };
 
         self.template_proc = if tokenizer_config_file.is_some() && self.template.is_some() {
+            // the extra check for the `tokenizer_config_file` is to indicate the presence of a jinja template
             Some(TemplateProcessor::with_jinja_template())
         } else if template_file.is_some() {
             Some(TemplateProcessor::with_go_template())
@@ -202,14 +206,27 @@ impl LLMRuntimeModel for LLama3Model {
         };
 
         // Initialize the tokenizer
-        self.tokenizer = Some(
-            Tokenizer::from_file(&config.tokenizer_file.as_ref().ok_or(
+        self.tokenizer = Some({
+            let mut tokenizer = Tokenizer::from_file(&config.tokenizer_file.as_ref().ok_or(
                 Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
             )?)
             .map_err(|e| {
                 Error::LoadingFile(format!("{:?}", config.tokenizer_file), e.to_string())
-            })?,
-        );
+            })?;
+
+            if let Some(t) = tokenizer_config_file {
+                let mut file = File::open(t)?;
+                let tokenizer_config_json: TokenizerConfig = serde_json::from_reader(&mut file)?;
+
+                if let Some(added_tokens) = tokenizer_config_json.added_tokens_decoder {
+                    let added_tokens: Vec<AddedToken> = added_tokens.into_values().collect();
+
+                    tokenizer.add_special_tokens(&added_tokens);
+                }
+            }
+
+            tokenizer
+        });
 
         let mut llama_config_file = File::open(model_config_file.as_ref().unwrap())?;
         let cfg: LlamaConfig = serde_json::from_reader(&mut llama_config_file)?;
