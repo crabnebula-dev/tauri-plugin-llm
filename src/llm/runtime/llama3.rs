@@ -107,17 +107,22 @@ impl LLMRuntimeModel for LLama3Model {
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
                     .unsqueeze(0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
                 let logits = model
                     .forward(&input, tokens.len() + index, self.cache.as_mut().unwrap())
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
                 let logits = logits
                     .squeeze(0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
+                // 128 = last n repeated tokens (this is just configuration)
+                let start_at = all_tokens.len().saturating_sub(128);
+
                 let logits = candle_transformers::utils::apply_repeat_penalty(
                     &logits,
                     self.penalty,
-                    &all_tokens[0..],
+                    &all_tokens[start_at..],
                 )
                 .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
@@ -172,7 +177,7 @@ impl LLMRuntimeModel for LLama3Model {
             ..
         } = config.model_config.clone();
 
-        self.penalty = penalty;
+        self.penalty = penalty.max(0.1);
 
         // set template
         self.template = {
@@ -240,6 +245,7 @@ impl LLMRuntimeModel for LLama3Model {
             let vb = unsafe {
                 VarBuilder::from_mmaped_safetensors(
                     &paths,
+                    // TODO: this can also be set via config
                     candle_core::DType::BF16,
                     self.device.as_ref().unwrap(),
                 )
@@ -304,6 +310,4 @@ impl LLMRuntimeModel for LLama3Model {
 
         Ok(())
     }
-
-    fn apply_chat_template(&mut self, template: String) {}
 }

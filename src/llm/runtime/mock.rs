@@ -10,6 +10,4 @@ impl LLMRuntimeModel for Mock {
     fn init(&mut self, config: &crate::LLMRuntimeConfig) -> Result<(), crate::Error> {
         Ok(())
     }
-
-    fn apply_chat_template(&mut self, template: String) {}
 }

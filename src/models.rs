@@ -61,7 +61,7 @@ impl Query {
 impl Default for QueryConfig {
     fn default() -> Self {
         QueryConfig {
-            generate_num_samples: 100,
+            generate_num_samples: 500,
         }
     }
 }

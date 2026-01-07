@@ -31,9 +31,6 @@ pub trait LLMRuntimeModel: Send + Sync {
     ///
     /// This is a heavy process and needs to be run in a dedicated thread
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error>;
-
-    /// Apply a chat template
-    fn apply_chat_template(&mut self, template: String);
 }
 
 impl Drop for LLMRuntime {
