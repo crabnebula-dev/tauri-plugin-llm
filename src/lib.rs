@@ -74,7 +74,8 @@ impl Builder {
         PluginBuilder::<R, LLMPluginConfig>::new("llm")
             .invoke_handler(tauri::generate_handler![
                 commands::send_message,
-                commands::retry_recv
+                commands::retry_recv,
+                commands::stream
             ])
             .setup(|app, api| {
                 let config = self

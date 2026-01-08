@@ -2,6 +2,7 @@ use crate::{error::Error, TemplateProcessor};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
+    fmt::{write, Display},
     fs::File,
     path::{Path, PathBuf},
 };
@@ -46,6 +47,26 @@ pub struct QueryMessage {
     pub content: String,
 
     pub timestamp: Option<u64>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(tag = "type")]
+pub enum QueryStream {
+    Internal { id: usize, data: Vec<u8> },
+    Chunk { id: usize, data: String },
+    End,
+    Error { msg: String },
+}
+
+impl Display for QueryStream {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            QueryStream::Internal { .. } => write!(f, "query-stream-chunk"),
+            QueryStream::Chunk { .. } => write!(f, "query-stream-chunk"),
+            QueryStream::End => write!(f, "query-stream-end"),
+            QueryStream::Error { .. } => write!(f, "query-stream-error"),
+        }
+    }
 }
 
 impl Query {
@@ -189,16 +210,6 @@ pub struct TokenizerConfig {
 
     pub added_tokens_decoder: Option<HashMap<String, AddedToken>>,
 }
-
-// #[derive(Deserialize, Serialize, Debug, Clone, Default)]
-// pub struct AddedToken {
-//     content: String,
-//     lstrip: bool,
-//     normalized: bool,
-//     rstrip: bool,
-//     single_word: bool,
-//     special: bool,
-// }
 
 impl LLMRuntimeConfig {
     ///Loads a config from path

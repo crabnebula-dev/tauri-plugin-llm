@@ -261,4 +261,6 @@ impl LLMRuntimeModel for Qwen3Model {
 
         Ok(())
     }
+
+    // fn execute_streaming(&mut self, message: Query) -> anyhow::Result<(), Error> {}
 }

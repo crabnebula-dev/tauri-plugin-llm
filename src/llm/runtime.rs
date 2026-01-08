@@ -6,8 +6,8 @@ mod qwen3;
 use crate::error::Error;
 use crate::runtime::llama3::LLama3Model;
 use crate::runtime::mock::Mock;
-use crate::Query;
 use crate::{runtime::qwen3::Qwen3Model, LLMRuntimeConfig, ModelConfig};
+use crate::{Query, QueryStream};
 use anyhow::Result;
 use candle_core::Device;
 use std::sync::mpsc::{Receiver, Sender};
@@ -31,6 +31,12 @@ pub trait LLMRuntimeModel: Send + Sync {
     ///
     /// This is a heavy process and needs to be run in a dedicated thread
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error>;
+
+    /// Sends a [`Query`] to the loaded model and returns a streaming response.
+    fn execute_streaming(&mut self, message: Query) -> Result<(), Error> {
+        // TODO impl
+        Ok(())
+    }
 }
 
 impl Drop for LLMRuntime {
@@ -221,6 +227,11 @@ impl LLMRuntime {
             .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
         self.retry_recv()
+    }
+
+    /// Send a message to the llm backend and receive a stream of messages
+    pub fn stream(&self, msg: Query) -> Result<Receiver<QueryStream>, Error> {
+        todo!()
     }
 
     pub fn retry_recv(&self) -> Result<Query, Error> {

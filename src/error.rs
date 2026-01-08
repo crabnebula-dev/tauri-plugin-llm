@@ -41,6 +41,9 @@ pub enum Error {
 
     #[error("Error processing template: ({0})")]
     TemplateError(String),
+
+    #[error("Error streaming resoponse: ({0})")]
+    StreamError(String),
 }
 
 impl Serialize for Error {
