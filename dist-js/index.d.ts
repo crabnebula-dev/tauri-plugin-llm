@@ -21,6 +21,7 @@ export interface QueryConfig {
 export interface QueryMessage {
     role: string;
     content: string;
+    timestamp?: number;
 }
 export declare function sendMessage(message: Query): Promise<Query | null>;
 export declare function retryRecv(): Promise<Query | null>;
