@@ -1,11 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
+
 export type QueryStream =
   | {
     type: "Chunk",
     id: number,
     data: string,
+    kind: "string" | "bytes"
   }
   | {
     type: "End"
@@ -14,6 +16,8 @@ export type QueryStream =
     type: "Error",
     msg: string
   }
+
+
 
 export type ChunkStreamDataCallback = (id: number, data: string) => void;
 export type ChunkStreamEndCallback = () => void;
@@ -126,6 +130,7 @@ export class LLMStreamListener {
     this.isActive = false;
   }
 
+  /// Use this function to send a prompt to the backend
   async stream(message: Query, window: Window): Promise<void> {
     if (!this.isActive) {
       throw new Error('Stream listener not initialized.');

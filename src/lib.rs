@@ -91,6 +91,10 @@ impl Builder {
                     // start background thread
                     runtime.run();
 
+                    // this is the new version and must be enabled,
+                    // as soon as the functionality has been implemented.
+                    // runtime.run_stream();
+
                     PluginState {
                         runtime: Arc::new(Mutex::new(runtime)),
                     }

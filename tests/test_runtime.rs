@@ -1,8 +1,10 @@
-use std::vec;
+use std::{cmp::Ordering, usize, vec};
 
+use rand::Rng;
 use tauri_plugin_llm::{
     runtime::LLMRuntime, Error, LLMRuntimeConfig, Query, QueryConfig, QueryMessage,
 };
+use tracing::trace;
 
 #[tokio::test]
 async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
@@ -14,14 +16,17 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     if let Err(_) = runtime.send(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
-            content: "Hello, World".to_string(),timestamp : None },
+            content: "Hello, World".to_string(),timestamp : None,  },
             QueryMessage {
             role: "system".to_string(),
             content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
-            timestamp : None},
+            timestamp : None,
+            
+        },
         ],
         tools: vec![],
         config: Some(QueryConfig::default()),
+        chunk_size : None,
     }) {
         loop {
             if let Ok(message) = runtime.retry_recv() {
@@ -48,10 +53,13 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
             QueryMessage {
             role: "system".to_string(),
             content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
-            timestamp : None, }
+            timestamp : None, 
+        
+       }
         ],
         tools: vec![],
         config: Some(QueryConfig::default()),
+        chunk_size : None
     }) {
         loop {
             if let Ok(message) = runtime.retry_recv() {
@@ -81,6 +89,7 @@ async fn test_runtime_mock() -> Result<(), Error> {
         ],
         tools: vec![],
         config: Some(QueryConfig::default()),
+        chunk_size : None
     }) {
         loop {
             if let Ok(message) = runtime.retry_recv() {
@@ -89,6 +98,75 @@ async fn test_runtime_mock() -> Result<(), Error> {
             }
         }
     }
+
+    Ok(())
+}
+
+
+#[tokio::test]
+async fn test_runtime_mock_streaming() -> Result<(), Error>{
+    let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_mock.json")?;
+    let mut runtime = LLMRuntime::from_config(config)?;
+
+    runtime.run_stream()?;
+
+    let query = Query::Prompt { messages: vec![QueryMessage {
+            role: "user".to_string(),
+            content: "Hello, World".to_string(), timestamp : None}], tools: vec![], config: Some(QueryConfig::default()), chunk_size: Some(25) };
+
+    let _ = runtime.send_stream(query); 
+
+    let mut full_message = vec![];
+
+    loop { 
+        
+        if let Ok(message) = runtime.try_recv_stream() {
+            match message {
+                tauri_plugin_llm::QueryStream::Chunk { .. } =>  {
+                    full_message.push(message);
+                },
+                tauri_plugin_llm::QueryStream::End => {
+                    // todo reassemble the whole message
+                    full_message.sort_by(|a, b| {
+                        let id_a = match a {
+                            tauri_plugin_llm::QueryStream::Chunk { id, .. } => *id,
+                           _ => usize::MAX
+                        };
+
+                         let id_b = match b {
+                            tauri_plugin_llm::QueryStream::Chunk { id, .. } => *id,
+                           _ => usize::MAX
+                        };
+
+                        match (id_a, id_b) {
+                            _ if id_a > id_b => Ordering::Greater,
+                            _ if id_a < id_b => Ordering::Less,
+                            _ => Ordering::Equal
+                        }
+
+                    });
+
+                    let result = full_message.into_iter().filter_map(|q| match q {
+                        tauri_plugin_llm::QueryStream::Chunk {  data, ..} => Some(data),
+                        _ => None
+                    }).flatten().collect::<Vec<u8>>();
+
+
+                    let result_message_string = String::from_utf8(result).expect("Failed to construct a UTF-8 String from raw bytes");
+
+                    println!("{result_message_string}");
+                    tracing::info!("Result: {result_message_string}");
+
+                    break
+                },
+                tauri_plugin_llm::QueryStream::Error { msg } => {
+                    tracing::error!("Error during receiving stream message. {msg}");
+                },
+            }
+        }
+
+    }
+
 
     Ok(())
 }

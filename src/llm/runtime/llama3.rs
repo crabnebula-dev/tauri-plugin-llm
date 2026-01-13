@@ -40,6 +40,7 @@ impl LLMRuntimeModel for LLama3Model {
             messages: _,
             tools,
             config,
+            chunk_size: _,
         } = message.clone()
         {
             // preprocess message by applying chat template

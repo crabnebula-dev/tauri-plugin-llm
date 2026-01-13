@@ -148,6 +148,7 @@ fn test_deserialize_default() {
         }],
         tools: vec![],
         config: Some(QueryConfig::default()),
+        chunk_size: None,
     };
 
     let json = serde_json::to_string(&query).unwrap();
@@ -158,7 +159,8 @@ fn test_deserialize_default() {
         "type": "Prompt",
         "messages": [],
         "tools": [],
-        "config": null
+        "config": null,
+        "chunk_size" : null
         }
     )
     .to_string();

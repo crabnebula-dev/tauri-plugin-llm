@@ -26,35 +26,26 @@ pub(crate) async fn stream<R>(
 where
     R: Runtime,
 {
-    let runtime = state.runtime.lock().unwrap();
-    let rx = runtime.stream(message)?;
+    let mut runtime = state.runtime.lock().unwrap();
+    runtime.run_stream()?;
+
+    // fix this
+    runtime.send(message);
 
     loop {
-        if let Ok(query_stream) = rx.try_recv() {
-            // TODO: query stream is Serializable and can be send directly.
-            //       However, error handling should be done here in the backend.
-
-            match &query_stream {
-                QueryStream::Internal { id, data } => {
-                    // encode as base64
-                    let data = base64.encode(data);
-
-                    app.emit(
-                        format!("{}", query_stream).as_str(),
-                        QueryStream::Chunk { id: *id, data },
-                    )
-                    .map_err(|e| crate::Error::StreamError(e.to_string()))?;
-                }
-                QueryStream::Chunk { id, data } => {
-                    // ?
-                }
-                QueryStream::Error { msg } => {
-                    app.emit(format!("{}", query_stream).as_str(), msg)
-                        .map_err(|e| crate::Error::StreamError(e.to_string()))?;
-                    break;
-                }
-                QueryStream::End => break,
-            }
+        if let Ok(query_stream) = runtime.retry_recv() {
+            // match &query_stream {
+            //     QueryStream::Chunk { .. } => {
+            //         app.emit(format!("{}", query_stream).as_str(), query_stream)
+            //             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
+            //     }
+            //     QueryStream::Error { msg } => {
+            //         app.emit(format!("{}", query_stream).as_str(), msg)
+            //             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
+            //         break;
+            //     }
+            //     QueryStream::End => break,
+            // }
         }
     }
 

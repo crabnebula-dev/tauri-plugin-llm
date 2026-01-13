@@ -2,7 +2,7 @@ use crate::{error::Error, TemplateProcessor};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fmt::{write, Display},
+    fmt::Display,
     fs::File,
     path::{Path, PathBuf},
 };
@@ -24,8 +24,25 @@ pub enum Query {
         /// If no value has been set, the default is assumed
         #[serde(default, deserialize_with = "null_to_default")]
         config: Option<QueryConfig>,
+
+        chunk_size: Option<usize>,
     },
-    Binary {},
+    // StreamPrompt {
+    //     messages: Vec<QueryMessage>,
+
+    //     /// We keep the tools info as generic as possible.
+    //     /// This may change in the future. For now a model can be
+    //     /// informed about available tools by a json encoded message
+    //     /// as defined by the MCP standard
+    //     tools: Vec<String>,
+
+    //     /// Optional config for the query.
+    //     /// If no value has been set, the default is assumed
+    //     #[serde(default, deserialize_with = "null_to_default")]
+    //     config: Option<QueryConfig>,
+
+    // },
+    // Binary {},
     Response {
         error: Option<String>,
         messages: Vec<QueryMessage>,
@@ -52,16 +69,28 @@ pub struct QueryMessage {
 #[derive(Clone, Serialize)]
 #[serde(tag = "type")]
 pub enum QueryStream {
-    Internal { id: usize, data: Vec<u8> },
-    Chunk { id: usize, data: String },
+    Chunk {
+        id: usize,
+        data: Vec<u8>,
+        kind: QueryStreamKind,
+    },
     End,
-    Error { msg: String },
+    Error {
+        msg: String,
+    },
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "lowercase")]
+#[serde(untagged)]
+pub enum QueryStreamKind {
+    String,
+    Bytes,
 }
 
 impl Display for QueryStream {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            QueryStream::Internal { .. } => write!(f, "query-stream-chunk"),
             QueryStream::Chunk { .. } => write!(f, "query-stream-chunk"),
             QueryStream::End => write!(f, "query-stream-end"),
             QueryStream::Error { .. } => write!(f, "query-stream-error"),

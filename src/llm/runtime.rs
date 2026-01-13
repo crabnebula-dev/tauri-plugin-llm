@@ -10,7 +10,9 @@ use crate::{runtime::qwen3::Qwen3Model, LLMRuntimeConfig, ModelConfig};
 use crate::{Query, QueryStream};
 use anyhow::Result;
 use candle_core::Device;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::Arc;
+use tauri::http::response;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
 pub struct LLMRuntime {
@@ -20,7 +22,8 @@ pub struct LLMRuntime {
     worker: Option<tauri::async_runtime::JoinHandle<()>>,
     control: (Sender<Query>, Option<Receiver<Query>>),
     response: (Option<Sender<Query>>, Receiver<Query>),
-    exit: (Sender<()>, Option<Receiver<()>>),
+
+    response_stream: (Option<Sender<QueryStream>>, Receiver<QueryStream>),
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
@@ -32,17 +35,25 @@ pub trait LLMRuntimeModel: Send + Sync {
     /// This is a heavy process and needs to be run in a dedicated thread
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error>;
 
-    /// Sends a [`Query`] to the loaded model and returns a streaming response.
-    fn execute_streaming(&mut self, message: Query) -> Result<(), Error> {
-        // TODO impl
+    /// Sends a [`Query`] to the loaded model and accepts a response sender to send chunked messages
+    /// represented by [`QueryStream`]
+    fn execute_streaming(&mut self, _: Query, _: Arc<Sender<QueryStream>>) -> Result<(), Error> {
+        tracing::info!("execute_streaming has not been implemented yet");
         Ok(())
+    }
+
+    /// Returns an arbitrary default chunk size.
+    ///
+    /// The actual chunk size can be configured inside a [`Query`]
+    fn default_chunksize(&self) -> usize {
+        32
     }
 }
 
 impl Drop for LLMRuntime {
     fn drop(&mut self) {
-        if let Err(error) = self.exit.0.send(()) {
-            tracing::error!("Unable to send Exit signal to LLMRuntime: {}", error);
+        if let Err(err) = self.control.0.send(Query::Exit) {
+            tracing::error!("Unable to send Exit signal to LLMRuntime: {}", err);
         }
     }
 }
@@ -59,7 +70,8 @@ impl LLMRuntime {
 
         let (ctrl_tx, ctrl_rx) = std::sync::mpsc::channel();
         let (response_tx, response_rx) = std::sync::mpsc::channel();
-        let (exit_tx, exit_rx) = std::sync::mpsc::channel();
+
+        let (response_stream_tx, response_stream_rx) = std::sync::mpsc::channel();
 
         Ok(Self {
             model: Some(model),
@@ -68,7 +80,8 @@ impl LLMRuntime {
             worker: None,
             control: (ctrl_tx, Some(ctrl_rx)),
             response: (Some(response_tx), response_rx),
-            exit: (exit_tx, Some(exit_rx)),
+
+            response_stream: (Some(response_stream_tx), response_stream_rx),
         })
     }
 
@@ -166,7 +179,6 @@ impl LLMRuntime {
 
         let control_rx = self.control.1.take().unwrap();
         let response_tx = self.response.0.take().unwrap();
-        let exit_rx = self.exit.1.take().unwrap();
 
         tracing::debug!("Spawning Model in separate thread");
 
@@ -185,8 +197,12 @@ impl LLMRuntime {
                     tracing::debug!("Sending message to model");
 
                     let model_response_message = match message {
-                        Query::Prompt { .. } | Query::Binary { .. } => model.execute(message),
+                        Query::Prompt { .. } => model.execute(message),
 
+                        // // must call another method to enable chunked message responses
+                        // Query::StreamPrompt { .. } => {
+                        //     todo!()
+                        // }
                         Query::Exit => break,
                         Query::Response { .. } => Err(Error::UnexpectedMessage),
                         Query::Status => Err(Error::UnexpectedMessage),
@@ -202,10 +218,6 @@ impl LLMRuntime {
                             tracing::error!("Message error: {}", error)
                         }
                     }
-                }
-
-                if let Ok(_) = exit_rx.try_recv() {
-                    break;
                 }
             }
         });
@@ -229,11 +241,7 @@ impl LLMRuntime {
         self.retry_recv()
     }
 
-    /// Send a message to the llm backend and receive a stream of messages
-    pub fn stream(&self, msg: Query) -> Result<Receiver<QueryStream>, Error> {
-        todo!()
-    }
-
+    #[deprecated]
     pub fn retry_recv(&self) -> Result<Query, Error> {
         let response = self.response.1.try_recv();
 
@@ -248,10 +256,10 @@ impl LLMRuntime {
     }
 
     pub fn shutdown(&self) {
-        self.exit
+        self.control
             .0
-            .send(())
-            .expect("Error sending termination signal")
+            .send(Query::Exit)
+            .expect("Error sending exit message")
     }
 
     #[cfg(feature = "mcpurify")]
@@ -299,5 +307,71 @@ impl LLMRuntime {
                 },
             )
             .await;
+    }
+}
+
+/// Streaming impl
+impl LLMRuntime {
+    #[deprecated(note = "This method shall be merged with ::run()")]
+    /// Send a message to the llm backend and receive a stream of messages
+    pub fn run_stream(&mut self) -> Result<(), Error> {
+        let mut model = self.model.take().unwrap();
+        let config = self.config.clone();
+
+        let control_rx = self.control.1.take().unwrap();
+        // let response_tx = self.response.0.take().unwrap();
+
+        let response_stream_tx = Arc::new(self.response_stream.0.take().unwrap());
+
+        tracing::debug!("Spawning Model in separate thread");
+
+        let worker = tauri::async_runtime::spawn_blocking(move || {
+            tracing::debug!("Initializing Model");
+
+            if let Err(error) = model.init(&config) {
+                tracing::error!("Error initializing model: {}", error);
+
+                // exit, because model failed to initialize
+                return;
+            }
+
+            loop {
+                if let Ok(message) = control_rx.try_recv() {
+                    tracing::debug!("Sending message to model");
+
+                    match message {
+                        Query::Prompt { .. } => {
+                            if let Err(error) =
+                                model.execute_streaming(message, response_stream_tx.clone())
+                            {
+                                tracing::error!("Error execute streaming: {error}");
+                            }
+                        }
+                        Query::Exit => break,
+                        _ => {}
+                    }
+                }
+            }
+        });
+
+        self.worker = Some(worker);
+
+        Ok(())
+    }
+
+    pub fn send_stream(&self, msg: Query) -> Result<(), Error> {
+        self.control
+            .0
+            .send(msg)
+            .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
+        Ok(())
+    }
+
+    pub fn try_recv_stream(&self) -> Result<QueryStream, Error> {
+        self.response_stream
+            .1
+            .try_recv()
+            .map_err(|e| Error::StreamError(e.to_string()))
     }
 }
