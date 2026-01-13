@@ -6,13 +6,12 @@ mod qwen3;
 use crate::error::Error;
 use crate::runtime::llama3::LLama3Model;
 use crate::runtime::mock::Mock;
+use crate::Query;
 use crate::{runtime::qwen3::Qwen3Model, LLMRuntimeConfig, ModelConfig};
-use crate::{Query, QueryStream};
 use anyhow::Result;
 use candle_core::Device;
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
-use tauri::http::response;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
 pub struct LLMRuntime {
@@ -23,7 +22,7 @@ pub struct LLMRuntime {
     control: (Sender<Query>, Option<Receiver<Query>>),
     response: (Option<Sender<Query>>, Receiver<Query>),
 
-    response_stream: (Option<Sender<QueryStream>>, Receiver<QueryStream>),
+    response_stream: (Option<Sender<Query>>, Receiver<Query>),
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
@@ -37,7 +36,7 @@ pub trait LLMRuntimeModel: Send + Sync {
 
     /// Sends a [`Query`] to the loaded model and accepts a response sender to send chunked messages
     /// represented by [`QueryStream`]
-    fn execute_streaming(&mut self, _: Query, _: Arc<Sender<QueryStream>>) -> Result<(), Error> {
+    fn execute_streaming(&mut self, _: Query, _: Arc<Sender<Query>>) -> Result<(), Error> {
         tracing::info!("execute_streaming has not been implemented yet");
         Ok(())
     }
@@ -198,14 +197,13 @@ impl LLMRuntime {
 
                     let model_response_message = match message {
                         Query::Prompt { .. } => model.execute(message),
-
-                        // // must call another method to enable chunked message responses
-                        // Query::StreamPrompt { .. } => {
-                        //     todo!()
-                        // }
                         Query::Exit => break,
+
+                        
                         Query::Response { .. } => Err(Error::UnexpectedMessage),
-                        Query::Status => Err(Error::UnexpectedMessage),
+                        Query::Chunk { id, data, kind } => todo!(),
+                        Query::End => todo!(),
+                        Query::Status { msg } => todo!(),
                     };
 
                     match model_response_message {
@@ -368,7 +366,7 @@ impl LLMRuntime {
         Ok(())
     }
 
-    pub fn try_recv_stream(&self) -> Result<QueryStream, Error> {
+    pub fn try_recv_stream(&self) -> Result<Query, Error> {
         self.response_stream
             .1
             .try_recv()

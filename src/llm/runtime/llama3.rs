@@ -41,6 +41,7 @@ impl LLMRuntimeModel for LLama3Model {
             tools,
             config,
             chunk_size: _,
+            timestamp: _,
         } = message.clone()
         {
             // preprocess message by applying chat template
@@ -54,7 +55,7 @@ impl LLMRuntimeModel for LLama3Model {
                     .ok_or(Error::ExecutionError(format!(
                         "Template processor is not intialized"
                     )))?;
-                message.render(&template, proc)?
+                message.apply_template(&template, proc)?
             };
 
             let QueryConfig {
@@ -147,7 +148,6 @@ impl LLMRuntimeModel for LLama3Model {
                 messages: vec![QueryMessage {
                     role: "assistant".to_owned(),
                     content: message,
-                    timestamp: None,
                 }],
                 tools,
             });

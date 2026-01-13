@@ -43,6 +43,7 @@ impl LLMRuntimeModel for Qwen3Model {
             tools,
             config,
             chunk_size: _,
+            timestamp: _,
         } = message.clone()
         {
             // preprocess message by applying chat template
@@ -56,7 +57,7 @@ impl LLMRuntimeModel for Qwen3Model {
                     .ok_or(Error::ExecutionError(format!(
                         "Template processor is not intialized"
                     )))?;
-                message.render(&template, proc)?
+                message.apply_template(&template, proc)?
             };
 
             let QueryConfig {
@@ -140,7 +141,6 @@ impl LLMRuntimeModel for Qwen3Model {
                 messages: vec![QueryMessage {
                     role: "assistant".to_owned(),
                     content: message,
-                    timestamp: None,
                 }],
                 tools,
             });
@@ -277,13 +277,14 @@ impl LLMRuntimeModel for Qwen3Model {
     fn execute_streaming(
         &mut self,
         message: Query,
-        response_tx: Arc<std::sync::mpsc::Sender<crate::QueryStream>>,
+        response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> anyhow::Result<(), Error> {
         if let Query::Prompt {
             messages: _,
             tools,
             config,
             chunk_size,
+            timestamp: None,
         } = message.clone()
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
@@ -302,7 +303,7 @@ impl LLMRuntimeModel for Qwen3Model {
                     .ok_or(Error::ExecutionError(format!(
                         "Template processor is not intialized"
                     )))?;
-                message.render(&template, proc)?
+                message.apply_template(&template, proc)?
             };
 
             let QueryConfig {
@@ -385,9 +386,9 @@ impl LLMRuntimeModel for Qwen3Model {
                     message_id += 1;
                     let id = message_id;
 
-                    if let Err(e) = response_tx.send(crate::QueryStream::Chunk {
+                    if let Err(e) = response_tx.send(crate::Query::Chunk {
                         id,
-                        kind: crate::QueryStreamKind::String,
+                        kind: crate::QueryChunkType::String,
                         data,
                     }) {
                         return Err(Error::StreamError(e.to_string()));

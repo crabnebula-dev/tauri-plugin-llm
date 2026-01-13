@@ -16,14 +16,14 @@ impl LLMRuntimeModel for Mock {
     fn execute_streaming(
         &mut self,
         message: crate::Query,
-        response_tx: Arc<std::sync::mpsc::Sender<crate::QueryStream>>,
+        response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> anyhow::Result<(), crate::Error> {
         // Run inference internally
         self.inference(message, response_tx.clone())?;
 
         // inference is done, so we have to indicate the end
         response_tx
-            .send(crate::QueryStream::End)
+            .send(crate::Query::End)
             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
         Ok(())
@@ -34,13 +34,14 @@ impl Mock {
     fn inference(
         &mut self,
         q: crate::Query,
-        response_tx: Arc<std::sync::mpsc::Sender<crate::QueryStream>>,
+        response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> Result<(), crate::Error> {
         if let Query::Prompt {
-            messages,
-            tools,
+            messages: _,
+            tools: _,
             config,
             chunk_size,
+            timestamp: None,
         } = q
         {
             let samples = if let Some(config) = config {
@@ -57,10 +58,10 @@ impl Mock {
                 // send a chunk of data every chunk size
                 if i % chunk_size == 0 {
                     response_tx
-                        .send(crate::QueryStream::Chunk {
+                        .send(crate::Query::Chunk {
                             id,
                             data: "hello, world! ".as_bytes().to_vec(),
-                            kind: crate::QueryStreamKind::String,
+                            kind: crate::QueryChunkType::String,
                         })
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 

@@ -144,11 +144,11 @@ fn test_deserialize_default() {
         messages: vec![QueryMessage {
             role: "user".to_string(),
             content: "Hello, World!".to_string(),
-            timestamp: None,
         }],
         tools: vec![],
         config: Some(QueryConfig::default()),
         chunk_size: None,
+        timestamp: None,
     };
 
     let json = serde_json::to_string(&query).unwrap();

@@ -16,17 +16,17 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     if let Err(_) = runtime.send(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
-            content: "Hello, World".to_string(),timestamp : None,  },
+            content: "Hello, World".to_string(), },
             QueryMessage {
             role: "system".to_string(),
             content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
-            timestamp : None,
             
         },
         ],
         tools: vec![],
         config: Some(QueryConfig::default()),
         chunk_size : None,
+        timestamp : None
     }) {
         loop {
             if let Ok(message) = runtime.retry_recv() {
@@ -49,17 +49,18 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
     if let Err(_) = runtime.send(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
-            content: "Hello, World".to_string(), timestamp : None, },
+            content: "Hello, World".to_string(),},
             QueryMessage {
             role: "system".to_string(),
             content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
-            timestamp : None, 
+            
         
        }
         ],
         tools: vec![],
         config: Some(QueryConfig::default()),
-        chunk_size : None
+        chunk_size : None,
+        timestamp : None
     }) {
         loop {
             if let Ok(message) = runtime.retry_recv() {
@@ -82,14 +83,14 @@ async fn test_runtime_mock() -> Result<(), Error> {
     if let Err(_) = runtime.send(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
-            content: "Hello, World".to_string(), timestamp : None, },
+            content: "Hello, World".to_string(), },
             QueryMessage {
             role: "system".to_string(),
-            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(), timestamp : None,},
+            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(), },
         ],
         tools: vec![],
         config: Some(QueryConfig::default()),
-        chunk_size : None
+        chunk_size : None, timestamp : None
     }) {
         loop {
             if let Ok(message) = runtime.retry_recv() {
@@ -112,7 +113,7 @@ async fn test_runtime_mock_streaming() -> Result<(), Error>{
 
     let query = Query::Prompt { messages: vec![QueryMessage {
             role: "user".to_string(),
-            content: "Hello, World".to_string(), timestamp : None}], tools: vec![], config: Some(QueryConfig::default()), chunk_size: Some(25) };
+            content: "Hello, World".to_string()}], tools: vec![], config: Some(QueryConfig::default()), chunk_size: Some(25), timestamp : None};
 
     let _ = runtime.send_stream(query); 
 
@@ -122,19 +123,19 @@ async fn test_runtime_mock_streaming() -> Result<(), Error>{
         
         if let Ok(message) = runtime.try_recv_stream() {
             match message {
-                tauri_plugin_llm::QueryStream::Chunk { .. } =>  {
+                tauri_plugin_llm::Query::Chunk { .. } =>  {
                     full_message.push(message);
                 },
-                tauri_plugin_llm::QueryStream::End => {
+                tauri_plugin_llm::Query::End => {
                     // todo reassemble the whole message
                     full_message.sort_by(|a, b| {
                         let id_a = match a {
-                            tauri_plugin_llm::QueryStream::Chunk { id, .. } => *id,
+                            tauri_plugin_llm::Query::Chunk { id, .. } => *id,
                            _ => usize::MAX
                         };
 
                          let id_b = match b {
-                            tauri_plugin_llm::QueryStream::Chunk { id, .. } => *id,
+                            tauri_plugin_llm::Query::Chunk { id, .. } => *id,
                            _ => usize::MAX
                         };
 
@@ -147,7 +148,7 @@ async fn test_runtime_mock_streaming() -> Result<(), Error>{
                     });
 
                     let result = full_message.into_iter().filter_map(|q| match q {
-                        tauri_plugin_llm::QueryStream::Chunk {  data, ..} => Some(data),
+                        tauri_plugin_llm::Query::Chunk {  data, ..} => Some(data),
                         _ => None
                     }).flatten().collect::<Vec<u8>>();
 
@@ -159,9 +160,13 @@ async fn test_runtime_mock_streaming() -> Result<(), Error>{
 
                     break
                 },
-                tauri_plugin_llm::QueryStream::Error { msg } => {
+                tauri_plugin_llm::Query::Status { msg } => {
                     tracing::error!("Error during receiving stream message. {msg}");
                 },
+                
+                _ => {
+                    // uncovered
+                }
             }
         }
 

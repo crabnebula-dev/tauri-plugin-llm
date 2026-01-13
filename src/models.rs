@@ -2,12 +2,12 @@ use crate::{error::Error, TemplateProcessor};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fmt::Display,
     fs::File,
     path::{Path, PathBuf},
 };
 use tokenizers::AddedToken;
 
+/// A query type.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum Query {
@@ -26,30 +26,27 @@ pub enum Query {
         config: Option<QueryConfig>,
 
         chunk_size: Option<usize>,
+
+        timestamp: Option<u64>,
     },
-    // StreamPrompt {
-    //     messages: Vec<QueryMessage>,
 
-    //     /// We keep the tools info as generic as possible.
-    //     /// This may change in the future. For now a model can be
-    //     /// informed about available tools by a json encoded message
-    //     /// as defined by the MCP standard
-    //     tools: Vec<String>,
-
-    //     /// Optional config for the query.
-    //     /// If no value has been set, the default is assumed
-    //     #[serde(default, deserialize_with = "null_to_default")]
-    //     config: Option<QueryConfig>,
-
-    // },
-    // Binary {},
     Response {
         error: Option<String>,
         messages: Vec<QueryMessage>,
         tools: Vec<String>,
     },
+
+    Chunk {
+        id: usize,
+        data: Vec<u8>,
+        kind: QueryChunkType,
+    },
+
+    End,
     Exit,
-    Status,
+    Status {
+        msg: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -62,49 +59,39 @@ pub struct QueryConfig {
 pub struct QueryMessage {
     pub role: String,
     pub content: String,
-
-    pub timestamp: Option<u64>,
 }
 
-#[derive(Clone, Serialize)]
-#[serde(tag = "type")]
-pub enum QueryStream {
-    Chunk {
-        id: usize,
-        data: Vec<u8>,
-        kind: QueryStreamKind,
-    },
-    End,
-    Error {
-        msg: String,
-    },
-}
-
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[serde(untagged)]
-pub enum QueryStreamKind {
+pub enum QueryChunkType {
     String,
     Bytes,
 }
 
-impl Display for QueryStream {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            QueryStream::Chunk { .. } => write!(f, "query-stream-chunk"),
-            QueryStream::End => write!(f, "query-stream-end"),
-            QueryStream::Error { .. } => write!(f, "query-stream-error"),
-        }
-    }
-}
-
 impl Query {
-    /// Renders [`Self`] with the given template and returns the rendered version as String
-    pub fn render(&self, template: &String, tp: &TemplateProcessor) -> Result<String, Error> {
+    /// Applies [`Self`] with the given template and returns the rendered version as String
+    pub fn apply_template(
+        &self,
+        template: &String,
+        tp: &TemplateProcessor,
+    ) -> Result<String, Error> {
         let json_context = serde_json::to_string(self)?;
 
         tracing::debug!("Query as JSON: {}", json_context);
         tp.render(&template, &json_context)
+    }
+
+    pub fn try_render_as_event_name(&self) -> Result<String, Error> {
+        match self {
+            Query::Chunk { .. } => Ok("query-stream-chunk".to_string()),
+            Query::End => Ok("query-stream-end".to_string()),
+            Query::Status { .. } => Ok("query-stream-error".to_string()),
+
+            Query::Prompt { .. } | Query::Response { .. } | Query::Exit => {
+                Err(Error::UndefinedClientEvent(format!("{self:?}")))
+            }
+        }
     }
 }
 
