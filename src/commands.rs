@@ -1,21 +1,7 @@
 use crate::Result;
 use crate::{models::*, PluginState};
-use base64::prelude::BASE64_STANDARD as base64;
-use base64::Engine;
 use tauri::{command, AppHandle, Runtime};
 use tauri::{Emitter, State};
-
-// #[command]
-// pub(crate) async fn send_message(state: State<'_, PluginState>, message: Query) -> Result<Query> {
-//     let runtime = state.runtime.lock().unwrap();
-//     runtime.send(message)
-// }
-
-// #[command]
-// pub(crate) async fn retry_recv(state: State<'_, PluginState>) -> Result<Query> {
-//     let runtime = state.runtime.lock().unwrap();
-//     runtime.retry_recv()
-// }
 
 #[command]
 pub(crate) async fn stream<R>(
@@ -26,11 +12,10 @@ pub(crate) async fn stream<R>(
 where
     R: Runtime,
 {
-    let mut runtime = state.runtime.lock().unwrap();
-    runtime.run_stream()?;
+    let runtime = state.runtime.lock().unwrap();
+    // runtime.run_stream()?;
 
-    // fix this
-    runtime.send_stream(message);
+    runtime.send_stream(message)?;
 
     loop {
         if let Ok(query) = runtime.try_recv_stream() {

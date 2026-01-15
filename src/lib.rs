@@ -72,11 +72,7 @@ impl Builder {
 
     pub fn build<R: Runtime>(self) -> TauriPlugin<R, LLMPluginConfig> {
         PluginBuilder::<R, LLMPluginConfig>::new("llm")
-            .invoke_handler(tauri::generate_handler![
-                // commands::send_message,
-                // commands::retry_recv,
-                commands::stream
-            ])
+            .invoke_handler(tauri::generate_handler![commands::stream])
             .setup(|app, api| {
                 let config = self
                     .plugin_config
@@ -88,12 +84,9 @@ impl Builder {
                     // initialize runtime by config
                     let mut runtime = LLMRuntime::from_config(config.llmconfig.clone())?;
 
-                    // start background thread
-                    // runtime.run();
-
                     // this is the new version and must be enabled,
                     // as soon as the functionality has been implemented.
-                    runtime.run_stream();
+                    runtime.run_stream()?;
 
                     PluginState {
                         runtime: Arc::new(Mutex::new(runtime)),
