@@ -374,10 +374,6 @@ impl LLMRuntimeModel for Qwen3Model {
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
                 all_tokens.push(next_token);
 
-                if next_token == eos_token {
-                    break;
-                }
-
                 if is_chunk_available(all_tokens.len(), chunk_size) {
                     let data = match tokenizer.decode(&all_tokens, true) {
                         Ok(str) => str.as_bytes().to_vec(),
@@ -393,6 +389,27 @@ impl LLMRuntimeModel for Qwen3Model {
                     }) {
                         return Err(Error::StreamError(e.to_string()));
                     }
+                }
+
+                if next_token == eos_token {
+                    break;
+                }
+            }
+
+            {
+                let data = match tokenizer.decode(&all_tokens, true) {
+                    Ok(str) => str.as_bytes().to_vec(),
+                    Err(e) => return Err(Error::ExecutionError(e.to_string())),
+                };
+                message_id += 1;
+                let id = message_id;
+
+                if let Err(e) = response_tx.send(crate::Query::Chunk {
+                    id,
+                    kind: crate::QueryChunkType::String,
+                    data,
+                }) {
+                    return Err(Error::StreamError(e.to_string()));
                 }
             }
 

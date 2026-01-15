@@ -311,4 +311,162 @@ impl LLMRuntimeModel for LLama3Model {
 
         Ok(())
     }
+
+    fn execute_streaming(
+        &mut self,
+        message: Query,
+        response_tx: std::sync::Arc<std::sync::mpsc::Sender<Query>>,
+    ) -> anyhow::Result<(), Error> {
+        if let Query::Prompt {
+            messages: _,
+            tools,
+            config,
+            chunk_size,
+            timestamp: _,
+        } = message.clone()
+        {
+            let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
+
+            let is_chunk_available =
+                |num_tokens: usize, chunk_size: usize| -> bool { (num_tokens % chunk_size) == 0 };
+
+            // preprocess message by applying chat template
+            let message = {
+                let template = self.template.as_ref().ok_or(Error::ExecutionError(format!(
+                    "Template is missing in config!"
+                )))?;
+                let proc = self
+                    .template_proc
+                    .as_ref()
+                    .ok_or(Error::ExecutionError(format!(
+                        "Template processor is not intialized"
+                    )))?;
+                message.apply_template(&template, proc)?
+            };
+
+            let QueryConfig {
+                generate_num_samples,
+            } = config.unwrap();
+
+            tracing::debug!("Processing Message: {:?}", message);
+
+            // get defaults
+            let tokenizer = self.tokenizer.as_ref().unwrap();
+
+            let model = self.weights.as_mut().unwrap();
+            let logits_processor = self.logits_processor.as_mut().unwrap();
+            let device = self.device.as_ref().unwrap();
+
+            // encode message
+            let tokens = tokenizer
+                .encode(message, true)
+                .map_err(|e| Error::MessageEncodingError(e.to_string()))?;
+
+            let tokens = tokens.get_ids();
+
+            // set next token
+            let mut next_token = {
+                let input = Tensor::new(tokens, &device)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?
+                    .unsqueeze(0)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
+                let logits = model
+                    .forward(&input, 0, self.cache.as_mut().unwrap())
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
+                let logits = logits
+                    .squeeze(0)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
+                logits_processor
+                    .sample(&logits)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?
+            };
+
+            let mut all_tokens = vec![];
+            all_tokens.push(next_token);
+
+            // TODO: set end of stream token
+            let eos_token = *tokenizer.get_vocab(true).get("<|eot_id|>").unwrap();
+
+            tracing::info!("Encoded eos token: {eos_token}");
+
+            let mut message_id = 0;
+
+            // Start sampling
+            for index in 0..generate_num_samples {
+                let input = Tensor::new(&[next_token], &device)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?
+                    .unsqueeze(0)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
+                let logits = model
+                    .forward(&input, tokens.len() + index, self.cache.as_mut().unwrap())
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
+                let logits = logits
+                    .squeeze(0)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
+                // 128 = last n repeated tokens (this is just configuration)
+                let start_at = all_tokens.len().saturating_sub(128);
+
+                let logits = candle_transformers::utils::apply_repeat_penalty(
+                    &logits,
+                    self.penalty,
+                    &all_tokens[start_at..],
+                )
+                .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
+                next_token = logits_processor
+                    .sample(&logits)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
+                all_tokens.push(next_token);
+
+                if is_chunk_available(all_tokens.len(), chunk_size) {
+                    let data = match tokenizer.decode(&all_tokens, true) {
+                        Ok(str) => str.as_bytes().to_vec(),
+                        Err(e) => return Err(Error::ExecutionError(e.to_string())),
+                    };
+                    message_id += 1;
+                    let id = message_id;
+
+                    if let Err(e) = response_tx.send(crate::Query::Chunk {
+                        id,
+                        kind: crate::QueryChunkType::String,
+                        data,
+                    }) {
+                        return Err(Error::StreamError(e.to_string()));
+                    }
+                }
+
+                if next_token == eos_token {
+                    break;
+                }
+            }
+
+            // send last message.
+            // fix: move to own function
+            {
+                let data = match tokenizer.decode(&all_tokens, true) {
+                    Ok(str) => str.as_bytes().to_vec(),
+                    Err(e) => return Err(Error::ExecutionError(e.to_string())),
+                };
+                message_id += 1;
+                let id = message_id;
+
+                if let Err(e) = response_tx.send(crate::Query::Chunk {
+                    id,
+                    kind: crate::QueryChunkType::String,
+                    data,
+                }) {
+                    return Err(Error::StreamError(e.to_string()));
+                }
+            }
+
+            return Ok(());
+        }
+
+        Err(Error::ExecutionError(
+            "Cannot handle Query type".to_string(),
+        ))
+    }
 }
