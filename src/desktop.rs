@@ -20,12 +20,4 @@ pub struct TauriPluginLlm<R: Runtime> {
     _config: LLMPluginConfig,
 }
 
-impl<R: Runtime> TauriPluginLlm<R> {
-    // pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
-    //     Ok(PingResponse {
-    //         value: payload.value,
-    //     })
-    // }
-    // TODO: it probably makes sense to have send and retry_recv here as well
-    // for those that want to use the plugin in rust
-}
+impl<R: Runtime> TauriPluginLlm<R> {}
