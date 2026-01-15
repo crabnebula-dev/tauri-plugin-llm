@@ -65,7 +65,7 @@ export class LLMStreamListener {
 
     this.isActive = true;
 
-    const chunkListener = await listen('query-stream-chunk', (event) => {
+    const unlistenData = await listen('query-stream-chunk', (event) => {
       const message = event.payload as Query;
       if (message.type == 'Chunk') {
         const { id, data } = message;
@@ -73,7 +73,7 @@ export class LLMStreamListener {
       }
     });
 
-    const errorListener = await listen('query-stream-error', (event) => {
+    const unlistenError = await listen('query-stream-error', (event) => {
       const message = event.payload as Query;
       if (message.type == 'Status') {
         const { msg } = message;
@@ -81,14 +81,14 @@ export class LLMStreamListener {
       }
     });
 
-    const endListener = await listen('query-stream-end', (event) => {
+    const unlistenEnd = await listen('query-stream-end', (event) => {
       const message = event.payload as Query;
       if (message.type == 'End') {
         callb.onEnd();
       }
     });
 
-    this.unListeners = [chunkListener, errorListener, endListener];
+    this.unListeners = [unlistenData, unlistenError, unlistenEnd];
   }
 
   teardown(): void {

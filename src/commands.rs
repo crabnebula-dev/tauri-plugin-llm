@@ -13,7 +13,6 @@ where
     R: Runtime,
 {
     let runtime = state.runtime.lock().unwrap();
-    // runtime.run_stream()?;
 
     runtime.send_stream(message)?;
 
