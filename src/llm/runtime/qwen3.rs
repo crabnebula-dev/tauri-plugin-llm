@@ -149,8 +149,6 @@ impl LLMRuntimeModel for Qwen3Model {
 
         Ok(())
     }
-<<<<<<< HEAD
-=======
 
     fn execute(
         &mut self,
@@ -315,5 +313,4 @@ impl LLMRuntimeModel for Qwen3Model {
             "Cannot handle Query type".to_string(),
         ))
     }
->>>>>>> refs/remotes/origin/main
 }

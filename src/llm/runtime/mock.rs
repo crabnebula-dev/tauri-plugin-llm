@@ -7,8 +7,6 @@ impl LLMRuntimeModel for Mock {
     fn init(&mut self, _: &crate::LLMRuntimeConfig) -> Result<(), crate::Error> {
         Ok(())
     }
-<<<<<<< HEAD
-=======
 
     fn execute(
         &mut self,
@@ -69,5 +67,4 @@ impl LLMRuntimeModel for Mock {
 
         Err(crate::Error::StreamError("_".to_string()))
     }
->>>>>>> refs/remotes/origin/main
 }

@@ -33,131 +33,6 @@ pub struct LLama3Model {
 }
 
 impl LLMRuntimeModel for LLama3Model {
-<<<<<<< HEAD
-    fn execute(&mut self, message: Query) -> anyhow::Result<Query, Error> {
-        if let Query::Prompt {
-            messages: _,
-            tools,
-            config,
-        } = message.clone()
-        {
-            // preprocess message by applying chat template
-            let message = {
-                let template = self.template.as_ref().ok_or(Error::ExecutionError(format!(
-                    "Template is missing in config!"
-                )))?;
-                let proc = self
-                    .template_proc
-                    .as_ref()
-                    .ok_or(Error::ExecutionError(format!(
-                        "Template processor is not intialized"
-                    )))?;
-                message.render(&template, proc)?
-            };
-
-            let QueryConfig {
-                generate_num_samples,
-            } = config.unwrap();
-
-            tracing::debug!("Processing Message: {:?}", message);
-
-            // get defaults
-            let tokenizer = self.tokenizer.as_ref().unwrap();
-
-            let model = self.weights.as_mut().unwrap();
-            let logits_processor = self.logits_processor.as_mut().unwrap();
-            let device = self.device.as_ref().unwrap();
-
-            // encode message
-            let tokens = tokenizer
-                .encode(message, true)
-                .map_err(|e| Error::MessageEncodingError(e.to_string()))?;
-
-            let tokens = tokens.get_ids();
-
-            // set next token
-            let mut next_token = {
-                let input = Tensor::new(tokens, &device)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?
-                    .unsqueeze(0)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
-                let logits = model
-                    .forward(&input, 0, self.cache.as_mut().unwrap())
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
-                let logits = logits
-                    .squeeze(0)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
-                logits_processor
-                    .sample(&logits)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?
-            };
-
-            let mut all_tokens = vec![];
-            all_tokens.push(next_token);
-
-            // TODO: set end of stream token
-            let eos_token = *tokenizer.get_vocab(true).get("<|eot_id|>").unwrap();
-
-            tracing::info!("Encoded eos token: {eos_token}");
-
-            // Start sampling
-            for index in 0..generate_num_samples {
-                let input = Tensor::new(&[next_token], &device)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?
-                    .unsqueeze(0)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
-
-                let logits = model
-                    .forward(&input, tokens.len() + index, self.cache.as_mut().unwrap())
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
-
-                let logits = logits
-                    .squeeze(0)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
-
-                // 128 = last n repeated tokens (this is just configuration)
-                let start_at = all_tokens.len().saturating_sub(128);
-
-                let logits = candle_transformers::utils::apply_repeat_penalty(
-                    &logits,
-                    self.penalty,
-                    &all_tokens[start_at..],
-                )
-                .map_err(|e| Error::ExecutionError(e.to_string()))?;
-
-                next_token = logits_processor
-                    .sample(&logits)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
-                all_tokens.push(next_token);
-
-                if next_token == eos_token {
-                    break;
-                }
-            }
-
-            let message = match tokenizer.decode(&all_tokens, true) {
-                Ok(str) => str,
-                Err(e) => return Err(Error::ExecutionError(e.to_string())),
-            };
-
-            return Ok(Query::Response {
-                error: None,
-                messages: vec![QueryMessage {
-                    role: "assistant".to_owned(),
-                    content: message,
-                    timestamp: None,
-                }],
-                tools,
-            });
-        }
-
-        Err(Error::ExecutionError(
-            "Cannot handle Query type".to_string(),
-        ))
-    }
-
-=======
->>>>>>> refs/remotes/origin/main
     fn init(&mut self, config: &LLMRuntimeConfig) -> anyhow::Result<(), Error> {
         let LLMRuntimeConfig {
             tokenizer_file: _,
@@ -311,8 +186,6 @@ impl LLMRuntimeModel for LLama3Model {
 
         Ok(())
     }
-<<<<<<< HEAD
-=======
 
     /// - enable thinking mode
     fn execute(
@@ -481,5 +354,4 @@ impl LLMRuntimeModel for LLama3Model {
             "Cannot handle Query type".to_string(),
         ))
     }
->>>>>>> refs/remotes/origin/main
 }

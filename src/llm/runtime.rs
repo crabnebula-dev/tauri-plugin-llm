@@ -28,8 +28,6 @@ pub trait LLMRuntimeModel: Send + Sync {
     ///
     /// This is a heavy process and needs to be run in a dedicated thread
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error>;
-<<<<<<< HEAD
-=======
 
     /// Sends a [`Query`] to the loaded model and accepts a response sender to send chunked messages
     ///
@@ -49,7 +47,6 @@ pub trait LLMRuntimeModel: Send + Sync {
     fn default_chunksize(&self) -> usize {
         32
     }
->>>>>>> refs/remotes/origin/main
 }
 
 impl Drop for LLMRuntime {
