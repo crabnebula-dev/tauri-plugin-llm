@@ -11,9 +11,9 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
-    runtime.run();
+    runtime.run_stream();
 
-    if let Err(_) = runtime.send(Query::Prompt {
+    if let Err(_) = runtime.send_stream(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
             content: "Hello, World".to_string(), },
@@ -29,7 +29,7 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
         timestamp : None
     }) {
         loop {
-            if let Ok(message) = runtime.retry_recv() {
+            if let Ok(message) = runtime.try_recv_stream() {
                 tracing::info!("Received Message : {:?}", message);
                 break;
             }
@@ -44,9 +44,9 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_llama3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
-    runtime.run();
+    runtime.run_stream();
 
-    if let Err(_) = runtime.send(Query::Prompt {
+    if let Err(_) = runtime.send_stream(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
             content: "Hello, World".to_string(),},
@@ -63,7 +63,7 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
         timestamp : None
     }) {
         loop {
-            if let Ok(message) = runtime.retry_recv() {
+            if let Ok(message) = runtime.try_recv_stream() {
                 tracing::info!("Received Message : {:?}", message);
                 break;
             }
@@ -78,9 +78,9 @@ async fn test_runtime_mock() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_mock.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
-    runtime.run();
+    runtime.run_stream();
 
-    if let Err(_) = runtime.send(Query::Prompt {
+    if let Err(_) = runtime.send_stream(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
             content: "Hello, World".to_string(), },
@@ -93,7 +93,7 @@ async fn test_runtime_mock() -> Result<(), Error> {
         chunk_size : None, timestamp : None
     }) {
         loop {
-            if let Ok(message) = runtime.retry_recv() {
+            if let Ok(message) = runtime.try_recv_stream() {
                 tracing::info!("Received Message : {:?}", message);
                 break;
             }
@@ -102,7 +102,6 @@ async fn test_runtime_mock() -> Result<(), Error> {
 
     Ok(())
 }
-
 
 #[tokio::test]
 async fn test_runtime_mock_streaming() -> Result<(), Error>{
@@ -152,7 +151,6 @@ async fn test_runtime_mock_streaming() -> Result<(), Error>{
                         _ => None
                     }).flatten().collect::<Vec<u8>>();
 
-
                     let result_message_string = String::from_utf8(result).expect("Failed to construct a UTF-8 String from raw bytes");
 
                     println!("{result_message_string}");
@@ -165,7 +163,7 @@ async fn test_runtime_mock_streaming() -> Result<(), Error>{
                 },
                 
                 _ => {
-                    // uncovered
+                    // not covered
                 }
             }
         }

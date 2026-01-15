@@ -1,24 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
-
-export type QueryStream =
-  | {
-    type: "Chunk",
-    id: number,
-    data: string,
-    kind: "string" | "bytes"
-  }
-  | {
-    type: "End"
-  }
-  | {
-    type: "Error",
-    msg: string
-  }
-
-
-
 export type ChunkStreamDataCallback = (id: number, data: string) => void;
 export type ChunkStreamEndCallback = () => void;
 export type ChunkStreamErrorCallback = (msg: string) => void;
@@ -27,31 +9,32 @@ export type Query =
   | {
     type: "Prompt";
     messages: QueryMessage[];
-
-    // We keep the tools info as generic as possible.
-    // This may change in the future. For now a model can be
-    // informed about available tools by a json encoded message
-    // as defined by the MCP standard
     tools: string[];
-
-    // Optional config for the query.
-    // If no value has been set, the default is assumed
-    config?: QueryConfig | null;
-  }
-  | {
-    type: "Binary";
+    config?: QueryConfig;
+    chunk_size?: number;
+    timestamp?: number;
   }
   | {
     type: "Response";
-    error?: string | null;
+    error?: string;
     messages: QueryMessage[];
     tools: string[];
+  }
+  | {
+    type: "Chunk";
+    id: number;
+    data: Uint8Array;
+    kind: "string" | "bytes";
+  }
+  | {
+    type: "End";
   }
   | {
     type: "Exit";
   }
   | {
     type: "Status";
+    msg: string;
   };
 
 export interface QueryConfig {
@@ -61,26 +44,11 @@ export interface QueryConfig {
 export interface QueryMessage {
   role: string;
   content: string;
-  timestamp?: number
 }
 
-/// Send a message to the LLM backend
-export async function sendMessage(
-  message: Query
-): Promise<Query | null> {
-  return await invoke("plugin:llm|send_message", {
-    message,
-  });
-}
-
-export async function retryRecv(): Promise<Query | null> {
-  return await invoke("plugin:llm|retry_recv");
-}
-
-
-/// Use this interface to define the callbacks to control the uery response messages
+/// Use this interface to define the callbacks to control the response messages
 export interface CallBacks {
-  onChunk: (id: number, data: string) => void,
+  onData: (id: number, data: Uint8Array) => void,
   onError: (msg: string) => void,
   onEnd: () => void
 }
@@ -91,31 +59,30 @@ export class LLMStreamListener {
 
   async setup(callb: CallBacks): Promise<void> {
     if (this.isActive) {
-      // TODO: where to display errors? fix this
-      console.log("Listeners have already been initialized");
+      callb.onError("Listeners have already been initialized");
       return;
     }
 
     this.isActive = true;
 
     const chunkListener = await listen('query-stream-chunk', (event) => {
-      const message = event.payload as QueryStream;
+      const message = event.payload as Query;
       if (message.type == 'Chunk') {
         const { id, data } = message;
-        callb.onChunk(id, data);
+        callb.onData(id, data);
       }
     });
 
     const errorListener = await listen('query-stream-error', (event) => {
-      const message = event.payload as QueryStream;
-      if (message.type == 'Error') {
+      const message = event.payload as Query;
+      if (message.type == 'Status') {
         const { msg } = message;
         callb.onError(msg);
       }
     });
 
     const endListener = await listen('query-stream-end', (event) => {
-      const message = event.payload as QueryStream;
+      const message = event.payload as Query;
       if (message.type == 'End') {
         callb.onEnd();
       }
@@ -141,7 +108,3 @@ export class LLMStreamListener {
   }
 
 }
-
-// export async function stream(message: Query, window: Window): Promise<void> {
-//   return await invoke("plugin:llm|stream", { message, window });
-// }

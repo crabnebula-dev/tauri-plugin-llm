@@ -166,92 +166,89 @@ impl LLMRuntime {
         }
     }
 
-    /// ## Description
-    ///
-    /// Executes the LLM.
-    ///
-    /// ## Parameters
-    /// - `response` Provide a [`Sender`] where the Model response should be send
-    pub fn run(&mut self) {
-        let mut model = self.model.take().unwrap();
-        let config = self.config.clone();
+    // / ## Description
+    // /
+    // / Executes the LLM.
+    // /
+    // / ## Parameters
+    // / - `response` Provide a [`Sender`] where the Model response should be send
+    // #[deprecated(note = "This method is superseeded by the streaming variant")]
+    // pub fn run(&mut self) {
+    //     let mut model = self.model.take().unwrap();
+    //     let config = self.config.clone();
 
-        let control_rx = self.control.1.take().unwrap();
-        let response_tx = self.response.0.take().unwrap();
+    //     let control_rx = self.control.1.take().unwrap();
+    //     let response_tx = self.response.0.take().unwrap();
 
-        tracing::debug!("Spawning Model in separate thread");
+    //     tracing::debug!("Spawning Model in separate thread");
 
-        let worker = tauri::async_runtime::spawn_blocking(move || {
-            tracing::debug!("Initializing Model");
+    //     let worker = tauri::async_runtime::spawn_blocking(move || {
+    //         tracing::debug!("Initializing Model");
 
-            if let Err(error) = model.init(&config) {
-                tracing::error!("Error initializing model: {}", error);
+    //         if let Err(error) = model.init(&config) {
+    //             tracing::error!("Error initializing model: {}", error);
 
-                // exit, because model failed to initialize
-                return;
-            }
+    //             // exit, because model failed to initialize
+    //             return;
+    //         }
 
-            loop {
-                if let Ok(message) = control_rx.try_recv() {
-                    tracing::debug!("Sending message to model");
+    //         loop {
+    //             if let Ok(message) = control_rx.try_recv() {
+    //                 tracing::debug!("Sending message to model");
 
-                    let model_response_message = match message {
-                        Query::Prompt { .. } => model.execute(message),
-                        Query::Exit => break,
+    //                 let model_response_message = match message {
+    //                     Query::Prompt { .. } => model.execute(message),
+    //                     Query::Exit => break,
 
-                        
-                        Query::Response { .. } => Err(Error::UnexpectedMessage),
-                        Query::Chunk { id, data, kind } => todo!(),
-                        Query::End => todo!(),
-                        Query::Status { msg } => todo!(),
-                    };
+    //                     _ => Err(Error::UnexpectedMessage),
+    //                 };
 
-                    match model_response_message {
-                        Ok(message) => {
-                            if let Err(error) = response_tx.send(message) {
-                                tracing::error!("Error sending model response: {}", error)
-                            }
-                        }
-                        Err(error) => {
-                            tracing::error!("Message error: {}", error)
-                        }
-                    }
-                }
-            }
-        });
+    //                 match model_response_message {
+    //                     Ok(message) => {
+    //                         if let Err(error) = response_tx.send(message) {
+    //                             tracing::error!("Error sending model response: {}", error)
+    //                         }
+    //                     }
+    //                     Err(error) => {
+    //                         tracing::error!("Message error: {}", error)
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     });
 
-        self.worker = Some(worker);
-    }
+    //     self.worker = Some(worker);
+    // }
 
-    pub fn send(&self, msg: Query) -> Result<Query, Error> {
-        // FIXME: this panics too often eg:
-        // 2025-12-09T21:19:58.382077Z ERROR tauri_plugin_llm::llm::runtime: Error initializing model: Missing config (Tokenizer config is missing)
-        // thread 'tokio-runtime-worker' (6661081) panicked at src/llm/runtime.rs:204:34:
-        // Failure to send message: SendError { .. }
-        //
-        // TODO:
-        // - Check fix. Error handling has been moved to caller
-        self.control
-            .0
-            .send(msg)
-            .map_err(|e| Error::ExecutionError(e.to_string()))?;
+    // pub fn send(&self, msg: Query) -> Result<Query, Error> {
+    //     // FIXME: this panics too often eg:
+    //     // 2025-12-09T21:19:58.382077Z ERROR tauri_plugin_llm::llm::runtime: Error initializing model: Missing config (Tokenizer config is missing)
+    //     // thread 'tokio-runtime-worker' (6661081) panicked at src/llm/runtime.rs:204:34:
+    //     // Failure to send message: SendError { .. }
+    //     //
+    //     // TODO:
+    //     // - Check fix. Error handling has been moved to caller
+    //     self.control
+    //         .0
+    //         .send(msg)
+    //         .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
-        self.retry_recv()
-    }
+    //     self.retry_recv()
+    // }
 
-    #[deprecated]
-    pub fn retry_recv(&self) -> Result<Query, Error> {
-        let response = self.response.1.try_recv();
+    // #[deprecated]
+    // pub fn retry_recv(&self) -> Result<Query, Error> {
+    //     let response = self.response.1.try_recv();
 
-        #[cfg(feature = "mcpurify")]
-        if let Ok(response) = response {
-            // TODO:
-            // - integrate mcpurify
-            return Ok(response);
-        }
+    //     #[cfg(feature = "mcpurify")]
+    //     if let Ok(response) = response {
+    //         // TODO:
+    //         // - integrate mcpurify
+    //         return Ok(response);
+    //     }
 
-        Ok(response?)
-    }
+    //     Ok(response?)
+    // }
 
     pub fn shutdown(&self) {
         self.control
@@ -310,15 +307,12 @@ impl LLMRuntime {
 
 /// Streaming impl
 impl LLMRuntime {
-    #[deprecated(note = "This method shall be merged with ::run()")]
     /// Send a message to the llm backend and receive a stream of messages
     pub fn run_stream(&mut self) -> Result<(), Error> {
         let mut model = self.model.take().unwrap();
         let config = self.config.clone();
 
         let control_rx = self.control.1.take().unwrap();
-        // let response_tx = self.response.0.take().unwrap();
-
         let response_stream_tx = Arc::new(self.response_stream.0.take().unwrap());
 
         tracing::debug!("Spawning Model in separate thread");

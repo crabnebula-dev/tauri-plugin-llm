@@ -5,17 +5,17 @@ use base64::Engine;
 use tauri::{command, AppHandle, Runtime};
 use tauri::{Emitter, State};
 
-#[command]
-pub(crate) async fn send_message(state: State<'_, PluginState>, message: Query) -> Result<Query> {
-    let runtime = state.runtime.lock().unwrap();
-    runtime.send(message)
-}
+// #[command]
+// pub(crate) async fn send_message(state: State<'_, PluginState>, message: Query) -> Result<Query> {
+//     let runtime = state.runtime.lock().unwrap();
+//     runtime.send(message)
+// }
 
-#[command]
-pub(crate) async fn retry_recv(state: State<'_, PluginState>) -> Result<Query> {
-    let runtime = state.runtime.lock().unwrap();
-    runtime.retry_recv()
-}
+// #[command]
+// pub(crate) async fn retry_recv(state: State<'_, PluginState>) -> Result<Query> {
+//     let runtime = state.runtime.lock().unwrap();
+//     runtime.retry_recv()
+// }
 
 #[command]
 pub(crate) async fn stream<R>(
@@ -30,7 +30,7 @@ where
     runtime.run_stream()?;
 
     // fix this
-    runtime.send(message);
+    runtime.send_stream(message);
 
     loop {
         if let Ok(query) = runtime.try_recv_stream() {
