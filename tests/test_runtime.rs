@@ -1,19 +1,19 @@
 use std::{cmp::Ordering, usize, vec};
 
-use rand::Rng;
 use tauri_plugin_llm::{
     runtime::LLMRuntime, Error, LLMRuntimeConfig, Query, QueryConfig, QueryMessage,
 };
-use tracing::trace;
 
 #[tokio::test]
 async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
-    runtime.run_stream();
+    runtime.run_stream()?;
 
-    if let Err(_) = runtime.send_stream(Query::Prompt {
+    tracing::info!("Sending Message");
+
+   let result = runtime.send_stream(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
             content: "Hello, World".to_string(), },
@@ -27,15 +27,26 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
         config: Some(QueryConfig::default()),
         chunk_size : None,
         timestamp : None
-    }) {
+    });
+
+    match result {
+        Ok(_) => {
+              
         loop {
             if let Ok(message) = runtime.try_recv_stream() {
-                tracing::info!("Received Message : {:?}", message);
-                break;
+                if let Query::Chunk { id, data, kind } = &message {
+                    tracing::info!("Data: {:?}", data)
+                }
+                if let Query::End = &message { break }
             }
         }
+        },
+        Err(_) => {
+            tracing::error!("Failed sending message")
+        },
     }
-
+    
+   
     Ok(())
 }
 
@@ -44,30 +55,39 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_llama3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
-    runtime.run_stream();
+    runtime.run_stream()?;
 
-    if let Err(_) = runtime.send_stream(Query::Prompt {
+    let result = runtime.send_stream(Query::Prompt {
         messages: vec![QueryMessage {
             role: "user".to_string(),
-            content: "Hello, World".to_string(),},
+            content: "Hello, World".to_string(), },
             QueryMessage {
             role: "system".to_string(),
             content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
             
-        
-       }
+        },
         ],
         tools: vec![],
         config: Some(QueryConfig::default()),
         chunk_size : None,
         timestamp : None
-    }) {
+    });
+
+    match result {
+        Ok(_) => {
+              
         loop {
             if let Ok(message) = runtime.try_recv_stream() {
-                tracing::info!("Received Message : {:?}", message);
-                break;
+                if let Query::Chunk { id, data, kind } = &message {
+                    tracing::debug!("Data: {:?}", &data[0..32])
+                }
+                if let Query::End = &message { break }
             }
         }
+        },
+        Err(_) => {
+            tracing::error!("Failed sending message")
+        },
     }
 
     Ok(())
@@ -78,7 +98,7 @@ async fn test_runtime_mock() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_mock.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
-    runtime.run_stream();
+    runtime.run_stream()?;
 
     if let Err(_) = runtime.send_stream(Query::Prompt {
         messages: vec![QueryMessage {
@@ -126,7 +146,7 @@ async fn test_runtime_mock_streaming() -> Result<(), Error>{
                     full_message.push(message);
                 },
                 tauri_plugin_llm::Query::End => {
-                    // todo reassemble the whole message
+                    //  reassemble the whole message
                     full_message.sort_by(|a, b| {
                         let id_a = match a {
                             tauri_plugin_llm::Query::Chunk { id, .. } => *id,

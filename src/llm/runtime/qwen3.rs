@@ -387,6 +387,7 @@ impl LLMRuntimeModel for Qwen3Model {
                         kind: crate::QueryChunkType::String,
                         data,
                     }) {
+                        tracing::error!("Error sending chunk: {e}");
                         return Err(Error::StreamError(e.to_string()));
                     }
                 }
@@ -412,6 +413,12 @@ impl LLMRuntimeModel for Qwen3Model {
                     return Err(Error::StreamError(e.to_string()));
                 }
             }
+
+            tracing::debug!("Finished inference");
+
+            response_tx
+                .send(crate::Query::End)
+                .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
             return Ok(());
         }

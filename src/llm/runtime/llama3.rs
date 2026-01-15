@@ -444,7 +444,6 @@ impl LLMRuntimeModel for LLama3Model {
             }
 
             // send last message.
-            // fix: move to own function
             {
                 let data = match tokenizer.decode(&all_tokens, true) {
                     Ok(str) => str.as_bytes().to_vec(),
@@ -461,6 +460,11 @@ impl LLMRuntimeModel for LLama3Model {
                     return Err(Error::StreamError(e.to_string()));
                 }
             }
+
+            // send termination
+            response_tx
+                .send(crate::Query::End)
+                .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
             return Ok(());
         }
