@@ -3,9 +3,7 @@ use std::fs::File;
 use crate::error::Error;
 use crate::loaders::IndexFile;
 use crate::runtime::{LLMRuntimeModel, Query};
-use crate::{
-    LLMRuntimeConfig, ModelConfig, QueryConfig, QueryMessage, TemplateProcessor, TokenizerConfig,
-};
+use crate::{LLMRuntimeConfig, ModelConfig, QueryConfig, TemplateProcessor, TokenizerConfig};
 use candle_core::Device;
 use candle_core::Tensor;
 use candle_nn::VarBuilder;
@@ -18,13 +16,13 @@ use rand::Rng;
 use tokenizers::{AddedToken, Tokenizer};
 
 pub struct LLama3Model {
-    pub(crate) streaming: bool,
+    pub(crate) _streaming: bool,
     pub(crate) device: Option<Device>,
     pub(crate) tokenizer: Option<Tokenizer>,
     pub(crate) top_k: usize,
     pub(crate) top_p: f64,
     pub(crate) temperature: f64,
-    pub(crate) thinking: bool,
+    pub(crate) _thinking: bool,
     pub(crate) weights: Option<Llama>,
     pub(crate) logits_processor: Option<LogitsProcessor>,
     pub(crate) cache: Option<model::Cache>,
@@ -90,7 +88,7 @@ impl LLMRuntimeModel for LLama3Model {
 
         // Initialize the tokenizer
         self.tokenizer = Some({
-            let mut tokenizer = Tokenizer::from_file(&config.tokenizer_file.as_ref().ok_or(
+            let mut tokenizer = Tokenizer::from_file(config.tokenizer_file.as_ref().ok_or(
                 Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
             )?)
             .map_err(|e| {
@@ -212,7 +210,7 @@ impl LLMRuntimeModel for LLama3Model {
     ) -> anyhow::Result<(), Error> {
         if let Query::Prompt {
             messages: _,
-            tools,
+            tools: _,
             config,
             chunk_size,
             timestamp: _,
@@ -225,16 +223,13 @@ impl LLMRuntimeModel for LLama3Model {
 
             // preprocess message by applying chat template
             let message = {
-                let template = self.template.as_ref().ok_or(Error::ExecutionError(format!(
-                    "Template is missing in config!"
-                )))?;
-                let proc = self
-                    .template_proc
-                    .as_ref()
-                    .ok_or(Error::ExecutionError(format!(
-                        "Template processor is not intialized"
-                    )))?;
-                message.apply_template(&template, proc)?
+                let template = self.template.as_ref().ok_or(Error::ExecutionError(
+                    "Template is missing in config!".to_string(),
+                ))?;
+                let proc = self.template_proc.as_ref().ok_or(Error::ExecutionError(
+                    "Template processor is not intialized".to_string(),
+                ))?;
+                message.apply_template(template, proc)?
             };
 
             let QueryConfig {
@@ -259,7 +254,7 @@ impl LLMRuntimeModel for LLama3Model {
 
             // set next token
             let mut next_token = {
-                let input = Tensor::new(tokens, &device)
+                let input = Tensor::new(tokens, device)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
                     .unsqueeze(0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
@@ -286,7 +281,7 @@ impl LLMRuntimeModel for LLama3Model {
 
             // Start sampling
             for index in 0..generate_num_samples {
-                let input = Tensor::new(&[next_token], &device)
+                let input = Tensor::new(&[next_token], device)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
                     .unsqueeze(0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;

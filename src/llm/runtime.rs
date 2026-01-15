@@ -21,8 +21,6 @@ pub struct LLMRuntime {
     worker: Option<tauri::async_runtime::JoinHandle<()>>,
     control: (Sender<Query>, Option<Receiver<Query>>),
     response: (Option<Sender<Query>>, Receiver<Query>),
-
-    response_stream: (Option<Sender<Query>>, Receiver<Query>),
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
@@ -70,7 +68,6 @@ impl LLMRuntime {
         let model = Self::detect_model(&config.clone(), device)?;
 
         let (ctrl_tx, ctrl_rx) = std::sync::mpsc::channel();
-        let (response_tx, response_rx) = std::sync::mpsc::channel();
 
         let (response_stream_tx, response_stream_rx) = std::sync::mpsc::channel();
 
@@ -80,9 +77,7 @@ impl LLMRuntime {
 
             worker: None,
             control: (ctrl_tx, Some(ctrl_rx)),
-            response: (Some(response_tx), response_rx),
-
-            response_stream: (Some(response_stream_tx), response_stream_rx),
+            response: (Some(response_stream_tx), response_stream_rx),
         })
     }
 
@@ -107,13 +102,13 @@ impl LLMRuntime {
         // - move initializers to individual constructor functions
         match &name {
             _ if name.contains("Qwen3") => Ok(Box::new(Qwen3Model {
-                streaming,
+                _streaming: streaming,
                 device: Some(device),
                 tokenizer: None,
                 top_k,
                 top_p,
                 temperature,
-                thinking,
+                _thinking: thinking,
                 weights: None,
                 logits_processor: None,
                 template: None,
@@ -121,13 +116,13 @@ impl LLMRuntime {
             })),
             _ if name.contains("Mock") => Ok(Box::new(Mock)),
             _ if name.contains("Llama") => Ok(Box::new(LLama3Model {
-                streaming,
+                _streaming: streaming,
                 device: Some(device),
                 tokenizer: None,
                 top_k,
                 top_p,
                 temperature,
-                thinking,
+                _thinking: thinking,
                 weights: None,
                 logits_processor: None,
                 cache: None,
@@ -231,7 +226,7 @@ impl LLMRuntime {
         let config = self.config.clone();
 
         let control_rx = self.control.1.take().unwrap();
-        let response_stream_tx = Arc::new(self.response_stream.0.take().unwrap());
+        let response_stream_tx = Arc::new(self.response.0.take().unwrap());
 
         tracing::debug!("Spawning Model in separate thread");
 
@@ -275,7 +270,7 @@ impl LLMRuntime {
     }
 
     pub fn try_recv_stream(&self) -> Result<Query, Error> {
-        self.response_stream
+        self.response
             .1
             .try_recv()
             .map_err(|e| Error::StreamError(e.to_string()))

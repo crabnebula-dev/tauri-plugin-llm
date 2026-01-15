@@ -1,12 +1,9 @@
-use core::num;
 use std::fs::File;
 use std::sync::Arc;
 
 use crate::error::Error;
 use crate::runtime::{LLMRuntimeModel, Query};
-use crate::{
-    LLMRuntimeConfig, ModelConfig, QueryConfig, QueryMessage, TemplateProcessor, TokenizerConfig,
-};
+use crate::{LLMRuntimeConfig, ModelConfig, QueryConfig, TemplateProcessor, TokenizerConfig};
 use candle_core::Device;
 use candle_core::{quantized::gguf_file, Tensor};
 use candle_transformers::{
@@ -17,13 +14,13 @@ use rand::Rng;
 use tokenizers::Tokenizer;
 
 pub struct Qwen3Model {
-    pub(crate) streaming: bool,
+    pub(crate) _streaming: bool,
     pub(crate) device: Option<Device>,
     pub(crate) tokenizer: Option<Tokenizer>,
     pub(crate) top_k: usize,
     pub(crate) top_p: f64,
     pub(crate) temperature: f64,
-    pub(crate) thinking: bool,
+    pub(crate) _thinking: bool,
     pub(crate) weights: Option<Qwen3>,
     pub(crate) logits_processor: Option<LogitsProcessor>,
 
@@ -34,14 +31,14 @@ pub struct Qwen3Model {
 impl LLMRuntimeModel for Qwen3Model {
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), crate::Error> {
         let LLMRuntimeConfig {
-            tokenizer_file,
+            tokenizer_file: _,
             tokenizer_config_file,
-            model_config_file,
-            model_index_file,
-            model_file,
-            model_dir,
+            model_config_file: _,
+            model_index_file: _,
+            model_file: _,
+            model_dir: _,
             model_config,
-            verbose,
+            verbose: _,
             template_file,
         } = config;
 
@@ -82,14 +79,15 @@ impl LLMRuntimeModel for Qwen3Model {
         };
 
         // Initialize the tokenizer
-        self.tokenizer = Some(
-            Tokenizer::from_file(&config.tokenizer_file.as_ref().ok_or(
-                Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
-            )?)
-            .map_err(|e| {
-                Error::LoadingFile(format!("{:?}", config.tokenizer_file), e.to_string())
-            })?,
-        );
+        self.tokenizer =
+            Some(
+                Tokenizer::from_file(config.tokenizer_file.as_ref().ok_or(
+                    Error::MissingConfigLLM("Tokenizer config is missing".to_owned()),
+                )?)
+                .map_err(|e| {
+                    Error::LoadingFile(format!("{:?}", config.tokenizer_file), e.to_string())
+                })?,
+            );
 
         // Load weights
         self.weights = {
@@ -176,7 +174,7 @@ impl LLMRuntimeModel for Qwen3Model {
     ) -> anyhow::Result<(), Error> {
         if let Query::Prompt {
             messages: _,
-            tools,
+            tools: _,
             config,
             chunk_size,
             timestamp: None,
@@ -189,16 +187,13 @@ impl LLMRuntimeModel for Qwen3Model {
 
             // preprocess message by applying chat template
             let message = {
-                let template = self.template.as_ref().ok_or(Error::ExecutionError(format!(
-                    "Template is missing in config!"
-                )))?;
-                let proc = self
-                    .template_proc
-                    .as_ref()
-                    .ok_or(Error::ExecutionError(format!(
-                        "Template processor is not intialized"
-                    )))?;
-                message.apply_template(&template, proc)?
+                let template = self.template.as_ref().ok_or(Error::ExecutionError(
+                    "Template is missing in config!".to_string(),
+                ))?;
+                let proc = self.template_proc.as_ref().ok_or(Error::ExecutionError(
+                    "Template processor is not intialized".to_string(),
+                ))?;
+                message.apply_template(template, proc)?
             };
 
             let QueryConfig {
@@ -222,7 +217,7 @@ impl LLMRuntimeModel for Qwen3Model {
 
             // set next token
             let mut next_token = {
-                let input = Tensor::new(tokens, &device)
+                let input = Tensor::new(tokens, device)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
                     .unsqueeze(0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
@@ -251,7 +246,7 @@ impl LLMRuntimeModel for Qwen3Model {
 
             // Start sampling
             for index in 0..generate_num_samples {
-                let input = Tensor::new(&[next_token], &device)
+                let input = Tensor::new(&[next_token], device)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
                     .unsqueeze(0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
