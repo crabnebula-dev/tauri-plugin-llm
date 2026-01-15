@@ -41,6 +41,12 @@ pub enum Error {
 
     #[error("Error processing template: ({0})")]
     TemplateError(String),
+
+    #[error("Error streaming resoponse: ({0})")]
+    StreamError(String),
+
+    #[error("Client event is not defined.")]
+    UndefinedClientEvent(String),
 }
 
 impl Serialize for Error {
