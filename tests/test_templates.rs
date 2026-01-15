@@ -22,8 +22,6 @@ fn test_qwen3_chat_go_template() {
     let result = tmpl_proc.render(&chat_template_file_contents, &input_json);
 
     assert!(result.is_ok(), "{:?}", result);
-
-    let result = result.unwrap();
 }
 
 #[test]

@@ -32,7 +32,7 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     match result {
         Ok(_) => {
             while let Ok(message) = runtime.try_recv_stream() {
-                if let Query::Chunk { id, data, kind } = &message {
+                if let Query::Chunk { data, .. } = &message {
                     tracing::info!("Data: {:?}", data)
                 }
                 if let Query::End = &message { break }
@@ -74,7 +74,7 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
         Ok(_) => {
               
         while let Ok(message) = runtime.try_recv_stream() {
-                if let Query::Chunk { id, data, kind } = &message {
+                if let Query::Chunk {data, .. } = &message {
                     tracing::debug!("Data: {:?}", &data[0..32])
                 }
                 if let Query::End = &message { break }
