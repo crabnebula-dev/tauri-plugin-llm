@@ -7,6 +7,7 @@ use std::{
 };
 use tokenizers::AddedToken;
 
+/// A query type.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum Query {
@@ -23,15 +24,29 @@ pub enum Query {
         /// If no value has been set, the default is assumed
         #[serde(default, deserialize_with = "null_to_default")]
         config: Option<QueryConfig>,
+
+        chunk_size: Option<usize>,
+
+        timestamp: Option<u64>,
     },
-    Binary {},
+
     Response {
         error: Option<String>,
         messages: Vec<QueryMessage>,
         tools: Vec<String>,
     },
+
+    Chunk {
+        id: usize,
+        data: Vec<u8>,
+        kind: QueryChunkType,
+    },
+
+    End,
     Exit,
-    Status,
+    Status {
+        msg: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -44,24 +59,42 @@ pub struct QueryConfig {
 pub struct QueryMessage {
     pub role: String,
     pub content: String,
+}
 
-    pub timestamp: Option<u64>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[serde(untagged)]
+pub enum QueryChunkType {
+    String,
+    Bytes,
 }
 
 impl Query {
-    /// Renders [`Self`] with the given template and returns the rendered version as String
-    pub fn render(&self, template: &String, tp: &TemplateProcessor) -> Result<String, Error> {
+    /// Applies [`Self`] with the given template and returns the rendered version as String
+    pub fn apply_template(&self, template: &str, tp: &TemplateProcessor) -> Result<String, Error> {
         let json_context = serde_json::to_string(self)?;
 
         tracing::debug!("Query as JSON: {}", json_context);
-        tp.render(&template, &json_context)
+        tp.render(template, &json_context)
+    }
+
+    pub fn try_render_as_event_name(&self) -> Result<String, Error> {
+        match self {
+            Query::Chunk { .. } => Ok("query-stream-chunk".to_string()),
+            Query::End => Ok("query-stream-end".to_string()),
+            Query::Status { .. } => Ok("query-stream-error".to_string()),
+
+            Query::Prompt { .. } | Query::Response { .. } | Query::Exit => {
+                Err(Error::UndefinedClientEvent(format!("{self:?}")))
+            }
+        }
     }
 }
 
 impl Default for QueryConfig {
     fn default() -> Self {
         QueryConfig {
-            generate_num_samples: 100,
+            generate_num_samples: 500,
         }
     }
 }
@@ -189,16 +222,6 @@ pub struct TokenizerConfig {
 
     pub added_tokens_decoder: Option<HashMap<String, AddedToken>>,
 }
-
-// #[derive(Deserialize, Serialize, Debug, Clone, Default)]
-// pub struct AddedToken {
-//     content: String,
-//     lstrip: bool,
-//     normalized: bool,
-//     rstrip: bool,
-//     single_word: bool,
-//     special: bool,
-// }
 
 impl LLMRuntimeConfig {
     ///Loads a config from path
