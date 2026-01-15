@@ -26,29 +26,22 @@ pub struct LLMRuntime {
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
-    /// Sends a [`Query`] to the loaded model and start sampling
-    fn execute(&mut self, message: Query) -> Result<Query, Error>;
-
     /// Initializes the model
     ///
     /// This is a heavy process and needs to be run in a dedicated thread
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error>;
 
     /// Sends a [`Query`] to the loaded model and accepts a response sender to send chunked messages
-    /// represented by [`QueryStream`]
-    fn execute_streaming(&mut self, _: Query, _: Arc<Sender<Query>>) -> Result<(), Error> {
-        tracing::info!("execute_streaming has not been implemented yet");
-        Ok(())
-    }
+    ///
+    /// This message addtionally handles sending the termination of the chunk stream
+    fn execute(&mut self, _: Query, _: Arc<Sender<Query>>) -> Result<(), Error>;
 
+    /// Sends a [`Query`] to the loaded model and accepts a response sender to send chunked messages
     fn inference(
         &mut self,
         q: crate::Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
-    ) -> Result<(), crate::Error> {
-        tracing::info!("Not implemented.");
-        Ok(())
-    }
+    ) -> Result<(), crate::Error>;
 
     /// Returns an arbitrary default chunk size.
     ///
@@ -257,9 +250,7 @@ impl LLMRuntime {
 
                 match message {
                     Query::Prompt { .. } => {
-                        if let Err(error) =
-                            model.execute_streaming(message, response_stream_tx.clone())
-                        {
+                        if let Err(error) = model.execute(message, response_stream_tx.clone()) {
                             tracing::error!("Error execute streaming: {error}");
                         }
                     }

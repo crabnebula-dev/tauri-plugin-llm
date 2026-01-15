@@ -73,14 +73,13 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
     match result {
         Ok(_) => {
               
-        loop {
-            if let Ok(message) = runtime.try_recv_stream() {
+        while let Ok(message) = runtime.try_recv_stream() {
                 if let Query::Chunk { id, data, kind } = &message {
                     tracing::debug!("Data: {:?}", &data[0..32])
                 }
                 if let Query::End = &message { break }
             }
-        }
+        
         },
         Err(_) => {
             tracing::error!("Failed sending message")
@@ -109,12 +108,11 @@ async fn test_runtime_mock() -> Result<(), Error> {
         config: Some(QueryConfig::default()),
         chunk_size : None, timestamp : None
     }) {
-        loop {
-            if let Ok(message) = runtime.try_recv_stream() {
-                tracing::info!("Received Message : {:?}", message);
-                break;
-            }
+        while let Ok(message) = runtime.try_recv_stream() {
+            tracing::info!("Received Message : {:?}", message);
+            break;
         }
+        
     }
 
     Ok(())

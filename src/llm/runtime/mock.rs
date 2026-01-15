@@ -4,15 +4,11 @@ use std::sync::Arc;
 pub struct Mock;
 
 impl LLMRuntimeModel for Mock {
-    fn execute(&mut self, message: crate::Query) -> Result<crate::Query, crate::Error> {
-        Ok(message)
-    }
-
     fn init(&mut self, _: &crate::LLMRuntimeConfig) -> Result<(), crate::Error> {
         Ok(())
     }
 
-    fn execute_streaming(
+    fn execute(
         &mut self,
         message: crate::Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
