@@ -271,10 +271,24 @@ impl LLMRuntimeModel for Qwen3Model {
         Ok(())
     }
 
+    fn execute_streaming(
+        &mut self,
+        q: Query,
+        response_tx: Arc<std::sync::mpsc::Sender<Query>>,
+    ) -> anyhow::Result<(), Error> {
+        self.inference(q, response_tx.clone())?;
+
+        response_tx
+            .send(crate::Query::End)
+            .map_err(|e| crate::Error::StreamError(e.to_string()))?;
+
+        Ok(())
+    }
+
     /// This executes inference in a streaming fashion.
     ///
     /// A [`Sender`] is provided to transmit [`StreamQuery::Chunk`]s over the channel.
-    fn execute_streaming(
+    fn inference(
         &mut self,
         message: Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
@@ -415,10 +429,6 @@ impl LLMRuntimeModel for Qwen3Model {
             }
 
             tracing::debug!("Finished inference");
-
-            response_tx
-                .send(crate::Query::End)
-                .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
             return Ok(());
         }

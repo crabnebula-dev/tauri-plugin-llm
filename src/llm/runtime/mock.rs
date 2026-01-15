@@ -28,9 +28,7 @@ impl LLMRuntimeModel for Mock {
 
         Ok(())
     }
-}
 
-impl Mock {
     fn inference(
         &mut self,
         q: crate::Query,
