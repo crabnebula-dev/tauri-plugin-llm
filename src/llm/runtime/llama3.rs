@@ -314,6 +314,21 @@ impl LLMRuntimeModel for LLama3Model {
 
     fn execute_streaming(
         &mut self,
+        q: crate::Query,
+        response_tx: std::sync::Arc<std::sync::mpsc::Sender<crate::Query>>,
+    ) -> anyhow::Result<(), crate::Error> {
+        self.inference(q, response_tx.clone())?;
+
+        // send termination
+        response_tx
+            .send(crate::Query::End)
+            .map_err(|e| crate::Error::StreamError(e.to_string()))?;
+
+        Ok(())
+    }
+
+    fn inference(
+        &mut self,
         message: Query,
         response_tx: std::sync::Arc<std::sync::mpsc::Sender<Query>>,
     ) -> anyhow::Result<(), Error> {
@@ -460,13 +475,6 @@ impl LLMRuntimeModel for LLama3Model {
                     return Err(Error::StreamError(e.to_string()));
                 }
             }
-
-            // send termination
-            response_tx
-                .send(crate::Query::End)
-                .map_err(|e| crate::Error::StreamError(e.to_string()))?;
-
-            return Ok(());
         }
 
         Err(Error::ExecutionError(

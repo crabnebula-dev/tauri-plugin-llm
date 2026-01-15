@@ -31,21 +31,18 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
 
     match result {
         Ok(_) => {
-              
-        loop {
-            if let Ok(message) = runtime.try_recv_stream() {
+            while let Ok(message) = runtime.try_recv_stream() {
                 if let Query::Chunk { id, data, kind } = &message {
                     tracing::info!("Data: {:?}", data)
                 }
                 if let Query::End = &message { break }
             }
-        }
+              
         },
         Err(_) => {
             tracing::error!("Failed sending message")
         },
     }
-    
    
     Ok(())
 }

@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use crate::{runtime::LLMRuntimeModel, Query};
+use std::sync::Arc;
 
 pub struct Mock;
 
