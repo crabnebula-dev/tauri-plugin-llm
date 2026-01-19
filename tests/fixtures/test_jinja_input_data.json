@@ -1,0 +1,48 @@
+{
+    "messages": [
+        {
+            "role": "user",
+            "content": "Return a question that asks for the current time."
+        },
+        {
+            "role": "system",
+            "content": "You are a helpful assistent. Do not explain anything. Return just what the user is asking for"
+        }
+    ],
+    "tools": [
+        {
+            "name": "get_weather",
+            "title": "Weather Information Provider",
+            "description": "Get current weather information for a location",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "City name or zip code"
+                    }
+                },
+                "required": [
+                    "location"
+                ]
+            }
+        },
+        {
+            "name": "get_location",
+            "title": "Information about the current location",
+            "description": "Get current information for a location",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "City name or zip code"
+                    }
+                },
+                "required": [
+                    "location"
+                ]
+            }
+        }
+    ]
+}

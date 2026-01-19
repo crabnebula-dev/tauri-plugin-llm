@@ -1,0 +1,9 @@
+{
+    "System": "You are a helpful assistent. Do not explain anything. Return just what the user is asking for",
+    "Messages": [
+        {
+            "Role": "user",
+            "Content": "Return a question that asks for the current time."
+        }
+    ]
+}
