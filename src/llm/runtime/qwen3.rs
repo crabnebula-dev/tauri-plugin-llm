@@ -173,7 +173,7 @@ impl LLMRuntimeModel for Qwen3Model {
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> anyhow::Result<(), Error> {
         if let Query::Prompt {
-            messages: _,
+            messages,
             tools: _,
             config,
             chunk_size,
@@ -187,13 +187,27 @@ impl LLMRuntimeModel for Qwen3Model {
 
             // preprocess message by applying chat template
             let message = {
-                let template = self.template.as_ref().ok_or(Error::ExecutionError(
+                match self.template.as_ref().ok_or(Error::ExecutionError(
                     "Template is missing in config!".to_string(),
-                ))?;
-                let proc = self.template_proc.as_ref().ok_or(Error::ExecutionError(
-                    "Template processor is not intialized".to_string(),
-                ))?;
-                message.apply_template(template, proc)?
+                )) {
+                    Ok(template) => {
+                        let proc = self.template_proc.as_ref().ok_or(Error::ExecutionError(
+                            "Template processor is not intialized".to_string(),
+                        ))?;
+                        message.apply_template(template, proc)?
+                    }
+                    Err(_) => {
+                        tracing::error!("No templates have been found. Sending plain query");
+
+                        // FIXME: we don't want the plain prompt to be send to the model. Not loading the
+                        // template from the plugin config indicates a deeper problem.
+                        messages[0].content.clone()
+                    }
+                }
+
+                // let template = self.template.as_ref().ok_or(Error::ExecutionError(
+                //     "Template is missing in config!".to_string(),
+                // ))?;
             };
 
             let QueryConfig {
