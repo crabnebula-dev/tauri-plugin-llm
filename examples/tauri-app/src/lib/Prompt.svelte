@@ -1,36 +1,31 @@
 <script>
   import { onMount } from "svelte";
   import { platform } from "@tauri-apps/plugin-os";
-  import { retryRecv, sendMessage } from "tauri-plugin-llm-api";
+  import { LLMStreamListener } from "tauri-plugin-llm-api";
 
   let promptMsg = $state("");
   let promptRes = $state("");
 
-  function recv() {
-    retryRecv()
-      .then((msg) => {
-        console.log(msg);
-        promptRes = JSON.stringify(msg);
-      })
-      .catch((e) => {
-        console.error(e);
-        setTimeout(recv, 1000);
-      });
-  }
+  let llm = new LLMStreamListener();
+  llm.setup({
+    onData: (id, data) => console.log(id, data),
+    onEnd: () => console.log("end"),
+    onError: (msg) => console.error("error", msg),
+  });
 
   async function send() {
-    await sendMessage({
+    await llm.stream({
       type: "Prompt",
-      system:
-        "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ",
-      message: promptMsg || "Hello World!",
-      num_samples: 200,
+      messages: [
+        { role: "system", content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. " },
+        { role: "user", content: promptMsg || "Hello World!" },
+      ],
+      tools: [],
+      chunk_size: 200,
     }).catch((e) => {
       // TODO: sendMessage should probably not throw an empty channel error
       console.error(e);
     });
-
-    setTimeout(recv, 1000);
   }
 
   onMount(() => {

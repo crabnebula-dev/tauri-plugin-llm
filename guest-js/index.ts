@@ -98,13 +98,13 @@ export class LLMStreamListener {
   }
 
   /// Use this function to send a prompt to the backend
-  async stream(message: Query, window: Window): Promise<void> {
+  async stream(message: Query): Promise<void> {
     if (!this.isActive) {
       throw new Error('Stream listener not initialized.');
     }
 
     /// Use this function to send a query to the backend
-    await invoke("plugin:llm|stream", { message, window })
+    await invoke("plugin:llm|stream", { message })
   }
 
 }
