@@ -307,34 +307,22 @@
           "markdownDescription": "Denies the ping command without any pre-configured scope."
         },
         {
-          "description": "Enables the retry_recv command without any pre-configured scope.",
+          "description": "Enables the stream command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-retry-recv",
-          "markdownDescription": "Enables the retry_recv command without any pre-configured scope."
+          "const": "allow-stream",
+          "markdownDescription": "Enables the stream command without any pre-configured scope."
         },
         {
-          "description": "Denies the retry_recv command without any pre-configured scope.",
+          "description": "Denies the stream command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-retry-recv",
-          "markdownDescription": "Denies the retry_recv command without any pre-configured scope."
+          "const": "deny-stream",
+          "markdownDescription": "Denies the stream command without any pre-configured scope."
         },
         {
-          "description": "Enables the send_message command without any pre-configured scope.",
-          "type": "string",
-          "const": "allow-send-message",
-          "markdownDescription": "Enables the send_message command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the send_message command without any pre-configured scope.",
-          "type": "string",
-          "const": "deny-send-message",
-          "markdownDescription": "Denies the send_message command without any pre-configured scope."
-        },
-        {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-send-message`\n- `allow-retry-recv`",
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-send-message`\n- `allow-retry-recv`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`"
         }
       ]
     }

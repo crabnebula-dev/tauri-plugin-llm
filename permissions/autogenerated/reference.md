@@ -4,8 +4,7 @@ Default permissions for the plugin
 
 #### This default permission set includes the following:
 
-- `allow-send-message`
-- `allow-retry-recv`
+- `allow-stream`
 
 ## Permission Table
 
@@ -45,25 +44,12 @@ Denies the ping command without any pre-configured scope.
 <tr>
 <td>
 
-`llm:allow-retry-recv`
+`llm:allow-stream`
 
 </td>
 <td>
 
-Enables the retry_recv command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-`llm:deny-retry-recv`
-
-</td>
-<td>
-
-Denies the retry_recv command without any pre-configured scope.
+Enables the stream command without any pre-configured scope.
 
 </td>
 </tr>
@@ -71,25 +57,12 @@ Denies the retry_recv command without any pre-configured scope.
 <tr>
 <td>
 
-`llm:allow-send-message`
+`llm:deny-stream`
 
 </td>
 <td>
 
-Enables the send_message command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-`llm:deny-send-message`
-
-</td>
-<td>
-
-Denies the send_message command without any pre-configured scope.
+Denies the stream command without any pre-configured scope.
 
 </td>
 </tr>

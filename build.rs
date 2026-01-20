@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-const COMMANDS: &[&str] = &["ping", "send_message", "retry_recv"];
+const COMMANDS: &[&str] = &["ping", "stream"];
 
 fn main() {
     tauri_plugin::Builder::new(COMMANDS)
