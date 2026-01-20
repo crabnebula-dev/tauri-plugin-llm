@@ -13,6 +13,7 @@ impl LLMRuntimeModel for Mock {
         message: crate::Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> anyhow::Result<(), crate::Error> {
+        tracing::debug!("Run Inference");
         // Run inference internally
         self.inference(message, response_tx.clone())?;
 
@@ -20,6 +21,8 @@ impl LLMRuntimeModel for Mock {
         response_tx
             .send(crate::Query::End)
             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
+
+        tracing::debug!("Send Query End");
 
         Ok(())
     }
@@ -30,7 +33,7 @@ impl LLMRuntimeModel for Mock {
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> Result<(), crate::Error> {
         if let Query::Prompt {
-            messages: _,
+            messages,
             tools: _,
             config,
             chunk_size,
@@ -53,7 +56,7 @@ impl LLMRuntimeModel for Mock {
                     response_tx
                         .send(crate::Query::Chunk {
                             id,
-                            data: "hello, world! ".as_bytes().to_vec(),
+                            data: messages.first().unwrap().content.as_bytes().to_vec(),
                             kind: crate::QueryChunkType::String,
                         })
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;

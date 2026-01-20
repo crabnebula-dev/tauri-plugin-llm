@@ -17,7 +17,7 @@ where
     runtime.send_stream(message)?;
 
     loop {
-        if let Ok(query) = runtime.try_recv_stream() {
+        if let Ok(query) = runtime.recv_stream() {
             match &query {
                 Query::Chunk { .. } => {
                     let event = query.try_render_as_event_name()?;

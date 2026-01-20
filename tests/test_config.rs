@@ -151,9 +151,6 @@ fn test_deserialize_default() {
         timestamp: None,
     };
 
-    let json = serde_json::to_string(&query).unwrap();
-    println!("{json}");
-
     let json = serde_json::json!(
         {
         "type": "Prompt",
@@ -167,6 +164,4 @@ fn test_deserialize_default() {
 
     let result: Result<Query, _> = serde_json::from_str(json.as_str());
     assert!(result.is_ok(), "{:?}", result);
-
-    println!("{:?}", result.unwrap())
 }

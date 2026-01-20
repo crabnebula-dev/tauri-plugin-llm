@@ -42,7 +42,7 @@ pub enum Error {
     #[error("Error processing template: ({0})")]
     TemplateError(String),
 
-    #[error("Error streaming resoponse: ({0})")]
+    #[error("Error streaming response: ({0})")]
     StreamError(String),
 
     #[error("Client event is not defined.")]

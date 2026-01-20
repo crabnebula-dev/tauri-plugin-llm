@@ -20,7 +20,7 @@ pub struct LLMRuntime {
 
     worker: Option<tauri::async_runtime::JoinHandle<()>>,
     control: (Sender<Query>, Option<Receiver<Query>>),
-    response: (Option<Sender<Query>>, Receiver<Query>),
+    response: (Arc<Sender<Query>>, Receiver<Query>),
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
@@ -77,7 +77,7 @@ impl LLMRuntime {
 
             worker: None,
             control: (ctrl_tx, Some(ctrl_rx)),
-            response: (Some(response_stream_tx), response_stream_rx),
+            response: (Arc::new(response_stream_tx), response_stream_rx),
         })
     }
 
@@ -226,7 +226,8 @@ impl LLMRuntime {
         let config = self.config.clone();
 
         let control_rx = self.control.1.take().unwrap();
-        let response_stream_tx = Arc::new(self.response.0.take().unwrap());
+
+        let response_tx = self.response.0.clone();
 
         tracing::debug!("Spawning Model in separate thread");
 
@@ -236,21 +237,28 @@ impl LLMRuntime {
             if let Err(error) = model.init(&config) {
                 tracing::error!("Error initializing model: {}", error);
 
-                // exit, because model failed to initialize
                 return;
             }
 
-            while let Ok(message) = control_rx.try_recv() {
-                tracing::debug!("Sending message to model");
+            loop {
+                // TODO blocking wait for message
+                match control_rx.recv() {
+                    Ok(message) => {
+                        tracing::debug!("Sending message to model");
 
-                match message {
-                    Query::Prompt { .. } => {
-                        if let Err(error) = model.execute(message, response_stream_tx.clone()) {
-                            tracing::error!("Error execute streaming: {error}");
+                        match message {
+                            Query::Prompt { .. } => {
+                                if let Err(error) = model.execute(message, response_tx.clone()) {
+                                    tracing::error!("Error execute streaming: {error}");
+                                }
+                            }
+                            Query::Exit => break,
+                            _ => {}
                         }
                     }
-                    Query::Exit => break,
-                    _ => {}
+                    Err(error) => {
+                        tracing::error!("Error! Couldn't receive control message: {error}. Waiting for next message");
+                    }
                 }
             }
         });
@@ -269,10 +277,10 @@ impl LLMRuntime {
         Ok(())
     }
 
-    pub fn try_recv_stream(&self) -> Result<Query, Error> {
+    pub fn recv_stream(&self) -> Result<Query, Error> {
         self.response
             .1
-            .try_recv()
+            .recv()
             .map_err(|e| Error::StreamError(e.to_string()))
     }
 }
