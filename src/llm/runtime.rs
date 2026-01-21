@@ -64,6 +64,9 @@ impl LLMRuntime {
             let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
             Registry::default().with(verbose).init();
         }
+
+        tracing::debug!("Got LLM Config: {:?}", config);
+
         let device = Self::load_default_device();
         let model = Self::detect_model(&config.clone(), device)?;
 

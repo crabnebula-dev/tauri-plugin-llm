@@ -81,8 +81,6 @@ impl Builder {
 
                 // manage llm runtime ?
                 app.manage({
-                    tracing::debug!("Got LLM Config: {:?}", config.llmconfig);
-
                     // initialize runtime by config
                     let mut runtime = LLMRuntime::from_config(config.llmconfig.clone())?;
 
