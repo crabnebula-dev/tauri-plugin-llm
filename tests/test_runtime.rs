@@ -5,7 +5,7 @@ use tauri_plugin_llm::{
 };
 
 #[tokio::test]
-#[ignore = "Load the Qwen3 model first, then run this test manually"]
+// #[ignore = "Load the Qwen3 model first, then run this test manually"]
 async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;

@@ -21,7 +21,7 @@ pub fn run() {
             .parent()
             .unwrap()
             .join("models");
-        let config = LLMPluginConfig {
+        let _ = LLMPluginConfig {
             llmconfig: LLMRuntimeConfig {
                 tokenizer_config_file: None,
                 tokenizer_file: Some(basedir.join("Qwen3-4B-Instruct-2507-FP8/tokenizer.json")),
@@ -47,7 +47,7 @@ pub fn run() {
             #[cfg(feature = "mcpurify")]
             mcpurify_config: None,
         };
-        builder = builder.plugin(tauri_plugin_llm::Builder::new().config(config).build())
+        builder = builder.plugin(tauri_plugin_llm::Builder::new().build())
     }
 
     #[cfg(not(target_os = "macos"))]
