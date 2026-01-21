@@ -204,10 +204,6 @@ impl LLMRuntimeModel for Qwen3Model {
                         messages[0].content.clone()
                     }
                 }
-
-                // let template = self.template.as_ref().ok_or(Error::ExecutionError(
-                //     "Template is missing in config!".to_string(),
-                // ))?;
             };
 
             let QueryConfig {
