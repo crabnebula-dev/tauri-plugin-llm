@@ -17,8 +17,8 @@ where
     runtime.send_stream(message)?;
 
     loop {
-        if let Ok(query) = runtime.recv_stream() {
-            match &query {
+        match runtime.recv_stream() {
+            Ok(query) => match &query {
                 Query::Chunk { .. } => {
                     let event = query.try_render_as_event_name()?;
                     app.emit(&event, query)
@@ -39,6 +39,14 @@ where
                 _ => {
                     tracing::error!("Unknown responsed received")
                 }
+            },
+            Err(error) => {
+                app.emit("query-stream-error", error.to_string())
+                    .map_err(|e| crate::Error::StreamError(e.to_string()))?;
+
+                tracing::error!("receiving stream returned an error: {error}. Exiting");
+
+                break;
             }
         }
     }
