@@ -197,7 +197,7 @@ impl LLMRuntimeModel for Qwen3Model {
                         message.apply_template(template, proc)?
                     }
                     Err(_) => {
-                        tracing::error!("No templates have been found. Sending plain query");
+                        tracing::warn!("No templates have been found. Sending plain query");
 
                         // FIXME: we don't want the plain prompt to be send to the model. Not loading the
                         // template from the plugin config indicates a deeper problem.
