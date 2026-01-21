@@ -212,7 +212,9 @@ impl LLMRuntimeModel for Qwen3Model {
 
             let QueryConfig {
                 generate_num_samples,
-            } = config.unwrap();
+            } = config.unwrap_or(QueryConfig {
+                generate_num_samples: 5000,
+            });
 
             tracing::debug!("Processing Message: {:?}", message);
 
