@@ -51,7 +51,7 @@ impl LLMRuntimeModel for Mock {
             tools: _,
             config,
             chunk_size,
-            timestamp: _,
+            timestamp,
         } = q
         {
             let samples = if let Some(config) = config {
@@ -76,6 +76,7 @@ impl LLMRuntimeModel for Mock {
                             id,
                             data: messages.first().unwrap().content.as_bytes().to_vec(),
                             kind: crate::QueryChunkType::String,
+                            timestamp,
                         })
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 

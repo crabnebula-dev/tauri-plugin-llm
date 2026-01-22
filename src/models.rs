@@ -39,6 +39,7 @@ pub enum Query {
     Chunk {
         id: usize,
         data: Vec<u8>,
+        timestamp: Option<u64>,
         kind: QueryChunkType,
     },
 

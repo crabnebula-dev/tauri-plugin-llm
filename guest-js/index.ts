@@ -25,6 +25,7 @@ export type Query =
     id: number;
     data: Uint8Array;
     kind: "string" | "bytes";
+    timestamp?: number;
   }
   | {
     type: "End";

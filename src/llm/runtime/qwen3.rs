@@ -180,7 +180,7 @@ impl LLMRuntimeModel for Qwen3Model {
             tools: _,
             config,
             chunk_size,
-            timestamp: _,
+            timestamp,
         } = message.clone()
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
@@ -295,6 +295,7 @@ impl LLMRuntimeModel for Qwen3Model {
                         id,
                         kind: crate::QueryChunkType::String,
                         data,
+                        timestamp,
                     }) {
                         tracing::error!("Error sending chunk: {e}");
                         return Err(Error::StreamError(e.to_string()));
@@ -318,6 +319,7 @@ impl LLMRuntimeModel for Qwen3Model {
                     id,
                     kind: crate::QueryChunkType::String,
                     data,
+                    timestamp,
                 }) {
                     return Err(Error::StreamError(e.to_string()));
                 }
