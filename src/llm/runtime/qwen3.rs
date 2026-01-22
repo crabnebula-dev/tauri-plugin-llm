@@ -172,7 +172,7 @@ impl LLMRuntimeModel for Qwen3Model {
         message: Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> anyhow::Result<(), Error> {
-        tracing::info!("Qwen3 got message: {:?}", message);
+        tracing::debug!("Qwen3 got message: {:?}", message);
 
         if let Query::Prompt {
             messages,
@@ -324,8 +324,9 @@ impl LLMRuntimeModel for Qwen3Model {
         }
 
         tracing::warn!(
-            "Got unhandled `Query` type: {:?}",
-            std::mem::discriminant(&message)
+            "Got unhandled `Query` type: discriminant({:?}), actual type: ({:?})",
+            std::mem::discriminant(&message),
+            message
         );
 
         // Err(Error::ExecutionError(

@@ -47,6 +47,9 @@ pub enum Error {
 
     #[error("Client event is not defined.")]
     UndefinedClientEvent(String),
+
+    #[error("Run into timeout. ({0})")]
+    TimeoutError(String),
 }
 
 impl Serialize for Error {

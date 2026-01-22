@@ -14,12 +14,14 @@ where
 {
     let runtime = state.runtime.lock().unwrap();
 
+    tracing::debug!("Send query to runtime: {:?}", message);
     runtime.send_stream(message)?;
 
     loop {
         match runtime.recv_stream() {
             Ok(query) => match &query {
                 Query::Chunk { .. } => {
+                    tracing::debug!("Got data chunk");
                     let event = query.try_render_as_event_name()?;
                     app.emit(&event, query)
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
@@ -30,6 +32,7 @@ where
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
                 }
                 Query::End => {
+                    tracing::debug!("Reached end of stream");
                     let event = query.try_render_as_event_name()?;
                     app.emit(&event, ())
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
