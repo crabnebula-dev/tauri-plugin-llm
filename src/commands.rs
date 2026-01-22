@@ -40,7 +40,7 @@ where
                     break;
                 }
                 _ => {
-                    tracing::error!("Unknown responsed received")
+                    tracing::error!("Unknown response received")
                 }
             },
             Err(error) => {
