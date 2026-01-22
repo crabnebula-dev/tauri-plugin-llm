@@ -32,6 +32,8 @@ impl LLMRuntimeModel for Mock {
         q: crate::Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> Result<(), crate::Error> {
+        tracing::debug!("Got `Query`: {q:?}");
+
         if let Query::Prompt {
             messages,
             tools: _,
@@ -48,11 +50,15 @@ impl LLMRuntimeModel for Mock {
             let chunk_size = chunk_size.unwrap_or(100);
             let mut id = 0usize;
 
+            tracing::debug!("Simulate Inference");
+
             for i in 0..samples {
                 // do inference here ...
 
                 // send a chunk of data every chunk size
                 if i % chunk_size == 0 {
+                    tracing::debug!("Sending Chunk");
+
                     response_tx
                         .send(crate::Query::Chunk {
                             id,
@@ -65,9 +71,15 @@ impl LLMRuntimeModel for Mock {
                 }
             }
 
+            tracing::debug!("End Inference");
+
             return Ok(());
         }
 
-        Err(crate::Error::StreamError("_".to_string()))
+        tracing::warn!("Unknown `Query`: ({:?}), {q:?}", std::mem::discriminant(&q));
+
+        Err(crate::Error::StreamError(
+            "Unknown `Query` type".to_string(),
+        ))
     }
 }
