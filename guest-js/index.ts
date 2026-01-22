@@ -82,10 +82,7 @@ export class LLMStreamListener {
     });
 
     const unlistenEnd = await listen('query-stream-end', (event) => {
-      const message = event.payload as Query | null;
-      if (message?.type == 'End') {
-        callb.onEnd();
-      }
+      callb.onEnd();
     });
 
     this.unListeners = [unlistenData, unlistenError, unlistenEnd];
