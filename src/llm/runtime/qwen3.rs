@@ -323,8 +323,15 @@ impl LLMRuntimeModel for Qwen3Model {
             return Ok(());
         }
 
-        Err(Error::ExecutionError(
-            "Cannot handle Query type".to_string(),
-        ))
+        tracing::warn!(
+            "Got unhandled `Query` type: {:?}",
+            std::mem::discriminant(&message)
+        );
+
+        // Err(Error::ExecutionError(
+        //     "Cannot handle Query type".to_string(),
+        // ))
+
+        Ok(())
     }
 }
