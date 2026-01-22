@@ -16,21 +16,21 @@ class LLMStreamListener {
         this.isActive = true;
         const unlistenData = await event.listen('query-stream-chunk', (event) => {
             const message = event.payload;
-            if (message.type == 'Chunk') {
+            if (message?.type == 'Chunk') {
                 const { id, data } = message;
                 callb.onData(id, data);
             }
         });
         const unlistenError = await event.listen('query-stream-error', (event) => {
             const message = event.payload;
-            if (message.type == 'Status') {
+            if (message?.type == 'Status') {
                 const { msg } = message;
                 callb.onError(msg);
             }
         });
         const unlistenEnd = await event.listen('query-stream-end', (event) => {
             const message = event.payload;
-            if (message.type == 'End') {
+            if (message?.type == 'End') {
                 callb.onEnd();
             }
         });

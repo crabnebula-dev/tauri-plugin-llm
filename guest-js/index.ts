@@ -66,24 +66,24 @@ export class LLMStreamListener {
     this.isActive = true;
 
     const unlistenData = await listen('query-stream-chunk', (event) => {
-      const message = event.payload as Query;
-      if (message.type == 'Chunk') {
+      const message = event.payload as Query | null;
+      if (message?.type == 'Chunk') {
         const { id, data } = message;
         callb.onData(id, data);
       }
     });
 
     const unlistenError = await listen('query-stream-error', (event) => {
-      const message = event.payload as Query;
-      if (message.type == 'Status') {
+      const message = event.payload as Query | null;
+      if (message?.type == 'Status') {
         const { msg } = message;
         callb.onError(msg);
       }
     });
 
     const unlistenEnd = await listen('query-stream-end', (event) => {
-      const message = event.payload as Query;
-      if (message.type == 'End') {
+      const message = event.payload as Query | null;
+      if (message?.type == 'End') {
         callb.onEnd();
       }
     });

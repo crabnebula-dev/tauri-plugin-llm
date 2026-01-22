@@ -37,16 +37,17 @@
   "plugins": {
     "llm": {
       "llmconfig": {
-        "tokenizer_config_file": "",
-        "model_config_file": "",
+        "tokenizer_file": "/Users/alex/Documents/models/Qwen3-4B-Instruct-2507-FP8/tokenizer.json",
+        "tokenizer_config_file": "/Users/alex/Documents/models/Qwen3-4B-Instruct-2507-FP8/tokenizer_config.json",
+        "model_config_file": "/Users/alex/Documents/models/Qwen3-4B-Instruct-2507-FP8/config.json",
         "model_index_file": "",
-        "model_file": "",
-        "model_dir": "",
+        "model_file": "/Users/alex/Documents/models/Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf",
+        "model_dir": "/Users/alex/Documents/models/Qwen3-4B-GGUF/",
         "model_config": {
-            "top_k": 0,
-            "top_p": 0.0,
-            "temperature": 0.0,
-            "name": "Mock",
+            "top_k": 20,
+            "top_p": 0.8,
+            "temperature": 0.4,
+            "name": "Qwen3-4B-GGUF",
             "file_type": "GGUF",
             "penalty": 1.0,
             "seed": "Random",
@@ -54,7 +55,7 @@
             "streaming": true,
             "sampling_config": "TopK"
         },
-        "verbose": false
+        "verbose": true
       }
     }
   }
