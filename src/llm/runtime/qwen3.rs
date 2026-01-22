@@ -179,7 +179,7 @@ impl LLMRuntimeModel for Qwen3Model {
             tools: _,
             config,
             chunk_size,
-            timestamp: None,
+            timestamp: _,
         } = message.clone()
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
