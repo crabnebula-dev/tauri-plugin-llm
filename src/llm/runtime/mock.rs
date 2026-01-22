@@ -36,7 +36,9 @@ impl LLMRuntimeModel for Mock {
 
         // debug query types
         match q {
-            Query::Prompt { .. } => tracing::debug!("Query type is: ({q:?})"),
+            Query::Prompt { .. } => {
+                tracing::debug!("Query type is: ({q:?})")
+            }
             Query::Response { .. } => tracing::debug!("Query type is: ({q:?})"),
             Query::Chunk { .. } => tracing::debug!("Query type is: ({q:?})"),
             Query::End => tracing::debug!("Query type is: ({q:?})"),
@@ -49,7 +51,7 @@ impl LLMRuntimeModel for Mock {
             tools: _,
             config,
             chunk_size,
-            timestamp: None,
+            timestamp: _,
         } = q
         {
             let samples = if let Some(config) = config {
