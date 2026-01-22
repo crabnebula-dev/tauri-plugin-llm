@@ -1,0 +1,8 @@
+version: '3'
+
+tasks:
+  default:
+    silent: true
+    desc: Default Task lists all available tasks in the taskfile
+    cmds:
+      - echo "hi"
