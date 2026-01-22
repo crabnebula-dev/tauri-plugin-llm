@@ -157,6 +157,7 @@ impl LLMRuntimeModel for Qwen3Model {
     ) -> anyhow::Result<(), Error> {
         self.inference(q, response_tx.clone())?;
 
+        tracing::debug!("Qwen3 inference ended. Sending end termination");
         response_tx
             .send(crate::Query::End)
             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
