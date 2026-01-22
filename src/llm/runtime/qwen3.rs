@@ -162,8 +162,6 @@ impl LLMRuntimeModel for Qwen3Model {
             .send(crate::Query::End)
             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
-        
-
         Ok(())
     }
 
@@ -225,12 +223,16 @@ impl LLMRuntimeModel for Qwen3Model {
             let logits_processor = self.logits_processor.as_mut().unwrap();
             let device = self.device.as_ref().unwrap();
 
+            tracing::debug!("Encoding Message: {:?}", message);
             // encode message
             let tokens = tokenizer
                 .encode(message, true)
                 .map_err(|e| Error::MessageEncodingError(e.to_string()))?;
 
             let tokens = tokens.get_ids();
+
+            // clear cache to have a reset?
+            model.clear_kv_cache();
 
             // set next token
             let mut next_token = {
@@ -239,7 +241,7 @@ impl LLMRuntimeModel for Qwen3Model {
                     .unsqueeze(0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
-                // inference is here
+                // inference is here (successive calls fail)
                 let logits = model
                     .forward(&input, 0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;

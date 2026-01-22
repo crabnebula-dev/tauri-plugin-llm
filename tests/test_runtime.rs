@@ -211,3 +211,98 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
+    let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
+    let mut runtime = LLMRuntime::from_config(config)?;
+
+    runtime.run_stream()?;
+
+    let queries = vec![
+        Query::Prompt {
+            messages: vec![QueryMessage {
+                role: "user".to_string(),
+                content: "Message #1".to_string(),
+            }],
+            tools: vec![],
+            config: Some(QueryConfig::default()),
+            chunk_size: Some(25),
+            timestamp: None,
+        },
+        Query::Prompt {
+            messages: vec![QueryMessage {
+                role: "user".to_string(),
+                content: "Message #2".to_string(),
+            }],
+            tools: vec![],
+            config: Some(QueryConfig::default()),
+            chunk_size: Some(25),
+            timestamp: None,
+        },
+    ];
+
+    for query in queries {
+        let _ = runtime.send_stream(query);
+
+        let mut full_message = vec![];
+
+        loop {
+            match runtime.recv_stream() {
+                Ok(message) => {
+                    match message {
+                        tauri_plugin_llm::Query::Chunk { .. } => {
+                            full_message.push(message);
+                        }
+                        tauri_plugin_llm::Query::End => {
+                            //  reassemble the whole message
+                            full_message.sort_by(|a, b| {
+                                let id_a = match a {
+                                    tauri_plugin_llm::Query::Chunk { id, .. } => *id,
+                                    _ => usize::MAX,
+                                };
+
+                                let id_b = match b {
+                                    tauri_plugin_llm::Query::Chunk { id, .. } => *id,
+                                    _ => usize::MAX,
+                                };
+
+                                match (id_a, id_b) {
+                                    _ if id_a > id_b => Ordering::Greater,
+                                    _ if id_a < id_b => Ordering::Less,
+                                    _ => Ordering::Equal,
+                                }
+                            });
+
+                            let result = full_message
+                                .into_iter()
+                                .filter_map(|q| match q {
+                                    tauri_plugin_llm::Query::Chunk { data, .. } => Some(data),
+                                    _ => None,
+                                })
+                                .flatten()
+                                .collect::<Vec<u8>>();
+
+                            let result_message_string = String::from_utf8(result)
+                                .expect("Failed to construct a UTF-8 String from raw bytes");
+
+                            tracing::info!("Result: {result_message_string}");
+
+                            break;
+                        }
+                        tauri_plugin_llm::Query::Status { msg } => {
+                            panic!("Error during receiving stream message. {msg}");
+                        }
+
+                        _ => {}
+                    }
+                }
+                Err(error) => {
+                    panic!("Error trying to get message: {error}");
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
