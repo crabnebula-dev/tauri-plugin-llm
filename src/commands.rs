@@ -34,7 +34,7 @@ where
                 Query::End => {
                     tracing::debug!("Reached end of stream");
                     let event = query.try_render_as_event_name()?;
-                    app.emit(&event, ())
+                    app.emit("query-stream-end", "")
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
                     break;
