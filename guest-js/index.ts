@@ -49,7 +49,7 @@ export interface QueryMessage {
 
 /// Use this interface to define the callbacks to control the response messages
 export interface CallBacks {
-  onData: (id: number, data: Uint8Array) => void,
+  onData: (id: number, data: Uint8Array, timestamp?: number) => void,
   onError: (msg: string) => void,
   onEnd: () => void
 }
@@ -69,8 +69,8 @@ export class LLMStreamListener {
     const unlistenData = await listen('query-stream-chunk', (event) => {
       const message = event.payload as Query | null;
       if (message?.type == 'Chunk') {
-        const { id, data } = message;
-        callb.onData(id, data);
+        const { id, data, timestamp } = message;
+        callb.onData(id, data, timestamp);
       }
     });
 
