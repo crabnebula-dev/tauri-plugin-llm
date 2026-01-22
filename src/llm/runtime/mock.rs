@@ -34,6 +34,16 @@ impl LLMRuntimeModel for Mock {
     ) -> Result<(), crate::Error> {
         tracing::debug!("Got `Query`: {q:?}");
 
+        // debug query types
+        match q {
+            Query::Prompt { .. } => tracing::debug!("Query type is: ({q:?})"),
+            Query::Response { .. } => tracing::debug!("Query type is: ({q:?})"),
+            Query::Chunk { .. } => tracing::debug!("Query type is: ({q:?})"),
+            Query::End => tracing::debug!("Query type is: ({q:?})"),
+            Query::Exit => tracing::debug!("Query type is: ({q:?})"),
+            Query::Status { .. } => tracing::debug!("Query type is: ({q:?})"),
+        }
+
         if let Query::Prompt {
             messages,
             tools: _,
