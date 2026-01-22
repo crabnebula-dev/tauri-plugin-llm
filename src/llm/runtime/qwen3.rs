@@ -172,6 +172,8 @@ impl LLMRuntimeModel for Qwen3Model {
         message: Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> anyhow::Result<(), Error> {
+        tracing::info!("Qwen3 got message: {:?}", message);
+
         if let Query::Prompt {
             messages,
             tools: _,
