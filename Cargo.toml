@@ -37,7 +37,7 @@ tera                = { version = "1.20.1" }
 
 # Optional dependency to MCPurify. Please check the LICENSE before enabling MCPurify.
 # mcpurify            = { git = "git@github.com:crabnebula-dev/MCPurify.git", optional = true }
-mcpurify              = { path = "../mcpurify", optional = true }
+# mcpurify              = { path = "../mcpurify", optional = true }
 
 # for LLM inference (without metal)
 [target.'cfg(not(target_os="macos"))'.dependencies]
@@ -63,4 +63,5 @@ default             = ["feat_safetensors", "apple_metal"]
 feat_safetensors    = []
 cuda                = []
 apple_metal         = []
-mcpurify            = ["dep:mcpurify"]
+# mcpurify            = ["dep:mcpurify"]
+mcpurify             = []

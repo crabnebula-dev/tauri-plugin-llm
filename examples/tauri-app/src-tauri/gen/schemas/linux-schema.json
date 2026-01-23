@@ -2163,10 +2163,10 @@
           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-send-message`\n- `allow-retry-recv`",
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`",
           "type": "string",
           "const": "llm:default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-send-message`\n- `allow-retry-recv`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`"
         },
         {
           "description": "Enables the ping command without any pre-configured scope.",
@@ -2175,16 +2175,10 @@
           "markdownDescription": "Enables the ping command without any pre-configured scope."
         },
         {
-          "description": "Enables the retry_recv command without any pre-configured scope.",
+          "description": "Enables the stream command without any pre-configured scope.",
           "type": "string",
-          "const": "llm:allow-retry-recv",
-          "markdownDescription": "Enables the retry_recv command without any pre-configured scope."
-        },
-        {
-          "description": "Enables the send_message command without any pre-configured scope.",
-          "type": "string",
-          "const": "llm:allow-send-message",
-          "markdownDescription": "Enables the send_message command without any pre-configured scope."
+          "const": "llm:allow-stream",
+          "markdownDescription": "Enables the stream command without any pre-configured scope."
         },
         {
           "description": "Denies the ping command without any pre-configured scope.",
@@ -2193,16 +2187,10 @@
           "markdownDescription": "Denies the ping command without any pre-configured scope."
         },
         {
-          "description": "Denies the retry_recv command without any pre-configured scope.",
+          "description": "Denies the stream command without any pre-configured scope.",
           "type": "string",
-          "const": "llm:deny-retry-recv",
-          "markdownDescription": "Denies the retry_recv command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the send_message command without any pre-configured scope.",
-          "type": "string",
-          "const": "llm:deny-send-message",
-          "markdownDescription": "Denies the send_message command without any pre-configured scope."
+          "const": "llm:deny-stream",
+          "markdownDescription": "Denies the stream command without any pre-configured scope."
         },
         {
           "description": "This permission set configures which\noperating system information are available\nto gather from the frontend.\n\n#### Granted Permissions\n\nAll information except the host name are available.\n\n\n#### This default permission set includes:\n\n- `allow-arch`\n- `allow-exe-extension`\n- `allow-family`\n- `allow-locale`\n- `allow-os-type`\n- `allow-platform`\n- `allow-version`",

@@ -10,7 +10,7 @@ ENV LC_ALL=en_US.UTF-8
 ENV DISPLAY=:99
 ENV CARGO_HOME="/usr/local/cargo"
 ENV RUSTUP_HOME="/usr/local/rustup"
-ENV PATH="/usr/local/cargo/bin:$PATH"
+ENV PATH="/usr/local/cargo/bin:/opt/go/latest/:$PATH"
 
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y build-essential curl git pkg-config ca-certificates
@@ -27,11 +27,18 @@ RUN apt-get install -y --no-install-recommends \
     xvfb \
     xauth \
     nodejs \
-    task
+    task \
+    clang
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-RUN npm install -g pnpm
+# -- install go
+RUN curl -fLOsS https://go.dev/dl/go1.25.5.linux-arm64.tar.gz
+RUN mkdir -p /opt/go/1.25.5.linux-arm64 && mkdir -p /opt/go/latest && tar -C /opt/go/1.25.5.linux-arm64 -xzf go1.25.5.linux-arm64.tar.gz
+RUN rm go1.25.5.linux-arm64.tar.gz 
+RUN ln -s /opt/go/1.25.5.linux-arm64/go/bin/go /opt/go/latest/go
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN cargo install tauri-driver --locked
+RUN npm install -g pnpm
 
 RUN apt-get install -y locales-all locales
 RUN update-locale
