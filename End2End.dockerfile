@@ -33,7 +33,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --pr
 RUN npm install -g pnpm
 RUN cargo install tauri-driver --locked
 
-RUN apt-get install -y update-locale
+RUN apt-get install -y locales-all locales
 RUN update-locale
 
 RUN printf "crabnebula-testing" > /etc/hostname
