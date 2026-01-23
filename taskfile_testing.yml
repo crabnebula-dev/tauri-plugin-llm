@@ -23,7 +23,7 @@ tasks:
     cmds:
       - $CONTAINER_RUNTIME run -ti -v $(pwd):/testing --cpus 8 -m 16G tauritest
 
-  run_test:
+  run:
     silent: true
     desc: Runs the e2e test in 'examples/tauri-app/test/specs/test.e2e.js'
     dir: ./examples/tauri-app/test/specs
