@@ -15,8 +15,8 @@ class LLMStreamListener {
         const unlistenData = await listen('query-stream-chunk', (event) => {
             const message = event.payload;
             if (message?.type == 'Chunk') {
-                const { id, data } = message;
-                callb.onData(id, data);
+                const { id, data, timestamp } = message;
+                callb.onData(id, data, timestamp);
             }
         });
         const unlistenError = await listen('query-stream-error', (event) => {
@@ -27,10 +27,7 @@ class LLMStreamListener {
             }
         });
         const unlistenEnd = await listen('query-stream-end', (event) => {
-            const message = event.payload;
-            if (message?.type == 'End') {
-                callb.onEnd();
-            }
+            callb.onEnd();
         });
         this.unListeners = [unlistenData, unlistenError, unlistenEnd];
     }

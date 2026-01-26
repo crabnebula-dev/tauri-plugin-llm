@@ -18,6 +18,7 @@ export type Query = {
     id: number;
     data: Uint8Array;
     kind: "string" | "bytes";
+    timestamp?: number;
 } | {
     type: "End";
 } | {
@@ -34,7 +35,7 @@ export interface QueryMessage {
     content: string;
 }
 export interface CallBacks {
-    onData: (id: number, data: Uint8Array) => void;
+    onData: (id: number, data: Uint8Array, timestamp?: number) => void;
     onError: (msg: string) => void;
     onEnd: () => void;
 }
