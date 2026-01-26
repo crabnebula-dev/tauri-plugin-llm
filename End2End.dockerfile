@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND="noninteractive"
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US  
 ENV LC_ALL=en_US.UTF-8
-ENV DISPLAY=:99
+ENV DISPLAY=0
 ENV CARGO_HOME="/usr/local/cargo"
 ENV RUSTUP_HOME="/usr/local/rustup"
 ENV PATH="/usr/local/cargo/bin:/opt/go/latest/:$PATH"
@@ -47,7 +47,4 @@ RUN printf "crabnebula-testing" > /etc/hostname
 
 WORKDIR /testing
 
-# Default entrypoint: run tests with virtual display
-# ENTRYPOINT ["xvfb-run", "--auto-servernum", "--server-args=-screen 0 1280x720x24"]
-# CMD ["task", "test:e2e:run"]
-CMD ["/bin/bash"]
+ENTRYPOINT ["xvfb-run","--auto-servernum","--server-args='-screen 0 1280x720x24'"]

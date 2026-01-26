@@ -2,7 +2,7 @@ version: "3"
 
 env:
   CONTAINER_RUNTIME: container
-  CONTAINER_IMAGE_TAG: tauritest
+  CONTAINER_IMAGE_TAG: container-tauri-plugin-llm
 
 tasks:
   default:
@@ -15,17 +15,24 @@ tasks:
     silent: true
     desc: Builds the container for Tauri tests
     cmds:
-      - container build -f End2End.dockerfile -t tauritest .
+      - container build -f End2End.dockerfile -t $CONTAINER_IMAGE_TAG .
 
   container:
-    silent: true  
-    desc: Spawns the current dir inside a container
-    cmds:
-      - $CONTAINER_RUNTIME run -ti -v $(pwd):/testing --cpus 8 -m 16G tauritest
-
-  run:
     silent: true
-    desc: Runs the e2e test in 'examples/tauri-app/test/specs/test.e2e.js'
-    dir: ./examples/tauri-app/test/specs
+    desc: Debuggin task to enter the container
     cmds:
-      - bash -c 'xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" pnpm test'
+      - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G --entrypoint "/usr/bin/bash -c"  $CONTAINER_IMAGE_TAG bash
+
+  tests:
+    silent: true
+    desc: Runs all end to end tests
+    cmds:
+      - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG task 'testing:run_tests'
+
+  run_tests:
+    silent: true
+    desc: (CONTAINER) Runs the e2e test in 'examples/tauri-app/test/specs/test.e2e.js'
+    dir: /testing/examples/tauri-app/test/specs
+    cmds:
+      - xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24'
+      - pnpm test

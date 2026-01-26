@@ -54,7 +54,7 @@
           "streaming": true,
           "sampling_config": "TopK"
         },
-        "verbose": false
+        "verbose": true
       }
     }
   }

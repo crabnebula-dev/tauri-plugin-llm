@@ -52,7 +52,7 @@ tasks:
   fetch_Qwen3_4B_Instruct_2507_FP8:
     deps: [model_dir]
     silent: true
-    desc: Fetches Qwen3-4B-Instruct-2507-FP8 if  not available. This directory contains the `config.json`, `tokenizer.json`
+    desc: Fetches Qwen3-4B-Instruct-2507-FP8 if not available.
     dir: models/
     cmds:
       - git clone https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507-FP8

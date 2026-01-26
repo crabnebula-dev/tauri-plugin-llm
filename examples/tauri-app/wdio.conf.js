@@ -12,6 +12,7 @@ let tauriDriver;
 let exit = false;
 
 export const config = {
+  runner: 'local',
   host: "127.0.0.1",
   port: 4444,
   specs: ["./test/specs/**/*.js"],
