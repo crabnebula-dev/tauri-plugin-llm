@@ -11,13 +11,11 @@ pub mod loaders;
 pub mod runtime;
 
 /// LLMServices manages runtime instances
-#[allow(dead_code)]
 pub struct LLMService {
     configs: Option<Vec<LLMRuntimeConfig>>,
     active: Option<LLMRuntime>,
 }
 
-#[allow(dead_code)]
 impl LLMService {
     /// Creates a new [`LLMService`] by providing a path to the directory containing individual
     /// configurations for [`LLMRuntimes`]
@@ -100,12 +98,12 @@ impl LLMService {
     }
 
     /// Initializes [`LLMService`] with already preloaded [`LLMRuntimeConfig`]s.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```no_run
-    /// 
-    /// 
+    ///
+    ///
     /// ```
     pub fn from_runtime_configs(configs: Vec<LLMRuntimeConfig>) -> Self {
         Self {
