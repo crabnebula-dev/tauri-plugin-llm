@@ -12,6 +12,7 @@ use anyhow::Result;
 use candle_core::Device;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
+use tauri::{AppHandle, Runtime};
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
 pub struct LLMRuntime {
@@ -21,6 +22,11 @@ pub struct LLMRuntime {
     worker: Option<tauri::async_runtime::JoinHandle<()>>,
     control: (Sender<Query>, Option<Receiver<Query>>),
     response: (Arc<Sender<Query>>, Receiver<Query>),
+}
+
+impl LLMRuntime {
+    /// This
+    pub fn handle_app_events<R: Runtime>(&self, _app: &AppHandle<R>) {}
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
@@ -173,6 +179,24 @@ impl LLMRuntime {
             .expect("Error sending exit message")
     }
 
+    // /// Reload the LLMRuntime to include a different LLMRuntimeModel to be executed
+    // ///
+    // /// # Example
+    // ///
+    // /// # Errors
+    // pub fn reload<P>(&mut self, confdir: P) -> Result<()>
+    // where
+    //     P: AsRef<Path>,
+    // {
+    //     self.shutdown();
+
+    //     todo!()
+    // }
+
+    // pub fn list_available_models(&self) -> Option<Vec<()>> {
+    //     None
+    // }
+
     #[cfg(feature = "mcpurify")]
     pub async fn setup_mcpurify(config: &mcpurify::Config) {
         use mcpurify::converter::Converter;
@@ -223,7 +247,7 @@ impl LLMRuntime {
 
 /// Streaming impl
 impl LLMRuntime {
-    /// Send a message to the llm backend and receive a stream of messages
+    /// Executes the currently loaded runtime and will keep the executor in a background thread.
     pub fn run_stream(&mut self) -> Result<(), Error> {
         let mut model = self.model.take().unwrap();
         let config = self.config.clone();

@@ -88,6 +88,9 @@ impl Builder {
                     // as soon as the functionality has been implemented.
                     runtime.run_stream()?;
 
+                    // TOD: this function can 
+                    // runtime.handle_app_events(app);  
+
                     PluginState {
                         runtime: Arc::new(Mutex::new(runtime)),
                     }

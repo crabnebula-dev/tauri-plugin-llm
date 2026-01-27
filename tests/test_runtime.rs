@@ -20,7 +20,7 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
             content: "Hello, World".to_string(), },
             QueryMessage {
             role: "system".to_string(),
-            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
+            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string()
         },
         ],
         tools: vec![],
@@ -62,7 +62,7 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
             content: "Hello, World".to_string(), },
             QueryMessage {
             role: "system".to_string(),
-            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(),
+            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string()
         },
         ],
         tools: vec![],
@@ -302,6 +302,43 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
                 }
             }
         }
+    }
+
+    Ok(())
+}
+
+#[ignore = "Run this test explicitly to avoid using real model weights"]
+async fn test_switching_runtimes() -> Result<(), Error> {
+    let mut runtime_configs = [
+        "tests/fixtures/test_runtime_mock.json",
+        "tests/fixtures/test_runtime_llama3.config.json",
+        "tests/fixtures/test_runtime_qwen3.config.json",
+    ]
+    .to_vec();
+
+    let mut config =
+        LLMRuntimeConfig::from_path(runtime_configs.remove(0)).expect("Loading config failed");
+
+    let mut runtime = LLMRuntime::from_config(config).expect("Loading runtime via config failed");
+
+    for rcf in runtime_configs {
+        {
+            // runtime
+            //     .reload(rcf)
+            //     .expect("Reloading runtime with different config did not work");
+            runtime.run_stream()?;
+        }
+
+        let query = Query::Prompt {
+            messages: vec![QueryMessage {
+                role: "user".to_string(),
+                content: "Hello, World".to_string(),
+            }],
+            tools: vec![],
+            config: Some(QueryConfig::default()),
+            chunk_size: Some(25),
+            timestamp: None,
+        };
     }
 
     Ok(())
