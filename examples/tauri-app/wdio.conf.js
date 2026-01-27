@@ -12,6 +12,7 @@ let tauriDriver;
 let exit = false;
 
 export const config = {
+  runner: 'local',
   host: "127.0.0.1",
   port: 4444,
   specs: ["./test/specs/**/*.js"],
@@ -43,7 +44,7 @@ export const config = {
   // ensure we are running `tauri-driver` before the session starts so that we can proxy the webdriver requests
   beforeSession: () => {
     tauriDriver = spawn(
-      path.resolve(os.homedir(), ".cargo", "bin", "tauri-driver"),
+      path.resolve("/usr/local/cargo/bin/tauri-driver"),
       [],
       { stdio: [null, process.stdout, process.stderr] }
     );

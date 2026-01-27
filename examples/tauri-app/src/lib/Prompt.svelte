@@ -24,7 +24,6 @@
       tools: [],
       chunk_size: 200,
     }).catch((e) => {
-      // TODO: sendMessage should probably not throw an empty channel error
       console.error(e);
     });
   }
