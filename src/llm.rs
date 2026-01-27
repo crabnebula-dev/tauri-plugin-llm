@@ -4,15 +4,17 @@
 //! their available formats. For now the LLM loader supports `*.safetensors`  files
 //! and text generation models.
 
+use serde_json::map;
+
 use crate::{runtime::LLMRuntime, Error, LLMRuntimeConfig};
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 pub mod loaders;
 pub mod runtime;
 
 /// LLMServices manages runtime instances
 pub struct LLMService {
-    configs: Option<Vec<LLMRuntimeConfig>>,
+    configs: Option<HashMap<String, LLMRuntimeConfig>>,
     active: Option<LLMRuntime>,
 }
 
@@ -38,7 +40,7 @@ impl LLMService {
         P: AsRef<Path>,
     {
         let filepaths = std::fs::read_dir(path)?;
-        let mut configs = vec![];
+        let mut configs = HashMap::new();
 
         for entry in filepaths {
             if let Err(error) = entry {
@@ -73,7 +75,7 @@ impl LLMService {
             if filename.ends_with(".json") {
                 match LLMRuntimeConfig::from_path(entry.path()) {
                     Ok(llm_config) => {
-                        configs.push(llm_config);
+                        configs.insert(llm_config.model_config.name.clone(), llm_config);
                     }
                     Err(error) => {
                         tracing::error!(
@@ -99,6 +101,9 @@ impl LLMService {
 
     /// Initializes [`LLMService`] with already preloaded [`LLMRuntimeConfig`]s.
     ///
+    /// This initializer function takes a [`Vec`] of [`LLMRuntimeConfig`] and maps the model name
+    /// to
+    ///
     /// # Example
     ///
     /// ```no_run
@@ -106,15 +111,23 @@ impl LLMService {
     ///
     /// ```
     pub fn from_runtime_configs(configs: Vec<LLMRuntimeConfig>) -> Self {
+        let mappings = configs
+            .into_iter()
+            .map(|c| (c.model_config.name.clone(), c))
+            .collect();
+
         Self {
-            configs: Some(configs),
+            configs: Some(mappings),
             active: None,
         }
     }
+}
 
-
-    
-    // pub fn from_config_raw<R>(config : R) -> Result<Self, Error> {}
+impl LLMService {
+    /// Returns the currently active [`LLMRuntime`], or `None`
+    pub fn runtime(&mut self) -> Option<&LLMRuntime> {
+        self.active.as_ref()
+    }
 
 
 }
