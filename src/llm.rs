@@ -98,4 +98,19 @@ impl LLMService {
             active: None,
         })
     }
+
+    /// Initializes [`LLMService`] with already preloaded [`LLMRuntimeConfig`]s.
+    /// 
+    /// # Example
+    /// 
+    /// ```no_run
+    /// 
+    /// 
+    /// ```
+    pub fn from_runtime_configs(configs: Vec<LLMRuntimeConfig>) -> Self {
+        Self {
+            configs: Some(configs),
+            active: None,
+        }
+    }
 }

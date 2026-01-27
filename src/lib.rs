@@ -20,6 +20,7 @@ use desktop::TauriPluginLlm;
 pub use error::{Error, Result};
 pub use llm::loaders;
 pub use llm::runtime;
+pub use llm::LLMService;
 #[cfg(mobile)]
 use mobile::TauriPluginLlm;
 pub use models::*;
@@ -88,8 +89,8 @@ impl Builder {
                     // as soon as the functionality has been implemented.
                     runtime.run_stream()?;
 
-                    // TOD: this function can 
-                    // runtime.handle_app_events(app);  
+                    // TOD: this function can
+                    // runtime.handle_app_events(app);
 
                     PluginState {
                         runtime: Arc::new(Mutex::new(runtime)),
