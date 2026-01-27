@@ -111,4 +111,10 @@ impl LLMService {
             active: None,
         }
     }
+
+
+    
+    // pub fn from_config_raw<R>(config : R) -> Result<Self, Error> {}
+
+
 }

@@ -225,7 +225,7 @@ pub struct TokenizerConfig {
 }
 
 impl LLMRuntimeConfig {
-    ///Loads a config from path
+    /// Loads a config from path
     pub fn from_path<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
@@ -233,6 +233,14 @@ impl LLMRuntimeConfig {
         let mut file =
             File::open(path.as_ref()).map_err(|e| Error::ExecutionError(e.to_string()))?;
         serde_json::from_reader(&mut file).map_err(|e| Error::ExecutionError(e.to_string()))
+    }
+
+    /// Loads [`Self`] from a raw String.
+    pub fn from_raw<S>(content: S) -> Result<Self, Error>
+    where
+        S: ToString,
+    {
+        Ok(serde_json::from_str(&content.to_string())?)
     }
 }
 
