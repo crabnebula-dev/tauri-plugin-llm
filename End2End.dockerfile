@@ -12,6 +12,9 @@ ENV CARGO_HOME="/usr/local/cargo"
 ENV RUSTUP_HOME="/usr/local/rustup"
 ENV PATH="/usr/local/cargo/bin:/opt/go/latest/:$PATH"
 
+# Later versions of the tauri-LLM-plugin will not depend on Go.
+ENV GO_VERSION=1.25.5.linux
+
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y build-essential curl git pkg-config ca-certificates
 
@@ -31,10 +34,13 @@ RUN apt-get install -y --no-install-recommends \
     clang
 
 # -- install go
-RUN curl -fLOsS https://go.dev/dl/go1.25.5.linux-arm64.tar.gz
-RUN mkdir -p /opt/go/1.25.5.linux-arm64 && mkdir -p /opt/go/latest && tar -C /opt/go/1.25.5.linux-arm64 -xzf go1.25.5.linux-arm64.tar.gz
-RUN rm go1.25.5.linux-arm64.tar.gz 
-RUN ln -s /opt/go/1.25.5.linux-arm64/go/bin/go /opt/go/latest/go
+
+RUN ARCH=$(dpkg --print-architecture) && curl -fLOsS "https://go.dev/dl/go${GO_VERSION}-${ARCH}.tar.gz" && \
+    mkdir -p /opt/go/${GO_VERSION}-${ARCH} && \
+    mkdir -p /opt/go/latest && \
+    tar -C /opt/go/${GO_VERSION}-${ARCH} -xzf go${GO_VERSION}-${ARCH}.tar.gz  && \
+    rm go${GO_VERSION}-${ARCH}.tar.gz && \
+    ln -s /opt/go/${GO_VERSION}-${ARCH}/go/bin/go /opt/go/latest/go
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN cargo install tauri-driver --locked
