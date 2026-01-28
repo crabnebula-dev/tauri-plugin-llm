@@ -44,11 +44,10 @@ impl LLMRuntimeModel for Mock {
         {
             let mut window_index = 0;
 
-            let mock_message_bytes = match &messages.as_slice() {
-                &[] => "No messages for the Mock runtime have been provided.".as_bytes(),
-                &[first] => first.content.as_bytes(),
-                &[_, ..] => {
-                    // find the role user
+            let mock_message_bytes = match messages.as_slice() {
+                [] => "No messages for the Mock runtime have been provided.".as_bytes(),
+                [first] => first.content.as_bytes(),
+                [_, ..] => {
                     if let Some(QueryMessage { content, .. }) = messages
                         .iter()
                         .find(|m| m.role.eq_ignore_ascii_case("user"))
@@ -66,8 +65,6 @@ impl LLMRuntimeModel for Mock {
             tracing::debug!("Simulate Inference");
 
             for i in 0..mock_message_bytes.len() {
-                // do inference here ...
-
                 // send a chunk of data every chunk size
                 if i % chunk_size == 0 {
                     tracing::debug!("Sending Chunk");
