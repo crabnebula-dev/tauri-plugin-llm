@@ -5,6 +5,8 @@
   let promptRes = $state("");
 
   let llm = new LLMStreamListener();
+
+
   llm.setup({
     onData: (_id, data) => {
       promptRes = [...data].map((byte) => String.fromCharCode(byte)).join('') + 
@@ -19,7 +21,7 @@
       type: "Prompt",
       messages: [
         { role: "system", content: "You are a helpful assistant. You repeat the incoming message in your own words. " },
-        { role: "user", content: promptMsg || "Hello World!" },
+        { role: "user", content: promptMsg || "Hello World! Echo this message" },
       ],
       tools: [],
       chunk_size: 200,

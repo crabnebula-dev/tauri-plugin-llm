@@ -1,4 +1,4 @@
-use crate::{runtime::LLMRuntimeModel, Query};
+use crate::{runtime::LLMRuntimeModel, Query, QueryMessage};
 use std::sync::Arc;
 
 pub struct Mock;
@@ -46,7 +46,18 @@ impl LLMRuntimeModel for Mock {
 
             let mock_message_bytes = match &messages.as_slice() {
                 &[] => "No messages for the Mock runtime have been provided.".as_bytes(),
-                &[first] | &[first, ..] => first.content.as_bytes(),
+                &[first] => first.content.as_bytes(),
+                &[_, ..] => {
+                    // find the role user
+                    if let Some(QueryMessage { content, .. }) = messages
+                        .iter()
+                        .find(|m| m.role.eq_ignore_ascii_case("user"))
+                    {
+                        content.as_bytes()
+                    } else {
+                        return Err(crate::Error::UnexpectedMessage);
+                    }
+                }
             };
 
             let chunk_size = chunk_size.unwrap_or(10);
