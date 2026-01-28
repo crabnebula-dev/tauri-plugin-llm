@@ -1,7 +1,33 @@
-use crate::Result;
-use crate::{models::*, PluginState};
+use crate::{models::*, Error, PluginState};
+use crate::{LLMService, Result};
 use tauri::{command, AppHandle, Runtime};
 use tauri::{Emitter, State};
+
+#[command]
+pub(crate) async fn switch_model<R>(state: State<'_, PluginState>, id: String) -> Result<()>
+where
+    R: Runtime,
+{
+    // TODO:
+    // 1. terminate currently executed runtime
+    // 2. load new runtime
+    // 3. execute the runtime
+    // 4. replace the runtime inside the app handle
+
+    let mut service = state.runtime.lock().unwrap();
+
+    // *runtime = service.switch(id);
+
+    todo!()
+}
+
+#[command]
+pub(crate) async fn list_available_models<R>(state: State<'_, PluginState>) -> Result<Vec<()>>
+where
+    R: Runtime,
+{
+    todo!()
+}
 
 #[command]
 pub(crate) async fn stream<R>(
@@ -12,7 +38,8 @@ pub(crate) async fn stream<R>(
 where
     R: Runtime,
 {
-    let runtime = state.runtime.lock().unwrap();
+    let mut service = state.runtime.lock().unwrap();
+    let runtime = service.runtime().ok_or(Error::MissingActiveRuntime)?;
 
     tracing::debug!("Send query to runtime: {:?}", message);
     runtime.send_stream(message)?;
@@ -34,7 +61,7 @@ where
                 Query::End => {
                     tracing::debug!("Reached end of stream");
                     let event = query.try_render_as_event_name()?;
-                    app.emit("query-stream-end", "")
+                    app.emit(&event, "")
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
                     break;

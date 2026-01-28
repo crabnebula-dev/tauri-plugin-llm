@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, usize, vec};
 
 use tauri_plugin_llm::{
-    runtime::LLMRuntime, Error, LLMRuntimeConfig, Query, QueryConfig, QueryMessage,
+    runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryConfig, QueryMessage,
 };
 
 #[tokio::test]
@@ -307,6 +307,7 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
     Ok(())
 }
 
+#[tokio::test]
 #[ignore = "Run this test explicitly to avoid using real model weights"]
 async fn test_switching_runtimes() -> Result<(), Error> {
     let mut runtime_configs = [
@@ -315,6 +316,10 @@ async fn test_switching_runtimes() -> Result<(), Error> {
         "tests/fixtures/test_runtime_qwen3.config.json",
     ]
     .to_vec();
+
+    let mut service = LLMService::from_path_multiple(&runtime_configs)?;
+
+    
 
     let mut config =
         LLMRuntimeConfig::from_path(runtime_configs.remove(0)).expect("Loading config failed");

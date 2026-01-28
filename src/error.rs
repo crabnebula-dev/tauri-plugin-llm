@@ -50,6 +50,9 @@ pub enum Error {
 
     #[error("Run into timeout. ({0})")]
     TimeoutError(String),
+
+    #[error("No active runtime present")]
+    MissingActiveRuntime,
 }
 
 impl Serialize for Error {

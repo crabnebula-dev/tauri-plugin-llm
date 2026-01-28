@@ -56,7 +56,7 @@ pub struct Builder {
 }
 
 pub struct PluginState {
-    runtime: Arc<Mutex<LLMRuntime>>,
+    runtime: Arc<Mutex<LLMService>>,
 }
 
 impl Builder {
@@ -82,18 +82,19 @@ impl Builder {
 
                 // manage llm runtime ?
                 app.manage({
-                    // initialize runtime by config
-                    let mut runtime = LLMRuntime::from_config(config.llmconfig.clone())?;
+                    let config = config.clone();
 
-                    // this is the new version and must be enabled,
-                    // as soon as the functionality has been implemented.
+                    let mut service =
+                        LLMService::from_runtime_configs(vec![config.llmconfig.clone()]);
+
+                    // initialize runtime by config
+                    let runtime = service.switch(config.llmconfig.model_config.name)?;
+
+                    // execute runtime
                     runtime.run_stream()?;
 
-                    // TOD: this function can
-                    // runtime.handle_app_events(app);
-
                     PluginState {
-                        runtime: Arc::new(Mutex::new(runtime)),
+                        runtime: Arc::new(Mutex::new(service)),
                     }
                 });
 

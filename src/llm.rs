@@ -4,8 +4,6 @@
 //! their available formats. For now the LLM loader supports `*.safetensors`  files
 //! and text generation models.
 
-use serde_json::map;
-
 use crate::{runtime::LLMRuntime, Error, LLMRuntimeConfig};
 use std::{collections::HashMap, path::Path};
 
@@ -35,11 +33,11 @@ impl LLMService {
     /// Following errors can occur:
     /// - configuration file cannot be found
     /// - configuration is malformed / contains invalid values
-    pub fn from_path<P>(path: P) -> Result<Self, Error>
+    pub fn from_dir<P>(dir: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
-        let filepaths = std::fs::read_dir(path)?;
+        let filepaths = std::fs::read_dir(dir)?;
         let mut configs = HashMap::new();
 
         for entry in filepaths {
@@ -99,6 +97,31 @@ impl LLMService {
         })
     }
 
+    /// Loads a single [`LLMRuntimeConfig`] from path
+    pub fn from_path<P>(path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let config = LLMRuntimeConfig::from_path(path)?;
+
+        Ok(Self {
+            configs: Some(
+                [config]
+                    .into_iter()
+                    .map(|c| (c.model_config.name.clone(), c))
+                    .collect(),
+            ),
+            active: None,
+        })
+    }
+
+    pub fn from_path_multiple<P>(path: &[P]) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        todo!()
+    }
+
     /// Initializes [`LLMService`] with already preloaded [`LLMRuntimeConfig`]s.
     ///
     /// This initializer function takes a [`Vec`] of [`LLMRuntimeConfig`] and maps the model name
@@ -125,9 +148,11 @@ impl LLMService {
 
 impl LLMService {
     /// Returns the currently active [`LLMRuntime`], or `None`
-    pub fn runtime(&mut self) -> Option<&LLMRuntime> {
-        self.active.as_ref()
+    pub fn runtime(&mut self) -> Option<&mut LLMRuntime> {
+        self.active.as_mut()
     }
 
-
+    pub fn switch(&mut self, id: String) -> Result<&mut LLMRuntime, Error> {
+        todo!()
+    }
 }
