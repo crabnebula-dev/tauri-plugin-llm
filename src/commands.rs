@@ -4,6 +4,16 @@ use tauri::{command, AppHandle, Runtime};
 use tauri::{Emitter, State};
 
 #[command]
+pub(crate) async fn add_configuration(state: State<'_, PluginState>, config: String) -> Result<()> {
+    let mut service = state.runtime.lock().unwrap();
+    tracing::debug!("Adding config to runtime service: {}", config);
+
+    service.add_config(config)?;
+
+    Ok(())
+}
+
+#[command]
 pub(crate) async fn switch_model(state: State<'_, PluginState>, id: String) -> Result<()> {
     let mut service = state.runtime.lock().unwrap();
 

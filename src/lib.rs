@@ -75,7 +75,8 @@ impl Builder {
             .invoke_handler(tauri::generate_handler![
                 commands::stream,
                 commands::switch_model,
-                commands::list_available_models
+                commands::list_available_models,
+                commands::add_configuration
             ])
             .setup(|app, api| {
                 let config = self

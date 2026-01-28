@@ -173,36 +173,73 @@ export class LLMStreamListener {
     await invoke("plugin:llm|stream", { message })
   }
 
-}
+  /**
+   * Switches the active LLM runtime to the specified model.
+   *
+   * @param id - The model identifier/name to switch to
+   * @returns A promise that resolves when the model has been switched
+   * @throws Error if the model ID is not found or switching fails
+   *
+   * @example
+   * ```typescript
+   * await switchModel("Qwen3-4B-GGUF");
+   * ```
+   */
+  async switchModel(id: string): Promise<void> {
+    await invoke("plugin:llm|switch_model", { id });
+  }
 
-/**
- * Switches the active LLM runtime to the specified model.
- *
- * @param id - The model identifier/name to switch to
- * @returns A promise that resolves when the model has been switched
- * @throws Error if the model ID is not found or switching fails
- *
- * @example
- * ```typescript
- * await switchModel("Qwen3-4B-GGUF");
- * ```
- */
-export async function switchModel(id: string): Promise<void> {
-  await invoke("plugin:llm|switch_model", { id });
-}
+  /**
+   * Returns a list of available model names that can be activated.
+   *
+   * @returns A promise that resolves to an array of model name strings
+   *
+   * @example
+   * ```typescript
+   * const models = await listAvailableModels();
+   * console.log("Available models:", models);
+   * // Output: ["Mock", "Llama-3.2-3B-Instruct", "Qwen3-4B-GGUF"]
+   * ```
+   */
+  async listAvailableModels(): Promise<string[]> {
+    return await invoke("plugin:llm|list_available_models");
+  }
 
-/**
- * Returns a list of available model names that can be activated.
- *
- * @returns A promise that resolves to an array of model name strings
- *
- * @example
- * ```typescript
- * const models = await listAvailableModels();
- * console.log("Available models:", models);
- * // Output: ["Mock", "Llama-3.2-3B-Instruct", "Qwen3-4B-GGUF"]
- * ```
- */
-export async function listAvailableModels(): Promise<string[]> {
-  return await invoke("plugin:llm|list_available_models");
+  /**
+   * Adds a new LLMRuntimeConfig to the runtime service at runtime.
+   *
+   * This method allows you to dynamically add new model configurations without restarting
+   * the application. The configuration should be a JSON string representing a valid
+   * LLMRuntimeConfig.
+   *
+   * @param config - The LLM runtime configuration as a JSON string
+   * @returns A promise that resolves when the configuration has been added
+   * @throws Error if the configuration is invalid or cannot be parsed
+   *
+   * @example
+   * ```typescript
+   * const listener = new LLMStreamListener();
+   *
+   * const newConfig = {
+   *   model_config: {
+   *     name: "Llama-3.2-3B-Custom",
+   *     sampling_config: "TopKThenTopP",
+   *     seed: { type: "Random" },
+   *     penalty: 1.1
+   *   },
+   *   tokenizer_file: "/path/to/tokenizer.json",
+   *   model_file: "/path/to/model.gguf"
+   * };
+   *
+   * await listener.addConfiguration(JSON.stringify(newConfig));
+   * console.log("Configuration added successfully");
+   *
+   * // Now you can switch to the newly added model
+   * await listener.switchModel("Llama-3.2-3B-Custom");
+   * ```
+   */
+  async addConfiguration(config: string): Promise<void> {
+    await invoke("plugin:llm|add_configuration", { config });
+  }
+
 }
