@@ -146,10 +146,10 @@ impl LLMService {
     ///
     ///
     /// ```
-    pub fn from_runtime_configs(configs: Vec<LLMRuntimeConfig>) -> Self {
+    pub fn from_runtime_configs(configs: &Vec<LLMRuntimeConfig>) -> Self {
         let mappings = configs
             .into_iter()
-            .map(|c| (c.model_config.name.clone(), c))
+            .map(|c| (c.model_config.name.clone(), c.clone()))
             .collect();
 
         Self {
@@ -165,6 +165,22 @@ impl LLMService {
         self.active.as_mut()
     }
 
+    /// Returns a list of available model names
+    pub fn list_models(&self) -> Vec<String> {
+        self.configs
+            .as_ref()
+            .map(|configs| configs.keys().cloned().collect())
+            .unwrap_or_default()
+    }
+
+    /// Shuts down the currently active runtime if one exists
+    fn shutdown_active(&mut self) {
+        if let Some(runtime) = self.active.take() {
+            tracing::debug!("Shutting down active runtime");
+            runtime.shutdown();
+        }
+    }
+
     /// Activates the target [`LLMRuntime`]
     ///
     /// Calling this function does a few things interally:
@@ -175,6 +191,31 @@ impl LLMService {
     /// - Return a mutable reference to the [`LLMRuntime`]
     /// - Set the new [`Runtime`] active
     pub fn activate(&mut self, id: String) -> Result<&mut LLMRuntime, Error> {
-        todo!()
+        // Shutdown active runtime if exists
+        self.shutdown_active();
+
+        // Look up config by id
+        let config = self
+            .configs
+            .as_ref()
+            .and_then(|configs| configs.get(&id))
+            .ok_or_else(|| {
+                Error::MissingConfigLLM(format!("No configuration found for model: {}", id))
+            })?
+            .clone();
+
+        tracing::debug!("Activating runtime for model: {}", id);
+
+        // Create new runtime from config
+        let mut runtime = LLMRuntime::from_config(config)?;
+
+        // Start the worker thread and load model weights
+        runtime.run_stream()?;
+
+        // Store in active field
+        self.active = Some(runtime);
+
+        // Return mutable reference to active runtime
+        self.active.as_mut().ok_or(Error::MissingActiveRuntime)
     }
 }

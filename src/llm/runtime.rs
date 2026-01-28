@@ -66,11 +66,6 @@ impl Drop for LLMRuntime {
 impl LLMRuntime {
     /// Creates a new LLM
     pub fn from_config(config: LLMRuntimeConfig) -> Result<Self, Error> {
-        if config.verbose {
-            let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
-            Registry::default().with(verbose).init();
-        }
-
         tracing::debug!("Got LLM Config: {:?}", config);
 
         let device = Self::load_default_device();

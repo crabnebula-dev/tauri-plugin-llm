@@ -21,7 +21,7 @@ async fn test_switching_runtimes() -> Result<(), Error> {
         configs.push(config);
     }
 
-    let service = LLMService::from_runtime_configs(configs.clone());
+    let service = LLMService::from_runtime_configs(&configs);
 
     let mut runtime = LLMRuntime::from_config(configs.first().unwrap().clone())
         .expect("Loading runtime via config failed");

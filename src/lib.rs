@@ -14,7 +14,6 @@ pub use templates::*;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::llm::runtime::LLMRuntime;
 #[cfg(desktop)]
 use desktop::TauriPluginLlm;
 pub use error::{Error, Result};
@@ -73,7 +72,11 @@ impl Builder {
 
     pub fn build<R: Runtime>(self) -> TauriPlugin<R, LLMPluginConfig> {
         PluginBuilder::<R, LLMPluginConfig>::new("llm")
-            .invoke_handler(tauri::generate_handler![commands::stream])
+            .invoke_handler(tauri::generate_handler![
+                commands::stream,
+                commands::switch_model,
+                commands::list_available_models
+            ])
             .setup(|app, api| {
                 let config = self
                     .plugin_config
@@ -85,13 +88,11 @@ impl Builder {
                     let config = config.clone();
 
                     let mut service =
-                        LLMService::from_runtime_configs(vec![config.llmconfig.clone()]);
+                        LLMService::from_runtime_configs(&vec![config.llmconfig.clone()]);
 
-                    // initialize runtime by config
-                    let runtime = service.activate(config.llmconfig.model_config.name)?;
-
-                    // execute runtime
-                    runtime.run_stream()?;
+                    // initialize and activate runtime by config
+                    // TODO: We may have more than one model config available
+                    service.activate(config.llmconfig.model_config.name)?;
 
                     PluginState {
                         runtime: Arc::new(Mutex::new(service)),

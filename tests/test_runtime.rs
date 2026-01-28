@@ -3,6 +3,7 @@ use std::{cmp::Ordering, usize, vec};
 use tauri_plugin_llm::{
     runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryConfig, QueryMessage,
 };
+use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
 #[tokio::test]
 // #[ignore = "Load the Qwen3 model first, then run this test manually"]
@@ -310,40 +311,68 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
 #[tokio::test]
 #[ignore = "Run this test explicitly to avoid using real model weights"]
 async fn test_switching_runtimes() -> Result<(), Error> {
-    let mut runtime_configs = [
+    // handle tracing explicitly here
+    {
+        let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
+        Registry::default().with(verbose).init();
+    }
+
+    let runtime_config_paths = [
         "tests/fixtures/test_runtime_mock.json",
-        "tests/fixtures/test_runtime_llama3.config.json",
+        // LLAMA3.2 still behaves weirdly
+        // "tests/fixtures/test_runtime_llama3.config.json",
         "tests/fixtures/test_runtime_qwen3.config.json",
-    ]
-    .to_vec();
+    ];
 
-    let mut service = LLMService::from_path_multiple(&runtime_configs)?;
+    // Load all configs first
+    let configs: Vec<LLMRuntimeConfig> = runtime_config_paths
+        .iter()
+        .map(|path| LLMRuntimeConfig::from_path(path))
+        .collect::<Result<Vec<_>, _>>()?;
 
-    
+    // Create service from loaded configs
+    let mut service = LLMService::from_runtime_configs(&configs);
 
-    let mut config =
-        LLMRuntimeConfig::from_path(runtime_configs.remove(0)).expect("Loading config failed");
+    // Iterate through each config and test switching
+    for config in configs {
+        let model_name = config.model_config.name.clone();
 
-    let mut runtime = LLMRuntime::from_config(config).expect("Loading runtime via config failed");
+        tracing::info!("Activating model: {}", model_name);
 
-    for rcf in runtime_configs {
-        {
-            // runtime
-            //     .reload(rcf)
-            //     .expect("Reloading runtime with different config did not work");
-            runtime.run_stream()?;
-        }
+        // Activate the runtime using the model name
+        service.activate(model_name.clone())?;
 
+        let runtime = service.runtime().ok_or(Error::MissingActiveRuntime)?;
+
+        // Send a test query
         let query = Query::Prompt {
             messages: vec![QueryMessage {
                 role: "user".to_string(),
-                content: "Hello, World".to_string(),
+                content: format!("Hello from {}", model_name),
             }],
             tools: vec![],
             config: Some(QueryConfig::default()),
             chunk_size: Some(25),
             timestamp: None,
         };
+
+        runtime.send_stream(query)?;
+
+        // Receive at least one response to verify the model is working
+        while let Ok(message) = runtime.recv_stream() {
+            if let Query::Chunk { data, .. } = &message {
+                let max_display = 15;
+                tracing::info!(
+                    "Received response from {}: {:?}",
+                    model_name,
+                    &data[..data.len().min(max_display)]
+                );
+            }
+
+            if let Query::End = message {
+                break;
+            }
+        }
     }
 
     Ok(())

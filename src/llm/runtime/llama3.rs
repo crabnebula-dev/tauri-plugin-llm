@@ -350,6 +350,8 @@ impl LLMRuntimeModel for LLama3Model {
                     return Err(Error::StreamError(e.to_string()));
                 }
             }
+
+            return Ok(());
         }
 
         Err(Error::ExecutionError(
