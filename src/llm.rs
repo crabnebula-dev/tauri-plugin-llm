@@ -181,6 +181,25 @@ impl LLMService {
         }
     }
 
+    /// Add a [`LLMRuntimeConfig`] to the service at runtime.
+    pub fn add_config(&mut self, config: String) -> Result<(), Error> {
+        let c = LLMRuntimeConfig::from_raw(config)?;
+
+        match self.configs {
+            Some(ref mut inner) => {
+                inner.insert(c.model_config.name.clone(), c);
+            }
+            None => {
+                let mut configs = HashMap::new();
+                configs.insert(c.model_config.name.clone(), c);
+
+                self.configs = Some(configs)
+            }
+        }
+
+        Ok(())
+    }
+
     /// Activates the target [`LLMRuntime`]
     ///
     /// Calling this function does a few things interally:
