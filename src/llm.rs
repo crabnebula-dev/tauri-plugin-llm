@@ -115,11 +115,24 @@ impl LLMService {
         })
     }
 
-    pub fn from_path_multiple<P>(path: &[P]) -> Result<Self, Error>
+    /// Loads multiple [`LLMRuntimeConfig`] from paths.
+    pub fn from_path_multiple<P>(paths: &[P]) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
-        todo!()
+        let mut configs = HashMap::default();
+
+        for p in paths {
+            let config = LLMRuntimeConfig::from_path(p)?;
+            let name = config.model_config.name.clone();
+
+            configs.insert(name, config);
+        }
+
+        Ok(Self {
+            configs: Some(configs),
+            active: None,
+        })
     }
 
     /// Initializes [`LLMService`] with already preloaded [`LLMRuntimeConfig`]s.
@@ -152,7 +165,16 @@ impl LLMService {
         self.active.as_mut()
     }
 
-    pub fn switch(&mut self, id: String) -> Result<&mut LLMRuntime, Error> {
+    /// Activates the target [`LLMRuntime`]
+    ///
+    /// Calling this function does a few things interally:
+    ///
+    /// - Checking, if there is an active [`LLMRuntime`] and shutting it down
+    /// - Loading the desired [`LLMRuntimeConfig`] by `id`
+    /// - Initialize the [`LLMRuntime`]
+    /// - Return a mutable reference to the [`LLMRuntime`]
+    /// - Set the new [`Runtime`] active
+    pub fn activate(&mut self, id: String) -> Result<&mut LLMRuntime, Error> {
         todo!()
     }
 }

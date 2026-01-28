@@ -88,7 +88,7 @@ impl Builder {
                         LLMService::from_runtime_configs(vec![config.llmconfig.clone()]);
 
                     // initialize runtime by config
-                    let runtime = service.switch(config.llmconfig.model_config.name)?;
+                    let runtime = service.activate(config.llmconfig.model_config.name)?;
 
                     // execute runtime
                     runtime.run_stream()?;
