@@ -1,5 +1,5 @@
-use crate::{models::*, Error, PluginState};
 use crate::Result;
+use crate::{models::*, Error, PluginState};
 use tauri::{command, AppHandle, Runtime};
 use tauri::{Emitter, State};
 

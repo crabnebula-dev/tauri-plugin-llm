@@ -263,6 +263,8 @@ impl LLMRuntimeModel for Qwen3Model {
 
             let mut message_id = 0;
 
+            let mut window_index = 0;
+
             // Start sampling
             for index in 0..generate_num_samples {
                 let input = Tensor::new(&[next_token], device)
@@ -283,11 +285,13 @@ impl LLMRuntimeModel for Qwen3Model {
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
                 all_tokens.push(next_token);
 
-                if is_chunk_available(all_tokens.len(), chunk_size) {
-                    let data = match tokenizer.decode(&all_tokens, true) {
+                if is_chunk_available(all_tokens[window_index..].len(), chunk_size) {
+                    let data = match tokenizer.decode(&all_tokens[window_index..], true) {
                         Ok(str) => str.as_bytes().to_vec(),
                         Err(e) => return Err(Error::ExecutionError(e.to_string())),
                     };
+
+                    window_index += chunk_size;
                     message_id += 1;
                     let id = message_id;
 
@@ -308,7 +312,7 @@ impl LLMRuntimeModel for Qwen3Model {
             }
 
             {
-                let data = match tokenizer.decode(&all_tokens, true) {
+                let data = match tokenizer.decode(&all_tokens[window_index..], true) {
                     Ok(str) => str.as_bytes().to_vec(),
                     Err(e) => return Err(Error::ExecutionError(e.to_string())),
                 };

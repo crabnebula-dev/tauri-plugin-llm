@@ -88,7 +88,7 @@ impl Builder {
                     let config = config.clone();
 
                     let mut service =
-                        LLMService::from_runtime_configs(&vec![config.llmconfig.clone()]);
+                        LLMService::from_runtime_configs(std::slice::from_ref(&config.llmconfig));
 
                     // initialize and activate runtime by config
                     // TODO: We may have more than one model config available

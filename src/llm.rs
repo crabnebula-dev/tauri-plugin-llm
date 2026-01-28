@@ -146,9 +146,9 @@ impl LLMService {
     ///
     ///
     /// ```
-    pub fn from_runtime_configs(configs: &Vec<LLMRuntimeConfig>) -> Self {
+    pub fn from_runtime_configs(configs: &[LLMRuntimeConfig]) -> Self {
         let mappings = configs
-            .into_iter()
+            .iter()
             .map(|c| (c.model_config.name.clone(), c.clone()))
             .collect();
 

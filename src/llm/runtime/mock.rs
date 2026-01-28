@@ -34,52 +34,43 @@ impl LLMRuntimeModel for Mock {
     ) -> Result<(), crate::Error> {
         tracing::debug!("Got `Query`: {q:?}");
 
-        // debug query types
-        match q {
-            Query::Prompt { .. } => {
-                tracing::debug!("Query type is: ({q:?})")
-            }
-            Query::Response { .. } => tracing::debug!("Query type is: ({q:?})"),
-            Query::Chunk { .. } => tracing::debug!("Query type is: ({q:?})"),
-            Query::End => tracing::debug!("Query type is: ({q:?})"),
-            Query::Exit => tracing::debug!("Query type is: ({q:?})"),
-            Query::Status { .. } => tracing::debug!("Query type is: ({q:?})"),
-        }
-
         if let Query::Prompt {
             messages,
             tools: _,
-            config,
+            config: _,
             chunk_size,
             timestamp,
         } = q
         {
-            let samples = if let Some(config) = config {
-                config.generate_num_samples
-            } else {
-                20000
+            let mut window_index = 0;
+
+            let mock_message_bytes = match &messages.as_slice() {
+                &[] => "No messages for the Mock runtime have been provided.".as_bytes(),
+                &[first] | &[first, ..] => first.content.as_bytes(),
             };
-            let chunk_size = chunk_size.unwrap_or(100);
+
+            let chunk_size = chunk_size.unwrap_or(10);
             let mut id = 0usize;
 
             tracing::debug!("Simulate Inference");
 
-            for i in 0..samples {
+            for i in 0..mock_message_bytes.len() {
                 // do inference here ...
 
                 // send a chunk of data every chunk size
                 if i % chunk_size == 0 {
                     tracing::debug!("Sending Chunk");
-
+                    let end = mock_message_bytes.len().min(window_index + chunk_size);
                     response_tx
                         .send(crate::Query::Chunk {
                             id,
-                            data: messages.first().unwrap().content.as_bytes().to_vec(),
+                            data: mock_message_bytes[window_index..end].to_vec(),
                             kind: crate::QueryChunkType::String,
                             timestamp,
                         })
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
+                    window_index += chunk_size;
                     id = id.saturating_add(1);
                 }
             }

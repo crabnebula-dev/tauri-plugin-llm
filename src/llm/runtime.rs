@@ -13,7 +13,6 @@ use candle_core::Device;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use tauri::{AppHandle, Runtime};
-use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
 pub struct LLMRuntime {
     model: Option<Box<dyn LLMRuntimeModel>>,
