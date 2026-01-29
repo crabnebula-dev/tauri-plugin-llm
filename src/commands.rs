@@ -3,6 +3,13 @@ use crate::{models::*, Error, PluginState};
 use tauri::{command, AppHandle, Runtime};
 use tauri::{Emitter, State};
 
+/// TODO: remove after confirmation
+#[command]
+pub(crate) async fn health_check() -> Result<String> {
+    tracing::debug!("health_check command called");
+    Ok("Plugin is working!".to_string())
+}
+
 #[command]
 pub(crate) async fn add_configuration(state: State<'_, PluginState>, config: String) -> Result<()> {
     let mut service = state.runtime.lock().unwrap();
@@ -26,9 +33,20 @@ pub(crate) async fn switch_model(state: State<'_, PluginState>, id: String) -> R
 
 #[command]
 pub(crate) async fn list_available_models(state: State<'_, PluginState>) -> Result<Vec<String>> {
-    let service = state.runtime.lock().unwrap();
+    tracing::debug!("list_available_models command called");
 
-    Ok(service.list_models())
+    let service = match state.runtime.lock() {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("Failed to lock runtime mutex: {}", e);
+            return Err(Error::StreamError(format!("Failed to lock runtime: {}", e)));
+        }
+    };
+
+    let models = service.list_models();
+    tracing::debug!("Available models: {:?}", models);
+
+    Ok(models)
 }
 
 #[command]

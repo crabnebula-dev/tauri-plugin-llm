@@ -73,6 +73,7 @@ impl Builder {
     pub fn build<R: Runtime>(self) -> TauriPlugin<R, LLMPluginConfig> {
         PluginBuilder::<R, LLMPluginConfig>::new("llm")
             .invoke_handler(tauri::generate_handler![
+                commands::health_check,
                 commands::stream,
                 commands::switch_model,
                 commands::list_available_models,

@@ -36,4 +36,5 @@ tasks:
     env:
       DISPLAY: 0
     cmds:
-      - xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' pnpm test
+      - xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' bash -c 'pnpm build; pnpm test'
+  
