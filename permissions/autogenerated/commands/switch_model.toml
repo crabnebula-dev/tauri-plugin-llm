@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-switch-model"
+description = "Enables the switch_model command without any pre-configured scope."
+commands.allow = ["switch_model"]
+
+[[permission]]
+identifier = "deny-switch-model"
+description = "Denies the switch_model command without any pre-configured scope."
+commands.deny = ["switch_model"]

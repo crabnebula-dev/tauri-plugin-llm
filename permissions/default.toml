@@ -1,3 +1,9 @@
 [default]
 description = "Default permissions for the plugin"
-permissions = ["allow-stream"]
+permissions = [
+  "allow-stream",
+  "allow-switch-model",
+  "allow-list-available-models",
+  "allow-add-configuration",
+  "allow-health-check"
+]

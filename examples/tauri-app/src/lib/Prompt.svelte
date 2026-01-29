@@ -3,24 +3,13 @@
 
   let promptMsg = $state("");
   let promptRes = $state("");
-  let availableModels = $state([]);
-  let currentModel = $state("");
-  let modelsLoading = $state(true);
+  let modelsList = $state("");
+  let switchModelResult = $state("");
 
   let llm = new LLMStreamListener();
 
-  // Initialize the listener and load models
   async function initialize() {
     console.log("Initializing LLMStreamListener...");
-
-    // First, test if Tauri invoke is working
-    // try {
-    //   console.log("Testing Tauri health check...");
-    //   // const { invoke } = await import("@tauri-apps/api/core");
-    // } catch (e) {
-    //   console.error("Health check failed:", e);
-    //   console.error("This indicates Tauri invoke is not working properly");
-    // }
 
     await llm.setup({
       onData: (_id, data) => {
@@ -33,53 +22,6 @@
       onError: (msg) => console.error("error", msg),
     });
     console.log("LLMStreamListener setup complete");
-
-    // Now load models
-    await loadModels();
-  }
-
-  // Load available models on component mount
-  async function loadModels() {
-    try {
-      modelsLoading = true;
-      console.log("Loading available models...");
-      console.log("Calling llm.listAvailableModels()...");
-
-      const models = await llm.listAvailableModels();
-
-      console.log("listAvailableModels() returned:", models);
-      console.log("Models type:", typeof models);
-      console.log("Is array?", Array.isArray(models));
-
-      availableModels = models;
-      console.log("Available models loaded:", availableModels);
-
-      if (availableModels.length === 0) {
-        console.warn("No models available!");
-      }
-    } catch (e) {
-      console.error("Failed to load models:", e);
-      console.error("Error type:", typeof e);
-      console.error("Error name:", e?.name);
-      console.error("Error message:", e?.message);
-      console.error("Error stack:", e?.stack);
-      console.error("Error details:", JSON.stringify(e));
-    } finally {
-      console.log("Setting modelsLoading to false");
-      modelsLoading = false;
-    }
-  }
-
-  // Switch to selected model
-  async function switchModel() {
-    if (!currentModel) return;
-
-    try {
-      await llm.switchModel(currentModel);
-      console.log("Switched to model:", currentModel);
-    } catch (e) {
-      console.error("Failed to switch model:", e);
-    }
   }
 
   async function send() {
@@ -110,35 +52,39 @@
       });
   }
 
-  // Initialize listener and load models when component mounts
+  async function listModels() {
+    console.log("Fetching available models...");
+    try {
+      const models = await llm.listAvailableModels();
+      console.log("Available models:", models);
+      modelsList = models.join(", ");
+    } catch (e) {
+      console.error("Failed to list models:", e);
+      modelsList = "Error loading models:" + e;
+    }
+  }
+
+  async function switchModel() {
+    console.log("Switching model to Mock...");
+    try {
+      const models = await llm.listAvailableModels();
+      console.log("Available models for switch:", models);
+      if (models.length > 0) {
+        await llm.switchModel(models[0]);
+        switchModelResult = "Switched to: " + models[0];
+      } else {
+        switchModelResult = "No models available";
+      }
+    } catch (e) {
+      console.error("Failed to switch model:", e);
+      switchModelResult = "Error: " + e;
+    }
+  }
+
   initialize();
 </script>
 
 <div>
-  <div class="row">
-    <select
-      id="model-select"
-      bind:value={currentModel}
-      data-loaded={!modelsLoading}
-    >
-      <option value=""
-        >{modelsLoading ? "Loading models..." : "Select a model..."}</option
-      >
-      {#each availableModels as model}
-        <option value={model}>{model}</option>
-      {/each}
-    </select>
-    <button
-      id="model-switch-btn"
-      onclick={switchModel}
-      disabled={!currentModel || modelsLoading}
-    >
-      Switch Model
-    </button>
-    <span id="models-status"
-      >{modelsLoading ? "Loading..." : `${availableModels.length} models`}</span
-    >
-  </div>
   <div class="row">
     <input
       id="prompt-input"
@@ -148,4 +94,14 @@
     <button id="prompt-send-btn" onclick={send}> Prompt </button>
   </div>
   <p id="prompt-response">{promptRes}</p>
+
+  <div class="row">
+    <button id="list-models-btn" onclick={listModels}> List Models </button>
+  </div>
+  <div id="models-list">{modelsList}</div>
+
+  <div class="row">
+    <button id="switch-model-btn" onclick={switchModel}> Switch Model </button>
+  </div>
+  <div id="switch-model-result">{switchModelResult}</div>
 </div>
