@@ -8,8 +8,6 @@ const COMMANDS: &[&str] = &[
     "switch_model",
     "list_available_models",
     "add_configuration",
-    // this can be removed, as this is testing related
-    "health_check",
 ];
 
 fn main() {

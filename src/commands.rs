@@ -3,13 +3,6 @@ use crate::{models::*, Error, PluginState};
 use tauri::{command, AppHandle, Runtime};
 use tauri::{Emitter, State};
 
-/// TODO: remove after confirmation
-#[command]
-pub(crate) async fn health_check() -> Result<String> {
-    tracing::debug!("health_check command called");
-    Ok("Plugin is working!".to_string())
-}
-
 #[command]
 pub(crate) async fn add_configuration(state: State<'_, PluginState>, config: String) -> Result<()> {
     let mut service = state.runtime.lock().unwrap();

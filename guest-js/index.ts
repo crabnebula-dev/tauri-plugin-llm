@@ -242,8 +242,4 @@ export class LLMStreamListener {
     await invoke("plugin:llm|add_configuration", { config });
   }
 
-  async healthCheck(): Promise<string> {
-    return await invoke("plugin:llm|health_check");
-  }
-
 }
