@@ -238,9 +238,9 @@ impl LLMRuntimeConfig {
     /// Loads [`Self`] from a raw String.
     pub fn from_raw<S>(content: S) -> Result<Self, Error>
     where
-        S: ToString,
+        S: AsRef<str>,
     {
-        Ok(serde_json::from_str(&content.to_string())?)
+        Ok(serde_json::from_str(content.as_ref())?)
     }
 }
 

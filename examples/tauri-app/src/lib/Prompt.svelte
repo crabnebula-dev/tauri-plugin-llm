@@ -5,7 +5,6 @@
   let promptRes = $state("");
   let modelsList = $state("");
   let switchModelResult = $state("");
-
   let llm = new LLMStreamListener();
 
   async function initialize() {

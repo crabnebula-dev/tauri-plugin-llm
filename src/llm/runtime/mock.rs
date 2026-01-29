@@ -79,7 +79,7 @@ impl LLMRuntimeModel for Mock {
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
                     window_index += chunk_size;
-                    id = id.saturating_add(1);
+                    id += 1;
                 }
             }
 

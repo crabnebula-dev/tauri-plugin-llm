@@ -173,24 +173,6 @@ impl LLMRuntime {
             .expect("Error sending exit message")
     }
 
-    // /// Reload the LLMRuntime to include a different LLMRuntimeModel to be executed
-    // ///
-    // /// # Example
-    // ///
-    // /// # Errors
-    // pub fn reload<P>(&mut self, confdir: P) -> Result<()>
-    // where
-    //     P: AsRef<Path>,
-    // {
-    //     self.shutdown();
-
-    //     todo!()
-    // }
-
-    // pub fn list_available_models(&self) -> Option<Vec<()>> {
-    //     None
-    // }
-
     #[cfg(feature = "mcpurify")]
     pub async fn setup_mcpurify(config: &mcpurify::Config) {
         use mcpurify::converter::Converter;

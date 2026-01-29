@@ -278,7 +278,6 @@ impl LLMRuntimeModel for LLama3Model {
             tracing::info!("Encoded eos token: {eos_token}");
 
             let mut message_id = 0;
-
             let mut window_index = 0;
 
             // Start sampling

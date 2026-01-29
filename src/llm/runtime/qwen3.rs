@@ -285,6 +285,7 @@ impl LLMRuntimeModel for Qwen3Model {
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
                 all_tokens.push(next_token);
 
+                
                 if is_chunk_available(all_tokens[window_index..].len(), chunk_size) {
                     let data = match tokenizer.decode(&all_tokens[window_index..], true) {
                         Ok(str) => str.as_bytes().to_vec(),

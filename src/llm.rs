@@ -24,7 +24,7 @@ impl LLMService {
     ///
     /// ```no_run
     ///
-    /// let service = LLMService::from_path("path/to/configs").expect("Could not load LLMService");
+    /// let service = LLMService::from_dir("path/to/configs").expect("Could not load LLMService");
     ///
     /// ```
     ///
