@@ -1,7 +1,46 @@
 use crate::Result;
-use crate::{models::*, PluginState};
+use crate::{models::*, Error, PluginState};
 use tauri::{command, AppHandle, Runtime};
 use tauri::{Emitter, State};
+
+#[command]
+pub(crate) async fn add_configuration(state: State<'_, PluginState>, config: String) -> Result<()> {
+    let mut service = state.runtime.lock().unwrap();
+    tracing::debug!("Adding config to runtime service: {}", config);
+
+    service.add_config(config)?;
+
+    Ok(())
+}
+
+#[command]
+pub(crate) async fn switch_model(state: State<'_, PluginState>, id: String) -> Result<()> {
+    let mut service = state.runtime.lock().unwrap();
+
+    tracing::debug!("Switching to model: {}", id);
+
+    service.activate(id)?;
+
+    Ok(())
+}
+
+#[command]
+pub(crate) async fn list_available_models(state: State<'_, PluginState>) -> Result<Vec<String>> {
+    tracing::debug!("list_available_models command called");
+
+    let service = match state.runtime.lock() {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("Failed to lock runtime mutex: {}", e);
+            return Err(Error::StreamError(format!("Failed to lock runtime: {}", e)));
+        }
+    };
+
+    let models = service.list_models();
+    tracing::debug!("Available models: {:?}", models);
+
+    Ok(models)
+}
 
 #[command]
 pub(crate) async fn stream<R>(
@@ -12,7 +51,8 @@ pub(crate) async fn stream<R>(
 where
     R: Runtime,
 {
-    let runtime = state.runtime.lock().unwrap();
+    let mut service = state.runtime.lock().unwrap();
+    let runtime = service.runtime().ok_or(Error::MissingActiveRuntime)?;
 
     tracing::debug!("Send query to runtime: {:?}", message);
     runtime.send_stream(message)?;
@@ -34,7 +74,7 @@ where
                 Query::End => {
                     tracing::debug!("Reached end of stream");
                     let event = query.try_render_as_event_name()?;
-                    app.emit("query-stream-end", "")
+                    app.emit(&event, "")
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
                     break;

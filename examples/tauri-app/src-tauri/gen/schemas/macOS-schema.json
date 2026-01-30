@@ -2163,10 +2163,28 @@
           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`",
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`\n- `allow-switch-model`\n- `allow-list-available-models`\n- `allow-add-configuration`\n- `allow-health-check`",
           "type": "string",
           "const": "llm:default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`\n- `allow-switch-model`\n- `allow-list-available-models`\n- `allow-add-configuration`\n- `allow-health-check`"
+        },
+        {
+          "description": "Enables the add_configuration command without any pre-configured scope.",
+          "type": "string",
+          "const": "llm:allow-add-configuration",
+          "markdownDescription": "Enables the add_configuration command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the health_check command without any pre-configured scope.",
+          "type": "string",
+          "const": "llm:allow-health-check",
+          "markdownDescription": "Enables the health_check command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_available_models command without any pre-configured scope.",
+          "type": "string",
+          "const": "llm:allow-list-available-models",
+          "markdownDescription": "Enables the list_available_models command without any pre-configured scope."
         },
         {
           "description": "Enables the ping command without any pre-configured scope.",
@@ -2181,6 +2199,30 @@
           "markdownDescription": "Enables the stream command without any pre-configured scope."
         },
         {
+          "description": "Enables the switch_model command without any pre-configured scope.",
+          "type": "string",
+          "const": "llm:allow-switch-model",
+          "markdownDescription": "Enables the switch_model command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the add_configuration command without any pre-configured scope.",
+          "type": "string",
+          "const": "llm:deny-add-configuration",
+          "markdownDescription": "Denies the add_configuration command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the health_check command without any pre-configured scope.",
+          "type": "string",
+          "const": "llm:deny-health-check",
+          "markdownDescription": "Denies the health_check command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_available_models command without any pre-configured scope.",
+          "type": "string",
+          "const": "llm:deny-list-available-models",
+          "markdownDescription": "Denies the list_available_models command without any pre-configured scope."
+        },
+        {
           "description": "Denies the ping command without any pre-configured scope.",
           "type": "string",
           "const": "llm:deny-ping",
@@ -2191,6 +2233,12 @@
           "type": "string",
           "const": "llm:deny-stream",
           "markdownDescription": "Denies the stream command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the switch_model command without any pre-configured scope.",
+          "type": "string",
+          "const": "llm:deny-switch-model",
+          "markdownDescription": "Denies the switch_model command without any pre-configured scope."
         },
         {
           "description": "This permission set configures which\noperating system information are available\nto gather from the frontend.\n\n#### Granted Permissions\n\nAll information except the host name are available.\n\n\n#### This default permission set includes:\n\n- `allow-arch`\n- `allow-exe-extension`\n- `allow-family`\n- `allow-locale`\n- `allow-os-type`\n- `allow-platform`\n- `allow-version`",

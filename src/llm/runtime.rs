@@ -12,7 +12,7 @@ use anyhow::Result;
 use candle_core::Device;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
-use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
+use tauri::{AppHandle, Runtime};
 
 pub struct LLMRuntime {
     model: Option<Box<dyn LLMRuntimeModel>>,
@@ -21,6 +21,11 @@ pub struct LLMRuntime {
     worker: Option<tauri::async_runtime::JoinHandle<()>>,
     control: (Sender<Query>, Option<Receiver<Query>>),
     response: (Arc<Sender<Query>>, Receiver<Query>),
+}
+
+impl LLMRuntime {
+    /// This
+    pub fn handle_app_events<R: Runtime>(&self, _app: &AppHandle<R>) {}
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
@@ -60,12 +65,7 @@ impl Drop for LLMRuntime {
 impl LLMRuntime {
     /// Creates a new LLM
     pub fn from_config(config: LLMRuntimeConfig) -> Result<Self, Error> {
-        if config.verbose {
-            let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
-            Registry::default().with(verbose).init();
-        }
-
-        tracing::debug!("Got LLM Config: {:?}", config);
+        // tracing::debug!("Got LLM Config: {:?}", config);
 
         let device = Self::load_default_device();
         let model = Self::detect_model(&config.clone(), device)?;
@@ -223,7 +223,7 @@ impl LLMRuntime {
 
 /// Streaming impl
 impl LLMRuntime {
-    /// Send a message to the llm backend and receive a stream of messages
+    /// Executes the currently loaded runtime and will keep the executor in a background thread.
     pub fn run_stream(&mut self) -> Result<(), Error> {
         let mut model = self.model.take().unwrap();
         let config = self.config.clone();

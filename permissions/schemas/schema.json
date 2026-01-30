@@ -295,6 +295,42 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the add_configuration command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-add-configuration",
+          "markdownDescription": "Enables the add_configuration command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the add_configuration command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-add-configuration",
+          "markdownDescription": "Denies the add_configuration command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the health_check command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-health-check",
+          "markdownDescription": "Enables the health_check command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the health_check command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-health-check",
+          "markdownDescription": "Denies the health_check command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_available_models command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-available-models",
+          "markdownDescription": "Enables the list_available_models command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_available_models command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-available-models",
+          "markdownDescription": "Denies the list_available_models command without any pre-configured scope."
+        },
+        {
           "description": "Enables the ping command without any pre-configured scope.",
           "type": "string",
           "const": "allow-ping",
@@ -319,10 +355,22 @@
           "markdownDescription": "Denies the stream command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`",
+          "description": "Enables the switch_model command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-switch-model",
+          "markdownDescription": "Enables the switch_model command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the switch_model command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-switch-model",
+          "markdownDescription": "Denies the switch_model command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`\n- `allow-switch-model`\n- `allow-list-available-models`\n- `allow-add-configuration`\n- `allow-health-check`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`\n- `allow-switch-model`\n- `allow-list-available-models`\n- `allow-add-configuration`\n- `allow-health-check`"
         }
       ]
     }

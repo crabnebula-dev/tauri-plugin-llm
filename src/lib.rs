@@ -14,12 +14,12 @@ pub use templates::*;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::llm::runtime::LLMRuntime;
 #[cfg(desktop)]
 use desktop::TauriPluginLlm;
 pub use error::{Error, Result};
 pub use llm::loaders;
 pub use llm::runtime;
+pub use llm::LLMService;
 #[cfg(mobile)]
 use mobile::TauriPluginLlm;
 pub use models::*;
@@ -55,7 +55,7 @@ pub struct Builder {
 }
 
 pub struct PluginState {
-    runtime: Arc<Mutex<LLMRuntime>>,
+    runtime: Arc<Mutex<LLMService>>,
 }
 
 impl Builder {
@@ -72,7 +72,12 @@ impl Builder {
 
     pub fn build<R: Runtime>(self) -> TauriPlugin<R, LLMPluginConfig> {
         PluginBuilder::<R, LLMPluginConfig>::new("llm")
-            .invoke_handler(tauri::generate_handler![commands::stream])
+            .invoke_handler(tauri::generate_handler![
+                commands::stream,
+                commands::switch_model,
+                commands::list_available_models,
+                commands::add_configuration
+            ])
             .setup(|app, api| {
                 let config = self
                     .plugin_config
@@ -81,15 +86,17 @@ impl Builder {
 
                 // manage llm runtime ?
                 app.manage({
-                    // initialize runtime by config
-                    let mut runtime = LLMRuntime::from_config(config.llmconfig.clone())?;
+                    let config = config.clone();
 
-                    // this is the new version and must be enabled,
-                    // as soon as the functionality has been implemented.
-                    runtime.run_stream()?;
+                    let mut service =
+                        LLMService::from_runtime_configs(std::slice::from_ref(&config.llmconfig));
+
+                    // initialize and activate runtime by config
+                    // TODO: We may have more than one model config available
+                    service.activate(config.llmconfig.model_config.name)?;
 
                     PluginState {
-                        runtime: Arc::new(Mutex::new(runtime)),
+                        runtime: Arc::new(Mutex::new(service)),
                     }
                 });
 
