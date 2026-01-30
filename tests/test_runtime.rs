@@ -5,8 +5,13 @@ use tauri_plugin_llm::{
 };
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
+fn enable_logging() {
+    let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
+    Registry::default().with(verbose).init();
+}
+
 #[tokio::test]
-// #[ignore = "Load the Qwen3 model first, then run this test manually"]
+#[ignore = "Load the Qwen3 model first, then run this test manually"]
 async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
@@ -120,6 +125,8 @@ async fn test_runtime_mock() -> Result<(), Error> {
 
 #[tokio::test]
 async fn test_runtime_mock_streaming() -> Result<(), Error> {
+    enable_logging();
+
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_mock.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
@@ -215,6 +222,8 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
 
 #[tokio::test]
 async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
+    enable_logging();
+
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
@@ -224,7 +233,7 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
         Query::Prompt {
             messages: vec![QueryMessage {
                 role: "user".to_string(),
-                content: "Message #1".to_string(),
+                content: "Just echo This Message 1".to_string(),
             }],
             tools: vec![],
             config: Some(QueryConfig::default()),
@@ -234,7 +243,7 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
         Query::Prompt {
             messages: vec![QueryMessage {
                 role: "user".to_string(),
-                content: "Message #2".to_string(),
+                content: "Just echo This Message 2".to_string(),
             }],
             tools: vec![],
             config: Some(QueryConfig::default()),
@@ -311,11 +320,7 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
 #[tokio::test]
 #[ignore = "Run this test explicitly to avoid using real model weights"]
 async fn test_switching_runtimes() -> Result<(), Error> {
-    // handle tracing explicitly here
-    {
-        let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
-        Registry::default().with(verbose).init();
-    }
+    enable_logging();
 
     let runtime_config_paths = [
         "tests/fixtures/test_runtime_mock.json",

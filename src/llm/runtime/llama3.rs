@@ -218,9 +218,6 @@ impl LLMRuntimeModel for LLama3Model {
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
 
-            let is_chunk_available =
-                |num_tokens: usize, chunk_size: usize| -> bool { (num_tokens % chunk_size) == 0 };
-
             // preprocess message by applying chat template
             let message = {
                 let template = self.template.as_ref().ok_or(Error::ExecutionError(
@@ -278,7 +275,7 @@ impl LLMRuntimeModel for LLama3Model {
             tracing::info!("Encoded eos token: {eos_token}");
 
             let mut message_id = 0;
-            let mut window_index = 0;
+            // let mut window_index = 0;
 
             // Start sampling
             for index in 0..generate_num_samples {

@@ -1,59 +1,6 @@
 use tauri_plugin_llm::{Error, LLMRuntimeConfig, LLMService, Query, QueryConfig, QueryMessage};
 
 #[tokio::test]
-#[ignore = "Run this test explicitly to avoid using real model weights"]
-async fn test_switching_runtimes() -> Result<(), Error> {
-    let runtime_config_paths = [
-        "tests/fixtures/test_runtime_mock.json",
-        // llama3.2 can take a long time before sending the ending signal.
-        // `generate_num_samples` can be tweaked to reduce the test execution time.
-        "tests/fixtures/test_runtime_llama3.config.json",
-        "tests/fixtures/test_runtime_qwen3.config.json",
-    ]
-    .to_vec();
-
-    let mut configs = vec![];
-
-    for p in runtime_config_paths {
-        let config = LLMRuntimeConfig::from_path(p).expect("Loading config failed");
-
-        configs.push(config);
-    }
-
-    let mut service = LLMService::from_runtime_configs(&configs);
-
-    for id in service.list_models() {
-        let result = service.activate(id);
-        assert!(result.is_ok(), "{:?}", result.err());
-
-        let runtime = result.unwrap();
-
-        let query = Query::Prompt {
-            messages: vec![QueryMessage {
-                role: "user".to_string(),
-                content: "Hello, World".to_string(),
-            }],
-            tools: vec![],
-            config: Some(QueryConfig {
-                generate_num_samples: 150,
-            }),
-            chunk_size: Some(25),
-            timestamp: None,
-        };
-
-        runtime.send_stream(query)?;
-
-        while let Ok(response) = runtime.recv_stream() {
-            if let Query::End = response {
-                break;
-            }
-        }
-    }
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn test_add_config_at_runtime() -> Result<(), Error> {
     // Load initial mock config
     let mock_config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_mock.json")?;

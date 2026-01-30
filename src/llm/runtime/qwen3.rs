@@ -185,9 +185,6 @@ impl LLMRuntimeModel for Qwen3Model {
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
 
-            let is_chunk_available =
-                |num_tokens: usize, chunk_size: usize| -> bool { (num_tokens % chunk_size) == 0 };
-
             // preprocess message by applying chat template
             let message = {
                 match self.template.as_ref().ok_or(Error::ExecutionError(
@@ -258,12 +255,12 @@ impl LLMRuntimeModel for Qwen3Model {
             let mut all_tokens = vec![];
             all_tokens.push(next_token);
 
+            let mut chunks = Vec::with_capacity(chunk_size);
+            chunks.push(next_token);
+
             // set end of stream token
             let eos_token = *tokenizer.get_vocab(true).get("<|im_end|>").unwrap();
-
-            let mut message_id = 0;
-
-            let mut window_index = 0;
+            let mut id = 0;
 
             // Start sampling
             for index in 0..generate_num_samples {
@@ -284,17 +281,17 @@ impl LLMRuntimeModel for Qwen3Model {
                     .sample(&logits)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
                 all_tokens.push(next_token);
+                chunks.push(next_token);
 
-                
-                if is_chunk_available(all_tokens[window_index..].len(), chunk_size) {
-                    let data = match tokenizer.decode(&all_tokens[window_index..], true) {
+                if chunks.len().eq(&chunk_size) {
+                    let data = match tokenizer.decode(&chunks, true) {
                         Ok(str) => str.as_bytes().to_vec(),
                         Err(e) => return Err(Error::ExecutionError(e.to_string())),
                     };
 
-                    window_index += chunk_size;
-                    message_id += 1;
-                    let id = message_id;
+                    id += 1;
+
+                    tracing::debug!("Sending Chunk");
 
                     if let Err(e) = response_tx.send(crate::Query::Chunk {
                         id,
@@ -305,6 +302,8 @@ impl LLMRuntimeModel for Qwen3Model {
                         tracing::error!("Error sending chunk: {e}");
                         return Err(Error::StreamError(e.to_string()));
                     }
+
+                    chunks.truncate(0);
                 }
 
                 if next_token == eos_token {
@@ -312,16 +311,14 @@ impl LLMRuntimeModel for Qwen3Model {
                 }
             }
 
-            {
-                let data = match tokenizer.decode(&all_tokens[window_index..], true) {
+            if !chunks.is_empty() {
+                let data = match tokenizer.decode(&chunks, true) {
                     Ok(str) => str.as_bytes().to_vec(),
                     Err(e) => return Err(Error::ExecutionError(e.to_string())),
                 };
-                message_id += 1;
-                let id = message_id;
 
                 if let Err(e) = response_tx.send(crate::Query::Chunk {
-                    id,
+                    id: id + 1,
                     kind: crate::QueryChunkType::String,
                     data,
                     timestamp,
@@ -340,10 +337,6 @@ impl LLMRuntimeModel for Qwen3Model {
             std::mem::discriminant(&message),
             message
         );
-
-        // Err(Error::ExecutionError(
-        //     "Cannot handle Query type".to_string(),
-        // ))
 
         Ok(())
     }
