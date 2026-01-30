@@ -32,8 +32,6 @@ impl LLMRuntimeModel for Mock {
         q: crate::Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> Result<(), crate::Error> {
-        tracing::debug!("Got `Query`: {q:?}");
-
         if let Query::Prompt {
             messages,
             tools: _,
@@ -42,8 +40,7 @@ impl LLMRuntimeModel for Mock {
             timestamp,
         } = q
         {
-            let mut window_index = 0;
-
+            let chunk_size = chunk_size.unwrap_or(10);
             let mock_message_bytes = match messages.as_slice() {
                 [] => "No messages for the Mock runtime have been provided.".as_bytes(),
                 [first] => first.content.as_bytes(),
@@ -58,37 +55,30 @@ impl LLMRuntimeModel for Mock {
                     }
                 }
             };
-
-            let chunk_size = chunk_size.unwrap_or(10);
+            let mut chunks = Vec::with_capacity(chunk_size);
             let mut id = 0usize;
 
-            tracing::debug!("Simulate Inference");
+            for item in mock_message_bytes {
+                chunks.push(*item);
 
-            for i in 0..mock_message_bytes.len() {
-                // send a chunk of data every chunk size
-                if i % chunk_size == 0 {
+                if chunks.len().eq(&chunk_size) {
                     tracing::debug!("Sending Chunk");
-                    let end = mock_message_bytes.len().min(window_index + chunk_size);
                     response_tx
                         .send(crate::Query::Chunk {
                             id,
-                            data: mock_message_bytes[window_index..end].to_vec(),
+                            data: chunks.to_vec(),
                             kind: crate::QueryChunkType::String,
                             timestamp,
                         })
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
-                    window_index += chunk_size;
+                    chunks.truncate(0);
                     id += 1;
                 }
             }
 
-            tracing::debug!("End Inference");
-
             return Ok(());
         }
-
-        tracing::warn!("Unknown `Query`: ({:?}), {q:?}", std::mem::discriminant(&q));
 
         Err(crate::Error::StreamError(
             "Unknown `Query` type".to_string(),

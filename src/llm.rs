@@ -22,9 +22,9 @@ impl LLMService {
     ///
     /// # Example
     ///
-    /// ```no_run
-    ///
-    /// let service = LLMService::from_dir("path/to/configs").expect("Could not load LLMService");
+    /// ```
+    /// use tauri_plugin_llm::LLMService;
+    /// let service = LLMService::from_dir("tests/fixtures/").expect("Could not load LLMService");
     ///
     /// ```
     ///

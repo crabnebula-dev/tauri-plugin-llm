@@ -217,6 +217,7 @@ impl LLMRuntimeModel for LLama3Model {
         } = message.clone()
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
+            tracing::debug!("Using chunk size: {chunk_size}");
 
             // preprocess message by applying chat template
             let message = {
@@ -269,13 +270,14 @@ impl LLMRuntimeModel for LLama3Model {
             let mut all_tokens = vec![];
             all_tokens.push(next_token);
 
-            // TODO: set end of stream token
+            let mut chunks = Vec::with_capacity(chunk_size);
+
+            // set end of stream token by configuration?
             let eos_token = *tokenizer.get_vocab(true).get("<|eot_id|>").unwrap();
 
             tracing::info!("Encoded eos token: {eos_token}");
 
-            let mut message_id = 0;
-            // let mut window_index = 0;
+            let mut id = 0;
 
             // Start sampling
             for index in 0..generate_num_samples {
@@ -306,16 +308,15 @@ impl LLMRuntimeModel for LLama3Model {
                     .sample(&logits)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
                 all_tokens.push(next_token);
+                chunks.push(next_token);
 
-                if is_chunk_available(all_tokens[window_index..].len(), chunk_size) {
-                    let data = match tokenizer.decode(&all_tokens[window_index..], true) {
+                if chunks.len().eq(&chunk_size) {
+                    let data = match tokenizer.decode(&chunks, true) {
                         Ok(str) => str.as_bytes().to_vec(),
                         Err(e) => return Err(Error::ExecutionError(e.to_string())),
                     };
 
-                    window_index += chunk_size;
-                    message_id += 1;
-                    let id = message_id;
+                    id += 1;
 
                     if let Err(e) = response_tx.send(crate::Query::Chunk {
                         id,
@@ -325,6 +326,8 @@ impl LLMRuntimeModel for LLama3Model {
                     }) {
                         return Err(Error::StreamError(e.to_string()));
                     }
+
+                    chunks.truncate(0);
                 }
 
                 if next_token == eos_token {
@@ -332,17 +335,14 @@ impl LLMRuntimeModel for LLama3Model {
                 }
             }
 
-            // send last message.
-            {
-                let data = match tokenizer.decode(&all_tokens[window_index..], true) {
+            if !chunks.is_empty() {
+                let data = match tokenizer.decode(&chunks, true) {
                     Ok(str) => str.as_bytes().to_vec(),
                     Err(e) => return Err(Error::ExecutionError(e.to_string())),
                 };
-                message_id += 1;
-                let id = message_id;
 
                 if let Err(e) = response_tx.send(crate::Query::Chunk {
-                    id,
+                    id: id + 1,
                     kind: crate::QueryChunkType::String,
                     data,
                     timestamp,
