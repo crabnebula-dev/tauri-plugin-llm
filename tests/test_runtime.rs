@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, usize, vec};
+use std::vec;
 
 use tauri_plugin_llm::{
     runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryConfig, QueryMessage,
