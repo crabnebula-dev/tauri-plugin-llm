@@ -80,9 +80,11 @@ impl LLMRuntimeModel for LLama3Model {
         self.template_proc = if tokenizer_config_file.is_some() && self.template.is_some() {
             // the extra check for the `tokenizer_config_file` is to indicate the presence of a jinja template
             Some(TemplateProcessor::with_jinja_template())
-        } else if template_file.is_some() {
-            Some(TemplateProcessor::with_go_template())
-        } else {
+        }
+        // else if template_file.is_some() {
+        //     Some(TemplateProcessor::with_go_template())
+        // }
+        else {
             None
         };
 

@@ -23,10 +23,8 @@ tasks:
     silent: true
     desc: Runs a container and mounts the current directory into /code
     env:
-      HF_TOKEN:
-        sh: security find-generic-password -s "huggingface-token" -w
     cmds:
-      - $CONTAINER_RUNTIME run -ti -e HF_TOKEN=$HF_TOKEN -v $(pwd):/code --cpus 8 -m 16G development
+      - $CONTAINER_RUNTIME run -ti -v $(pwd):/code --cpus 8 -m 16G development
 
   build_ffi:
     silent: false

@@ -1,21 +1,11 @@
 use crate::Error;
-use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
 use std::path::Path;
-
-#[link(name = "gotproc")]
-extern "C" {
-    fn RenderTemplateString(template: *const c_char, input_json: *const c_char) -> *mut c_char;
-    fn RenderTemplateStringJinja(template: *const c_char, input_json: *const c_char)
-        -> *mut c_char;
-    fn FreeString(input: *const c_char);
-}
 
 #[derive(Default)]
 pub enum TemplateType {
     #[default]
     Jinja,
-    Go,
+    // Go,
     Unknown,
 }
 
@@ -36,13 +26,6 @@ impl TemplateType {
                 .map(|_| Self::Jinja)
         } {
             return inner;
-        } else if let Ok(inner) = {
-            // TODO: this needs to be fixed. The FFI call to render a go template
-            // is misused to detect the go template.
-            let input_json = serde_json::json!({}).to_string();
-            render_template(source, &input_json).map(|_| Self::Go)
-        } {
-            return inner;
         }
 
         Self::Unknown
@@ -57,12 +40,6 @@ pub struct TemplateProcessor {
 impl TemplateProcessor {
     pub fn new(kind: TemplateType) -> Self {
         Self { kind }
-    }
-
-    pub fn with_go_template() -> Self {
-        Self {
-            kind: TemplateType::Go,
-        }
     }
 
     pub fn with_jinja_template() -> Self {
@@ -86,7 +63,6 @@ impl TemplateProcessor {
 
     pub fn render(&self, source: &str, input: &str) -> Result<String, Error> {
         match self.kind {
-            TemplateType::Go => self.render_go_template(source, input),
             TemplateType::Jinja => self.render_jinja_template(source, input),
             TemplateType::Unknown => Err(Error::TemplateError("Unknown template type".to_owned())),
         }
@@ -103,40 +79,10 @@ impl TemplateProcessor {
 
 /// Takes a Go template as &str, applies the json variables into it and returns the rendered template
 fn render_template(template: &str, input_json: &str) -> Result<String, Error> {
-    unsafe {
-        let c_template = CString::new(template).map_err(|e| Error::Ffi(e.to_string()))?;
-        let c_input_json = CString::new(input_json).map_err(|e| Error::Ffi(e.to_string()))?;
-
-        let result_ptr = RenderTemplateString(c_template.as_ptr(), c_input_json.as_ptr());
-
-        let result = CStr::from_ptr(result_ptr).to_string_lossy().into_owned();
-        FreeString(result_ptr as *const c_char);
-
-        // check for errors
-        if result.starts_with("ERROR: ") {
-            return Err(Error::Ffi(result));
-        }
-
-        Ok(result)
-    }
+    Err(Error::Ffi("not implemented".to_string()))
 }
 
 /// CODE DUPLICATE! Combine with render_template
 fn render_template_jinja(template: &str, input_json: &str) -> Result<String, Error> {
-    unsafe {
-        let c_template = CString::new(template).map_err(|e| Error::Ffi(e.to_string()))?;
-        let c_input_json = CString::new(input_json).map_err(|e| Error::Ffi(e.to_string()))?;
-
-        let result_ptr = RenderTemplateStringJinja(c_template.as_ptr(), c_input_json.as_ptr());
-
-        let result = CStr::from_ptr(result_ptr).to_string_lossy().into_owned();
-        FreeString(result_ptr as *const c_char);
-
-        // check for errors
-        if result.starts_with("ERROR: ") {
-            return Err(Error::Ffi(result));
-        }
-
-        Ok(result)
-    }
+    Err(Error::Ffi("not implemented".to_string()))
 }

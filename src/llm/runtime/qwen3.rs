@@ -72,9 +72,11 @@ impl LLMRuntimeModel for Qwen3Model {
 
         self.template_proc = if tokenizer_config_file.is_some() && self.template.is_some() {
             Some(TemplateProcessor::with_jinja_template())
-        } else if template_file.is_some() {
-            Some(TemplateProcessor::with_go_template())
-        } else {
+        }
+        // else if template_file.is_some() {
+        //     Some(TemplateProcessor::with_go_template())
+        // }
+        else {
             None
         };
 
