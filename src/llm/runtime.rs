@@ -14,12 +14,16 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, RwLock};
 use tauri::{AppHandle, Runtime};
 
+#[allow(clippy::type_complexity)]
 pub struct LLMRuntime {
     model: Option<Box<dyn LLMRuntimeModel>>,
     config: LLMRuntimeConfig,
 
     worker: Arc<RwLock<Option<tauri::async_runtime::JoinHandle<()>>>>,
-    control: (Arc<RwLock<Sender<Query>>>, Arc<Mutex<Option<Receiver<Query>>>>),
+    control: (
+        Arc<RwLock<Sender<Query>>>,
+        Arc<Mutex<Option<Receiver<Query>>>>,
+    ),
     response: (Arc<Sender<Query>>, Arc<Mutex<Receiver<Query>>>),
 }
 
@@ -81,8 +85,14 @@ impl LLMRuntime {
             config,
 
             worker: Arc::new(RwLock::new(None)),
-            control: (Arc::new(RwLock::new(ctrl_tx)), Arc::new(Mutex::new(Some(ctrl_rx)))),
-            response: (Arc::new(response_stream_tx), Arc::new(Mutex::new(response_stream_rx))),
+            control: (
+                Arc::new(RwLock::new(ctrl_tx)),
+                Arc::new(Mutex::new(Some(ctrl_rx))),
+            ),
+            response: (
+                Arc::new(response_stream_tx),
+                Arc::new(Mutex::new(response_stream_rx)),
+            ),
         })
     }
 

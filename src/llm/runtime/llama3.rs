@@ -229,8 +229,8 @@ impl LLMRuntimeModel for LLama3Model {
 
             let QueryConfig {
                 generate_num_samples,
-                temperature,
-                model,
+                temperature: _,
+                model: _,
             } = config.unwrap();
 
             tracing::debug!("Processing Message: {:?}", message);

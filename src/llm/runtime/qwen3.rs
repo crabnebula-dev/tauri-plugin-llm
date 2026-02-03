@@ -210,8 +210,8 @@ impl LLMRuntimeModel for Qwen3Model {
 
             let QueryConfig {
                 generate_num_samples,
-                temperature,
-                model,
+                temperature: _,
+                model: _,
             } = config.unwrap_or(QueryConfig {
                 generate_num_samples: 5000,
                 temperature: None,
