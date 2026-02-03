@@ -24,13 +24,26 @@ tasks:
       - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash
 
   fetch_llama3.2_instruct:
-    silent: true 
-    desc: (CONTAINER) Download "meta-llama/Llama-3.2-3B-Instruct". Requires HF token!
-    env:
-      HF_TOKEN:
-        sh: security find-generic-password -s "huggingface-token" -w 
+    silent: true
+    vars:
+      HF_TOKEN: 
+        sh: security find-generic-password -a "huggingface-token" -w
+      MODEL: "meta-llama/Llama-3.2-3B-Instruct"
     cmds:
-      - $CONTAINER_RUNTIME run -ti --rm -v $(pwd)/models:/models --env HF_TOKEN=$HF_TOKEN --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash -c 'hf download --cache-dir /models meta-llama/Llama-3.2-3B-Instruct'
+      - task: fetch
+        vars:
+          HF_TOKEN: "{{.HF_TOKEN}}"
+          MODEL: "{{.MODEL}}"
+
+  fetch:
+    silent: true
+    desc: Download "meta-llama/Llama-3.2-3B-Instruct". Requires HF token!
+    requires:
+      vars: [HF_TOKEN, MODEL]
+    cmds:
+      - echo "{{.MODEL}}"
+      - $CONTAINER_RUNTIME run -ti --rm -v $(pwd)/models:/models --env HF_TOKEN="{{.HF_TOKEN}}" --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash -c "hf download --cache-dir /models {{.MODEL}}" 
+
 
   tests:
     silent: true
