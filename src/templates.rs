@@ -65,23 +65,18 @@ impl TemplateProcessor {
     }
 
     fn render_jinja_template(&self, source: &str, input: &str) -> Result<String, Error> {
-        render_template_jinja(source, input)
+        let ctx: serde_json::Value =
+            serde_json::from_str(input).map_err(|e| Error::TemplateError(e.to_string()))?;
+
+        let mut env = Environment::new();
+        env.add_template("template", source)
+            .map_err(|e| Error::TemplateError(e.to_string()))?;
+
+        let tmpl = env
+            .get_template("template")
+            .map_err(|e| Error::TemplateError(e.to_string()))?;
+
+        tmpl.render(ctx)
+            .map_err(|e| Error::TemplateError(e.to_string()))
     }
-}
-
-/// Render a Jinja2 template using minijinja.
-fn render_template_jinja(template: &str, input_json: &str) -> Result<String, Error> {
-    let ctx: serde_json::Value =
-        serde_json::from_str(input_json).map_err(|e| Error::TemplateError(e.to_string()))?;
-
-    let mut env = Environment::new();
-    env.add_template("template", template)
-        .map_err(|e| Error::TemplateError(e.to_string()))?;
-
-    let tmpl = env
-        .get_template("template")
-        .map_err(|e| Error::TemplateError(e.to_string()))?;
-
-    tmpl.render(ctx)
-        .map_err(|e| Error::TemplateError(e.to_string()))
 }
