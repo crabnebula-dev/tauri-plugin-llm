@@ -44,7 +44,6 @@ tasks:
       - echo "{{.MODEL}}"
       - $CONTAINER_RUNTIME run -ti --rm -v $(pwd)/models:/models --env HF_TOKEN="{{.HF_TOKEN}}" --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash -c "hf download --cache-dir /models {{.MODEL}}" 
 
-
   tests:
     silent: true
     desc: Runs all end to end tests
