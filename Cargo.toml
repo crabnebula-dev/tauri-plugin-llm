@@ -36,6 +36,10 @@ tokenizers          = { git = "https://github.com/huggingface/tokenizers", branc
 tera                = { version = "1.20.1" }
 minijinja = { version = "2", features = ["loader"] }
 
+# RustPython for embedded Python/Jinja2 template rendering
+rustpython = { version = "0.4.0", default-features = false, features = ["stdlib"] }
+rustpython-vm = { version = "0.4.0", default-features = false, features = ["compiler"] }
+
 
 # Optional dependency to MCPurify. Please check the LICENSE before enabling MCPurify.
 # mcpurify            = { git = "git@github.com:crabnebula-dev/MCPurify.git", optional = true }
