@@ -27,7 +27,6 @@ pub struct LLama3Model {
     pub(crate) logits_processor: Option<LogitsProcessor>,
     pub(crate) cache: Option<model::Cache>,
     pub(crate) penalty: f32,
-
     pub(crate) template: Option<String>,
     pub(crate) template_proc: Option<TemplateProcessor>,
 }
