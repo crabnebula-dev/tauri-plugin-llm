@@ -19,7 +19,7 @@ tasks:
 
   container:
     silent: true
-    desc: Debuggin task to enter the container
+    desc: Debugging task to enter the container
     cmds:
       - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash
 

@@ -32,9 +32,8 @@ tracing-appender    = {version = "0.2.3"}
 # for LLM inference
 tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
-# templating. gtmpl-rust seems to be unmaintained but stable.
+# templating. 
 tera                = { version = "1.20.1" }
-minijinja = { version = "2", features = ["loader"] }
 
 # RustPython for embedded Python/Jinja2 template rendering
 rustpython = { version = "0.4.0", default-features = false, features = ["stdlib"] }

@@ -19,13 +19,9 @@ impl TemplateType {
     /// Use this function in case the template type is unknown, or requires active detection. Normally, you
     /// wouldn't use this function.
     pub fn detect_from_source(source: &str) -> Self {
-        if let Ok(inner) = {
-            let mut tmpl = tera::Tera::default();
-            tmpl.add_raw_template("jinja", source)
-                .map_err(|e| Error::TemplateError(e.to_string()))
-                .map(|_| Self::Jinja)
-        } {
-            return inner;
+        // Use the RustPython-based Jinja2 validator which supports more features than Tera
+        if validate_jinja_template(source).is_ok() {
+            return Self::Jinja;
         }
 
         Self::Unknown
@@ -611,49 +607,188 @@ def render(template_str, json_str):
 result = render(TEMPLATE, INPUT_JSON)
 "#;
 
+/// Python code to validate a Jinja2 template without rendering.
+/// This checks for balanced tags and basic syntax errors.
+const JINJA2_VALIDATE_IMPL: &str = r#"
+import re
+
+def validate_template(template):
+    """Validate a Jinja2 template for syntax errors.
+
+    Returns True if valid, raises an exception if invalid.
+    """
+    # Track block depth for matching tags
+    block_stack = []
+    pos = 0
+
+    while pos < len(template):
+        # Find next tag
+        var_start = template.find('{{', pos)
+        block_start = template.find('{%', pos)
+        comment_start = template.find('{#', pos)
+
+        # Find earliest tag
+        next_pos = len(template)
+        tag_type = None
+
+        if var_start != -1 and var_start < next_pos:
+            next_pos = var_start
+            tag_type = 'var'
+        if block_start != -1 and block_start < next_pos:
+            next_pos = block_start
+            tag_type = 'block'
+        if comment_start != -1 and comment_start < next_pos:
+            next_pos = comment_start
+            tag_type = 'comment'
+
+        if tag_type is None:
+            break
+
+        if tag_type == 'var':
+            end = template.find('}}', var_start)
+            if end == -1:
+                raise SyntaxError(f"Unclosed variable tag at position {var_start}")
+            pos = end + 2
+
+        elif tag_type == 'comment':
+            end = template.find('#}', comment_start)
+            if end == -1:
+                raise SyntaxError(f"Unclosed comment tag at position {comment_start}")
+            pos = end + 2
+
+        elif tag_type == 'block':
+            tag_end = template.find('%}', block_start)
+            if tag_end == -1:
+                raise SyntaxError(f"Unclosed block tag at position {block_start}")
+
+            raw_content = template[block_start+2:tag_end]
+            tag_content = raw_content.strip().strip('-').strip()
+            pos = tag_end + 2
+
+            # Check for block opening tags
+            if tag_content.startswith('if ') or tag_content == 'if':
+                block_stack.append('if')
+            elif tag_content.startswith('for '):
+                block_stack.append('for')
+            elif tag_content.startswith('macro '):
+                block_stack.append('macro')
+            elif tag_content.startswith('block '):
+                block_stack.append('block')
+            elif tag_content == 'raw':
+                block_stack.append('raw')
+            # Check for block closing tags
+            elif tag_content == 'endif':
+                if not block_stack or block_stack[-1] != 'if':
+                    raise SyntaxError(f"Unexpected endif at position {block_start}")
+                block_stack.pop()
+            elif tag_content == 'endfor':
+                if not block_stack or block_stack[-1] != 'for':
+                    raise SyntaxError(f"Unexpected endfor at position {block_start}")
+                block_stack.pop()
+            elif tag_content == 'endmacro':
+                if not block_stack or block_stack[-1] != 'macro':
+                    raise SyntaxError(f"Unexpected endmacro at position {block_start}")
+                block_stack.pop()
+            elif tag_content == 'endblock':
+                if not block_stack or block_stack[-1] != 'block':
+                    raise SyntaxError(f"Unexpected endblock at position {block_start}")
+                block_stack.pop()
+            elif tag_content == 'endraw':
+                if not block_stack or block_stack[-1] != 'raw':
+                    raise SyntaxError(f"Unexpected endraw at position {block_start}")
+                block_stack.pop()
+            # elif, else are intermediate tags (valid inside if blocks)
+            elif tag_content.startswith('elif ') or tag_content == 'else':
+                if not block_stack or block_stack[-1] != 'if':
+                    raise SyntaxError(f"Unexpected {tag_content.split()[0]} outside if block at position {block_start}")
+            # set, include, extends, etc. are self-closing
+
+    if block_stack:
+        raise SyntaxError(f"Unclosed blocks: {', '.join(block_stack)}")
+
+    return True
+
+result = validate_template(TEMPLATE)
+"#;
+
+/// Validate a Jinja2 template for syntax errors using RustPython.
+/// Returns Ok(()) if valid, Err with details if invalid.
+fn validate_jinja_template(template: &str) -> Result<(), Error> {
+    rustpython::InterpreterConfig::new()
+        .init_stdlib()
+        .interpreter()
+        .enter(|vm| {
+            let scope = vm.new_scope_with_builtins();
+
+            // Set the template as a Python variable
+            scope
+                .globals
+                .set_item("TEMPLATE", vm.new_pyobj(template), vm)
+                .map_err(|e| Error::TemplateError(format!("Failed to set TEMPLATE: {:?}", e)))?;
+
+            // Compile and run the validation code
+            let code = vm
+                .compile(
+                    JINJA2_VALIDATE_IMPL,
+                    vm::compiler::Mode::Exec,
+                    "<jinja2_validate>".to_owned(),
+                )
+                .map_err(|e| {
+                    Error::TemplateError(format!("Failed to compile validation code: {:?}", e))
+                })?;
+
+            vm.run_code_obj(code, scope.clone())
+                .map_err(|e| Error::TemplateError(format!("Template validation failed: {:?}", e)))?;
+
+            Ok(())
+        })
+}
+
 /// Render a Jinja2 template using RustPython with embedded Python implementation.
 fn render_template_jinja(template: &str, input_json: &str) -> Result<String, Error> {
     rustpython::InterpreterConfig::new()
         .init_stdlib()
         .interpreter()
         .enter(|vm| {
-        let scope = vm.new_scope_with_builtins();
+            let scope = vm.new_scope_with_builtins();
 
-        // Set the template and input as Python variables
-        scope
-            .globals
-            .set_item("TEMPLATE", vm.new_pyobj(template), vm)
-            .map_err(|e| Error::TemplateError(format!("Failed to set TEMPLATE: {:?}", e)))?;
-        scope
-            .globals
-            .set_item("INPUT_JSON", vm.new_pyobj(input_json), vm)
-            .map_err(|e| Error::TemplateError(format!("Failed to set INPUT_JSON: {:?}", e)))?;
+            // Set the template and input as Python variables
+            scope
+                .globals
+                .set_item("TEMPLATE", vm.new_pyobj(template), vm)
+                .map_err(|e| Error::TemplateError(format!("Failed to set TEMPLATE: {:?}", e)))?;
+            scope
+                .globals
+                .set_item("INPUT_JSON", vm.new_pyobj(input_json), vm)
+                .map_err(|e| Error::TemplateError(format!("Failed to set INPUT_JSON: {:?}", e)))?;
 
-        // Compile and run the Python code
-        let code = vm
-            .compile(
-                JINJA2_PYTHON_IMPL,
-                vm::compiler::Mode::Exec,
-                "<jinja2_impl>".to_owned(),
-            )
-            .map_err(|e| Error::TemplateError(format!("Failed to compile Python code: {:?}", e)))?;
+            // Compile and run the Python code
+            let code = vm
+                .compile(
+                    JINJA2_PYTHON_IMPL,
+                    vm::compiler::Mode::Exec,
+                    "<jinja2_impl>".to_owned(),
+                )
+                .map_err(|e| {
+                    Error::TemplateError(format!("Failed to compile Python code: {:?}", e))
+                })?;
 
-        vm.run_code_obj(code, scope.clone())
-            .map_err(|e| Error::TemplateError(format!("Failed to run Python code: {:?}", e)))?;
+            vm.run_code_obj(code, scope.clone())
+                .map_err(|e| Error::TemplateError(format!("Failed to run Python code: {:?}", e)))?;
 
-        // Get the result from the scope
-        let result = scope
-            .globals
-            .get_item("result", vm)
-            .map_err(|e| Error::TemplateError(format!("Failed to get result: {:?}", e)))?;
+            // Get the result from the scope
+            let result = scope
+                .globals
+                .get_item("result", vm)
+                .map_err(|e| Error::TemplateError(format!("Failed to get result: {:?}", e)))?;
 
-        // Convert Python string to Rust string
-        let result_str: String = result
-            .try_into_value(vm)
-            .map_err(|e| Error::TemplateError(format!("Failed to convert result: {:?}", e)))?;
+            // Convert Python string to Rust string
+            let result_str: String = result
+                .try_into_value(vm)
+                .map_err(|e| Error::TemplateError(format!("Failed to convert result: {:?}", e)))?;
 
-        Ok(result_str)
-    })
+            Ok(result_str)
+        })
 }
 
 #[cfg(test)]
@@ -758,9 +893,8 @@ mod tests {
             .expect("chat_template not found");
 
         // Load the input data from the fixture file
-        let input_data =
-            std::fs::read_to_string("tests/fixtures/test_jinja_input_data.json")
-                .expect("Failed to read input data fixture");
+        let input_data = std::fs::read_to_string("tests/fixtures/test_jinja_input_data.json")
+            .expect("Failed to read input data fixture");
 
         // Render the template
         let result = render_template_jinja(chat_template, &input_data);
@@ -783,15 +917,94 @@ mod tests {
             rendered.contains("<|im_end|>"),
             "Output should contain im_end token"
         );
-        assert!(
-            rendered.contains("user"),
-            "Output should contain user role"
-        );
+        assert!(rendered.contains("user"), "Output should contain user role");
         assert!(
             rendered.contains("<tools>"),
             "Output should contain tools section since tools are provided"
         );
 
         println!("Rendered template:\n{}", rendered);
+    }
+
+    #[test]
+    fn test_validate_jinja_template_valid() {
+        let template = "Hello, {{ name }}!";
+        assert!(validate_jinja_template(template).is_ok());
+    }
+
+    #[test]
+    fn test_validate_jinja_template_with_blocks() {
+        let template = "{% if show %}visible{% endif %}";
+        assert!(validate_jinja_template(template).is_ok());
+    }
+
+    #[test]
+    fn test_validate_jinja_template_nested() {
+        let template = r#"{% for item in items %}{% if item %}{{ item }}{% endif %}{% endfor %}"#;
+        assert!(validate_jinja_template(template).is_ok());
+    }
+
+    #[test]
+    fn test_validate_jinja_template_unclosed_variable() {
+        let template = "Hello, {{ name";
+        assert!(validate_jinja_template(template).is_err());
+    }
+
+    #[test]
+    fn test_validate_jinja_template_unclosed_block() {
+        let template = "{% if show %}visible";
+        assert!(validate_jinja_template(template).is_err());
+    }
+
+    #[test]
+    fn test_validate_qwen_chat_template() {
+        // Load the template from the fixture file
+        let template_json: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string("tests/fixtures/test_jinja_template.json")
+                .expect("Failed to read template fixture"),
+        )
+        .expect("Failed to parse template JSON");
+
+        let chat_template = template_json["chat_template"]
+            .as_str()
+            .expect("chat_template not found");
+
+        // The complex Qwen template should validate successfully
+        let result = validate_jinja_template(chat_template);
+        assert!(
+            result.is_ok(),
+            "Qwen template validation failed: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_detect_template_type_jinja() {
+        let template = "Hello, {{ name }}!";
+        assert!(matches!(
+            TemplateType::detect_from_source(template),
+            TemplateType::Jinja
+        ));
+    }
+
+    #[test]
+    fn test_detect_template_type_qwen() {
+        // Load the template from the fixture file
+        let template_json: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string("tests/fixtures/test_jinja_template.json")
+                .expect("Failed to read template fixture"),
+        )
+        .expect("Failed to parse template JSON");
+
+        let chat_template = template_json["chat_template"]
+            .as_str()
+            .expect("chat_template not found");
+
+        // The complex Qwen template should be detected as Jinja
+        let detected = TemplateType::detect_from_source(chat_template);
+        assert!(
+            matches!(detected, TemplateType::Jinja),
+            "Qwen template should be detected as Jinja, got Unknown"
+        );
     }
 }

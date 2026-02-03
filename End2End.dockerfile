@@ -10,7 +10,7 @@ ENV LC_ALL=en_US.UTF-8
 ENV DISPLAY=0
 ENV CARGO_HOME="/usr/local/cargo"
 ENV RUSTUP_HOME="/usr/local/rustup"
-ENV PATH="/usr/local/cargo/bin:/opt/go/latest/:$PATH"
+ENV PATH="/usr/local/cargo/bin:/opt/go/latest/:/root/.local/bin:$PATH"
 
 # Later versions of the tauri-LLM-plugin will not depend on Go.
 ENV GO_VERSION=1.25.5.linux
@@ -48,6 +48,15 @@ RUN npm install -g pnpm
 
 RUN apt-get install -y locales-all locales
 RUN update-locale
+
+# Install UV
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install python
+RUN uv python install
+
+# Install Huggingface CLI
+RUN uv venv && . .venv/bin/activate && curl -LsSf https://hf.co/cli/install.sh | bash
 
 RUN printf "crabnebula-testing" > /etc/hostname
 
