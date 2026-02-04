@@ -42,6 +42,8 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
         tools: vec![],
         config: Some(QueryConfig {
             generate_num_samples: 100,
+            temperature: None,
+            model: None,
         }),
         chunk_size: Some(10),
         timestamp: None,
@@ -66,6 +68,8 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
         tools: vec![],
         config: Some(QueryConfig {
             generate_num_samples: 100,
+            temperature: None,
+            model: None,
         }),
         chunk_size: Some(10),
         timestamp: None,

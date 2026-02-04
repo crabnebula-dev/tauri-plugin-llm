@@ -13,7 +13,6 @@ This Tauri plugin allows loading and running inference on various large language
 # Requirements
 
 - Rust >= 1.77
-- Go >= 1.20 
 
 # Install
 
@@ -67,32 +66,30 @@ let mut runtime = LLMRuntime::from_config(config)?;
 
 // Starting the runtime. This will internally initialize the model and 
 // then run inference on the model on the incoming message.
-runtime.run();
+runtime.run_stream()?;
 
-if let Err(_) = runtime.send(
-
-    // We will send a simple text prompt and instruct the model to just return anything we wrote
-    Query::Prompt {
+// You would run the following code in a loop. This example shows 
+// how to get individual chunks of the response. 
+if let Err(_) = runtime.send_stream(Query::Prompt {
     messages: vec![QueryMessage {
         role: "user".to_string(),
-        content: "Hello, World".to_string() },
+        content: "Hello, World".to_string(), },
         QueryMessage {
         role: "system".to_string(),
-        content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string()},
+        content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(), },
     ],
     tools: vec![],
     config: Some(QueryConfig::default()),
+    chunk_size : None, timestamp : None
 }) {
-    loop {
-        // We can continously check, if a message from the model is available
-        if let Ok(message) = runtime.retry_recv() {
-            tracing::info!("Received Message : {:?}", message);
-            break;
-        }
+    while let Ok(message) = runtime.recv_stream() {
+        assert!(matches!(message, Query::Chunk { ..} | Query::End));
+        break;
     }
 }
-
+    
 Ok(())
+
 ```
 
 

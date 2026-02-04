@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, usize, vec};
+use std::vec;
 
 use tauri_plugin_llm::{
     runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryConfig, QueryMessage,
@@ -49,6 +49,8 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
 #[tokio::test]
 #[ignore = "Load the LLama3.2 model first, then run the test manually"]
 async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
+    enable_logging();
+
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_llama3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
@@ -71,10 +73,24 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
 
     assert!(result.is_ok(), "{result:?}");
 
+    let mut result = vec![];
+
     while let Ok(message) = runtime.recv_stream() {
         assert!(matches!(message, Query::Chunk { .. } | Query::End));
-        break;
+
+        match message {
+            Query::Chunk { data, .. } => result.extend(data),
+            _ => break,
+        }
+
+        tracing::debug!("Waiting for message ..");
     }
+
+    let result_str = String::from_utf8(result);
+    assert!(result_str.is_ok());
+
+    let s = result_str.unwrap();
+    tracing::debug!("Received LLama3.2 Response: {s}");
 
     Ok(())
 }

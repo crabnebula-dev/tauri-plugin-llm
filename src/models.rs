@@ -54,6 +54,8 @@ pub enum Query {
 #[serde(default)]
 pub struct QueryConfig {
     pub generate_num_samples: usize,
+    pub temperature: Option<f32>,
+    pub model: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -96,6 +98,8 @@ impl Default for QueryConfig {
     fn default() -> Self {
         QueryConfig {
             generate_num_samples: 500,
+            temperature: None,
+            model: None,
         }
     }
 }

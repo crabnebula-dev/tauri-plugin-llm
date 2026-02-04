@@ -1,15 +1,61 @@
 version: "3"
 
-includes:
-  model: 
-    taskfile: ./taskfile_model.yml
-
-  testing: 
-    taskfile: ./taskfile_testing.yml
+env:
+  CONTAINER_RUNTIME: container
+  CONTAINER_IMAGE_TAG: container-tauri-plugin-llm
 
 tasks:
   default:
-    desc: Shows all tasks available
     silent: true
+    desc: Shows all available tasks
     cmds:
-      - task -a
+      - task --list-all
+
+  build_container:
+    silent: true
+    desc: Builds the container for Tauri tests
+    cmds:
+      - container build -f End2End.dockerfile -t $CONTAINER_IMAGE_TAG .
+
+  container:
+    silent: true
+    desc: Debugging task to enter the container
+    cmds:
+      - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash
+
+  fetch_llama3.2_instruct:
+    silent: true
+    vars:
+      HF_TOKEN: 
+        sh: security find-generic-password -a "huggingface-token" -w
+      MODEL: "meta-llama/Llama-3.2-3B-Instruct"
+    cmds:
+      - task: fetch
+        vars:
+          HF_TOKEN: "{{.HF_TOKEN}}"
+          MODEL: "{{.MODEL}}"
+
+  fetch:
+    silent: true
+    desc: Download "meta-llama/Llama-3.2-3B-Instruct". Requires HF token!
+    requires:
+      vars: [HF_TOKEN, MODEL]
+    cmds:
+      - echo "{{.MODEL}}"
+      - $CONTAINER_RUNTIME run -ti --rm -v $(pwd)/models:/models --env HF_TOKEN="{{.HF_TOKEN}}" --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash -c "hf download --cache-dir /models {{.MODEL}}" 
+
+  tests:
+    silent: true
+    desc: Runs all end to end tests
+    cmds:
+      - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG task 'testing:run_tests'
+
+  run_tests:
+    silent: true
+    desc: (CONTAINER) Execute End to End Tests
+    dir: /testing/examples/tauri-app/test/specs
+    env:
+      DISPLAY: 0
+    cmds:
+      - xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' bash -c 'pnpm build; pnpm test'
+  

@@ -11,16 +11,20 @@ use crate::{runtime::qwen3::Qwen3Model, LLMRuntimeConfig, ModelConfig};
 use anyhow::Result;
 use candle_core::Device;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, RwLock};
 use tauri::{AppHandle, Runtime};
 
+#[allow(clippy::type_complexity)]
 pub struct LLMRuntime {
     model: Option<Box<dyn LLMRuntimeModel>>,
     config: LLMRuntimeConfig,
 
-    worker: Option<tauri::async_runtime::JoinHandle<()>>,
-    control: (Sender<Query>, Option<Receiver<Query>>),
-    response: (Arc<Sender<Query>>, Receiver<Query>),
+    worker: Arc<RwLock<Option<tauri::async_runtime::JoinHandle<()>>>>,
+    control: (
+        Arc<RwLock<Sender<Query>>>,
+        Arc<Mutex<Option<Receiver<Query>>>>,
+    ),
+    response: (Arc<Sender<Query>>, Arc<Mutex<Receiver<Query>>>),
 }
 
 impl LLMRuntime {
@@ -56,8 +60,10 @@ pub trait LLMRuntimeModel: Send + Sync {
 
 impl Drop for LLMRuntime {
     fn drop(&mut self) {
-        if let Err(err) = self.control.0.send(Query::Exit) {
-            tracing::error!("Unable to send Exit signal to LLMRuntime: {}", err);
+        if let Ok(ctrl_tx) = self.control.0.read() {
+            if let Err(err) = ctrl_tx.send(Query::Exit) {
+                tracing::error!("Unable to send Exit signal to LLMRuntime: {}", err);
+            }
         }
     }
 }
@@ -78,9 +84,15 @@ impl LLMRuntime {
             model: Some(model),
             config,
 
-            worker: None,
-            control: (ctrl_tx, Some(ctrl_rx)),
-            response: (Arc::new(response_stream_tx), response_stream_rx),
+            worker: Arc::new(RwLock::new(None)),
+            control: (
+                Arc::new(RwLock::new(ctrl_tx)),
+                Arc::new(Mutex::new(Some(ctrl_rx))),
+            ),
+            response: (
+                Arc::new(response_stream_tx),
+                Arc::new(Mutex::new(response_stream_rx)),
+            ),
         })
     }
 
@@ -169,6 +181,8 @@ impl LLMRuntime {
     pub fn shutdown(&self) {
         self.control
             .0
+            .read()
+            .expect("Failed to acquire read lock")
             .send(Query::Exit)
             .expect("Error sending exit message")
     }
@@ -228,7 +242,13 @@ impl LLMRuntime {
         let mut model = self.model.take().unwrap();
         let config = self.config.clone();
 
-        let control_rx = self.control.1.take().unwrap();
+        let control_rx = self
+            .control
+            .1
+            .lock()
+            .expect("Failed to acquire lock")
+            .take()
+            .unwrap();
 
         let response_tx = self.response.0.clone();
 
@@ -266,7 +286,7 @@ impl LLMRuntime {
             }
         });
 
-        self.worker = Some(worker);
+        *self.worker.write().expect("Failed to acquire write lock") = Some(worker);
 
         Ok(())
     }
@@ -274,6 +294,8 @@ impl LLMRuntime {
     pub fn send_stream(&self, msg: Query) -> Result<(), Error> {
         self.control
             .0
+            .read()
+            .map_err(|e| Error::ExecutionError(e.to_string()))?
             .send(msg)
             .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
@@ -283,6 +305,8 @@ impl LLMRuntime {
     pub fn recv_stream(&self) -> Result<Query, Error> {
         self.response
             .1
+            .lock()
+            .map_err(|e| Error::StreamError(e.to_string()))?
             .recv()
             .map_err(|e| Error::StreamError(e.to_string()))
     }

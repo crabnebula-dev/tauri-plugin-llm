@@ -72,9 +72,11 @@ impl LLMRuntimeModel for Qwen3Model {
 
         self.template_proc = if tokenizer_config_file.is_some() && self.template.is_some() {
             Some(TemplateProcessor::with_jinja_template())
-        } else if template_file.is_some() {
-            Some(TemplateProcessor::with_go_template())
-        } else {
+        }
+        // else if template_file.is_some() {
+        //     Some(TemplateProcessor::with_go_template())
+        // }
+        else {
             None
         };
 
@@ -208,8 +210,12 @@ impl LLMRuntimeModel for Qwen3Model {
 
             let QueryConfig {
                 generate_num_samples,
+                temperature: _,
+                model: _,
             } = config.unwrap_or(QueryConfig {
                 generate_num_samples: 5000,
+                temperature: None,
+                model: None,
             });
 
             tracing::debug!("Processing Message: {:?}", message);
