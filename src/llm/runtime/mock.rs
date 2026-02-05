@@ -63,7 +63,7 @@ impl LLMRuntimeModel for Mock {
             };
 
             mock_message_bytes
-                .into_iter()
+                .iter()
                 .chunks(chunk_size)
                 .enumerate()
                 .try_for_each(|(id, chunk)| {

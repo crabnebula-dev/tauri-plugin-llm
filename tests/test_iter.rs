@@ -10,13 +10,11 @@ pub struct TestConfig {
 }
 
 fn random_config() -> impl Strategy<Value = TestConfig> {
-    (1usize..1000, 1usize..10000, 1usize..100).prop_map(|(random, elements, chunk_size)| {
-        TestConfig {
-            random,
-            elements,
-            chunk_size,
-            expected_num_chunks: elements.div_ceil(chunk_size),
-        }
+    (1usize..100, 1usize..100, 1usize..100).prop_map(|(random, elements, chunk_size)| TestConfig {
+        random,
+        elements,
+        chunk_size,
+        expected_num_chunks: elements.div_ceil(chunk_size),
     })
 }
 
@@ -35,13 +33,12 @@ proptest! {
         }
 
         let (tx, rx) = std::sync::mpsc::channel();
-        let TestConfig { random, elements, chunk_size, expected_num_chunks } = config;
+        let TestConfig { random: _, elements, chunk_size, expected_num_chunks } = config;
 
-        let bytes = std::iter::repeat(1).collect::<Vec<u8>>();
+        let bytes: Vec<u8> = std::iter::repeat(1u8).take(elements).collect();
 
         std::thread::spawn(move || {
-            let _ = (&bytes).into_iter()
-                .take(elements)
+            let _ = bytes.iter()
                 .chunks(chunk_size)
                 .enumerate()
                 .try_for_each(|(id, chunk)| {

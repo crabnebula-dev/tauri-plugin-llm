@@ -10,9 +10,10 @@
 /// ```
 /// use tauri_plugin_llm::iter::*;
 ///
+/// // With owned values, use into_iter()
 /// let numbers: Vec<Vec<i32>> = (1..=10)
 ///     .chunks(3)
-///     .map(|chunk| chunk.cloned().collect())
+///     .map(|chunk| chunk.into_iter().collect())
 ///     .collect();
 ///
 /// assert_eq!(numbers, vec![
@@ -21,6 +22,15 @@
 ///     vec![7, 8, 9],
 ///     vec![10],
 /// ]);
+///
+/// // With references, use cloned() to get owned values
+/// let data = vec![1, 2, 3, 4, 5];
+/// let chunks: Vec<Vec<i32>> = data.iter()
+///     .chunks(2)
+///     .map(|chunk| chunk.cloned().collect())
+///     .collect();
+///
+/// assert_eq!(chunks, vec![vec![1, 2], vec![3, 4], vec![5]]);
 /// ```
 pub trait IntoIterChunks: Iterator + Sized {
     /// Groups iterator items into chunks of the specified size.
@@ -77,21 +87,29 @@ pub struct Chunk<T> {
     items: Vec<T>,
 }
 
+impl<T> IntoIterator for Chunk<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.items.into_iter()
+    }
+}
+
 impl<'a, T: Clone> Chunk<&'a T> {
-    /// Returns an iterator over the items in this chunk.
-    ///
-    /// Consumes the chunk and yields owned values.
+    /// Returns an iterator that clones each referenced item.
     ///
     /// # Example
     ///
     /// ```
     /// use tauri_plugin_llm::iter::IntoIterChunks;
     ///
-    /// let chunk = (1..=3).chunks(3).next().unwrap();
+    /// let data = vec![1, 2, 3];
+    /// let chunk = data.iter().chunks(3).next().unwrap();
     /// let items: Vec<i32> = chunk.cloned().collect();
     /// assert_eq!(items, vec![1, 2, 3]);
     /// ```
     pub fn cloned(self) -> impl Iterator<Item = T> + use<'a, T> {
-        self.items.into_iter().map(|c| c.clone())
+        self.items.into_iter().cloned()
     }
 }
