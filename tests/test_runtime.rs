@@ -125,6 +125,8 @@ async fn test_runtime_mock() -> Result<(), Error> {
 
 #[tokio::test]
 async fn test_runtime_mock_streaming() -> Result<(), Error> {
+    enable_logging();
+    
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_mock.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 

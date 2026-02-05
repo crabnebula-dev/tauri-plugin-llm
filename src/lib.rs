@@ -7,6 +7,7 @@ mod llm;
 mod mobile;
 mod models;
 
+pub mod iter;
 mod templates;
 
 pub use templates::*;

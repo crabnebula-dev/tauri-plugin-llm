@@ -1,4 +1,4 @@
-use crate::{runtime::LLMRuntimeModel, Query, QueryMessage};
+use crate::{iter::*, runtime::LLMRuntimeModel, Query, QueryMessage};
 use std::sync::Arc;
 
 pub struct Mock;
@@ -14,6 +14,7 @@ impl LLMRuntimeModel for Mock {
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
     ) -> anyhow::Result<(), crate::Error> {
         tracing::debug!("Run Inference");
+
         // Run inference internally
         let usage = self.inference(message, response_tx.clone())?;
 
@@ -60,45 +61,29 @@ impl LLMRuntimeModel for Mock {
                     }
                 }
             };
-            let mut chunks = Vec::with_capacity(chunk_size);
-            let mut id = 0usize;
 
-            for item in mock_message_bytes {
-                chunks.push(*item);
-
-                if chunks.len().eq(&chunk_size) {
-                    tracing::debug!("Sending Chunk");
+            mock_message_bytes
+                .into_iter()
+                .chunks(chunk_size)
+                .enumerate()
+                .try_for_each(|(id, chunk)| {
+                    let data: Vec<u8> = chunk.cloned().collect();
 
                     let chunk = crate::Query::Chunk {
                         id,
-                        data: chunks.to_vec(),
+                        data,
                         kind: crate::QueryChunkType::String,
                         timestamp,
                     };
 
-                    response_tx
-                        .send(chunk)
-                        .map_err(|e| crate::Error::StreamError(e.to_string()))?;
+                    // tracing::info!("Sending Chunk ({id}): {chunk:?}");
 
-                    chunks.truncate(0);
-                    id += 1;
-                }
-            }
+                    if let Err(error) = response_tx.send(chunk) {
+                        return Err(crate::Error::StreamError(error.to_string()));
+                    }
 
-            if !chunks.is_empty() {
-                tracing::debug!("Sending Last Chunk");
-
-                let chunk = crate::Query::Chunk {
-                    id: id + 1,
-                    data: chunks.to_vec(),
-                    kind: crate::QueryChunkType::String,
-                    timestamp,
-                };
-
-                response_tx
-                    .send(chunk)
-                    .map_err(|e| crate::Error::StreamError(e.to_string()))?;
-            }
+                    Ok(())
+                })?;
 
             let completion_tokens = mock_message_bytes.len();
 
