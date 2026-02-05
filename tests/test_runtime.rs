@@ -165,7 +165,12 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
                 matches!(message, Query::Chunk { .. } | Query::End { .. }),
                 "{message:?}"
             );
-            break;
+
+            // Wait for Query::End before processing the next query to avoid
+            // dropping the channel while the worker is still sending
+            if matches!(message, Query::End { .. }) {
+                break;
+            }
         }
     }
 
