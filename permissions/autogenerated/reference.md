@@ -8,7 +8,6 @@ Default permissions for the plugin
 - `allow-switch-model`
 - `allow-list-available-models`
 - `allow-add-configuration`
-- `allow-health-check`
 
 ## Permission Table
 

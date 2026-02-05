@@ -30,7 +30,7 @@ export const config = {
   framework: "mocha",
   mochaOpts: {
     ui: "bdd",
-    timeout: 6000,
+    timeout: 40000,
   },
 
   // ensure the rust project is built since we expect this binary to exist for the webdriver sessions

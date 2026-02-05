@@ -56,7 +56,9 @@ class LLMStreamListener {
             }
         });
         const unlistenEnd = await listen('query-stream-end', (event) => {
-            callb.onEnd();
+            const message = event.payload;
+            const usage = message?.type === 'End' ? message.usage : undefined;
+            callb.onEnd(usage);
         });
         this.unListeners = [unlistenData, unlistenError, unlistenEnd];
     }
@@ -177,9 +179,6 @@ class LLMStreamListener {
      */
     async addConfiguration(config) {
         await invoke("plugin:llm|add_configuration", { config });
-    }
-    async healthCheck() {
-        return await invoke("plugin:llm|health_check");
     }
 }
 

@@ -1,6 +1,8 @@
 <script>
   import { LLMStreamListener } from "tauri-plugin-llm-api";
 
+  // /** @type {import("tauri-plugin-llm-api").TokenUsage | undefined} */
+  // let promptTokenUsage = $state(undefined);
   let promptMsg = $state("");
   let promptRes = $state("");
   let modelsList = $state("");
@@ -17,18 +19,16 @@
           "\n\n" +
           promptRes;
       },
-      onEnd: () => console.log("end"),
+      onEnd: (usage) => {
+        //promptTokenUsage = usage;
+        console.log("end: ", usage);
+      },
       onError: (msg) => console.error("error", msg),
     });
     console.log("LLMStreamListener setup complete");
   }
 
   async function send() {
-    const healthResult = await llm.healthCheck().catch((e) => {
-      console.error(e);
-    });
-    console.log("Health check result:", healthResult);
-
     await llm
       .stream({
         type: "Prompt",
@@ -40,7 +40,9 @@
           },
           {
             role: "user",
-            content: promptMsg || "Hello World! Echo this message",
+            content:
+              promptMsg ||
+              "Hello World! Echo this message And return something useful, that can be read in the response",
           },
         ],
         tools: [],
@@ -93,6 +95,11 @@
     <button id="prompt-send-btn" onclick={send}> Prompt </button>
   </div>
   <p id="prompt-response">{promptRes}</p>
+  <!-- <p id="prompt-token-usage">
+    {promptTokenUsage
+      ? `prompt: ${promptTokenUsage.prompt_tokens}, completion: ${promptTokenUsage.completion_tokens}, total: ${promptTokenUsage.total_tokens}`
+      : "No Prompt Token Usage has been provided"}
+  </p> -->
 
   <div class="row">
     <button id="list-models-btn" onclick={listModels}> List Models </button>

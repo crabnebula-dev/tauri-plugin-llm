@@ -33,6 +33,20 @@ describe("End to end tests", () => {
       }
     );
 
+    // const promptTokenUsage = await $("p#prompt-token-usage");
+    // await promptTokenUsage.waitUntil(
+    //   async function () {
+    //     let text = await this.getText();
+
+    //     return text !== "";
+    //   },
+    //   {
+    //     timeout: 60000,
+    //     timeoutMsg: "expected token usage from backend events after 60s",
+    //     interval: 1000,
+    //   }
+    // );
+
     // Verify the response contains the echoed message
     // Mock runtime returns the user message content in chunks
     if (process.platform !== "linux") {

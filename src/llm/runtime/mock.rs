@@ -17,6 +17,8 @@ impl LLMRuntimeModel for Mock {
         // Run inference internally
         let usage = self.inference(message, response_tx.clone())?;
 
+        tracing::debug!("Inference ended. Got {usage:?}");
+
         // inference is done, so we have to indicate the end
         response_tx
             .send(crate::Query::End { usage })
@@ -81,6 +83,21 @@ impl LLMRuntimeModel for Mock {
                     chunks.truncate(0);
                     id += 1;
                 }
+            }
+
+            if !chunks.is_empty() {
+                tracing::debug!("Sending Last Chunk");
+
+                let chunk = crate::Query::Chunk {
+                    id: id + 1,
+                    data: chunks.to_vec(),
+                    kind: crate::QueryChunkType::String,
+                    timestamp,
+                };
+
+                response_tx
+                    .send(chunk)
+                    .map_err(|e| crate::Error::StreamError(e.to_string()))?;
             }
 
             let completion_tokens = mock_message_bytes.len();
