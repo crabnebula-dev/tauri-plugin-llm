@@ -72,6 +72,18 @@ pub enum QueryChunkType {
     Bytes,
 }
 
+/// Metrics on actual token usage
+pub struct TokenUsage {
+    /// The number of input tokens
+    pub prompt: usize,
+
+    /// The number of tokens generated
+    pub completion: usize,
+
+    /// the total number of tokens used (prompt + completion)
+    pub total: usize,
+}
+
 impl Query {
     /// Applies [`Self`] with the given template and returns the rendered version as String
     pub fn apply_template(&self, template: &str, tp: &TemplateProcessor) -> Result<String, Error> {
