@@ -21,6 +21,7 @@ export type Query = {
     timestamp?: number;
 } | {
     type: "End";
+    usage: TokenUsage;
 } | {
     type: "Exit";
 } | {
@@ -34,10 +35,15 @@ export interface QueryMessage {
     role: string;
     content: string;
 }
+export interface TokenUsage {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+}
 export interface CallBacks {
     onData: (id: number, data: Uint8Array, timestamp?: number) => void;
     onError: (msg: string) => void;
-    onEnd: () => void;
+    onEnd: (usage?: TokenUsage) => void;
 }
 /**
  * Manages LLM stream event listeners and handles communication with the backend.
@@ -175,5 +181,4 @@ export declare class LLMStreamListener {
      * ```
      */
     addConfiguration(config: string): Promise<void>;
-    healthCheck(): Promise<string>;
 }

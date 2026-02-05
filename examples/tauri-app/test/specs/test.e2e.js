@@ -47,6 +47,60 @@ describe("End to end tests", () => {
     }
   });
 
+  it("should receive token usage after stream ends", async () => {
+    // This test verifies that TokenUsage is reported via onEnd after streaming:
+    // 1. Send a prompt to trigger the stream
+    // 2. Wait for the streamed response to appear
+    // 3. Verify that token usage (prompt_tokens, completion_tokens, total_tokens) is displayed
+
+    const promptInput = await $("input#prompt-input");
+    const promptButton = await $("button#prompt-send-btn");
+
+    if (process.platform !== "linux") {
+      await promptInput.setValue("Token usage test message");
+    }
+
+    await promptButton.click();
+
+    // Wait for the streamed response first
+    const promptResponse = await $("p#prompt-response");
+    await promptResponse.waitUntil(
+      async function () {
+        return (await this.getText()) !== "";
+      },
+      {
+        timeout: 60000,
+        timeoutMsg: "expected response from backend events after 60s",
+        interval: 1000,
+      }
+    );
+
+    // Wait for token usage to be populated with actual values
+    const promptTokenUsage = await $("p#prompt-token-usage");
+    await promptTokenUsage.waitUntil(
+      async function () {
+        const text = await this.getText();
+        return text.includes("prompt:");
+      },
+      {
+        timeout: 60000,
+        timeoutMsg: "expected token usage from backend events after 60s",
+        interval: 1000,
+      }
+    );
+
+    // Verify the token usage contains expected fields
+    await expect(promptTokenUsage).toHaveText(
+      expect.stringContaining("prompt:")
+    );
+    await expect(promptTokenUsage).toHaveText(
+      expect.stringContaining("completion:")
+    );
+    await expect(promptTokenUsage).toHaveText(
+      expect.stringContaining("total:")
+    );
+  });
+
   it("should list available models via listAvailableModels()", async () => {
     // This test verifies the listAvailableModels backend function:
     // 1. Button click triggers llm.listAvailableModels() call

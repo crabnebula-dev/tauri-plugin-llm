@@ -1,5 +1,6 @@
 use std::vec;
 
+use proptest::prelude::*;
 use tauri_plugin_llm::{
     runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryConfig, QueryMessage,
 };
@@ -76,7 +77,7 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
     let mut result = vec![];
 
     while let Ok(message) = runtime.recv_stream() {
-        assert!(matches!(message, Query::Chunk { .. } | Query::End));
+        assert!(matches!(message, Query::Chunk { .. } | Query::End { .. }));
 
         match message {
             Query::Chunk { data, .. } => result.extend(data),
@@ -115,7 +116,7 @@ async fn test_runtime_mock() -> Result<(), Error> {
         chunk_size : None, timestamp : None
     }) {
         while let Ok(message) = runtime.recv_stream() {
-            assert!(matches!(message, Query::Chunk { ..} | Query::End));
+            assert!(matches!(message, Query::Chunk { .. } | Query::End { .. }));
             break;
         }
     }
@@ -159,7 +160,7 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
             // we check for Query::Chunk and Query::End, because Query::End will be send after the
             // the first query has been responded.
             assert!(
-                matches!(message, Query::Chunk { .. } | Query::End),
+                matches!(message, Query::Chunk { .. } | Query::End { .. }),
                 "{message:?}"
             );
             break;
@@ -257,4 +258,75 @@ async fn test_switching_runtimes() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+fn random_query_message() -> impl Strategy<Value = QueryMessage> {
+    (prop_oneof![Just("system"), Just("assistant")], ".{1,1000}").prop_map(|(role, content)| {
+        QueryMessage {
+            role: role.to_string(),
+            content,
+        }
+    })
+}
+
+fn random_prompt_with_user_message() -> impl Strategy<Value = (QueryMessage, Vec<QueryMessage>)> {
+    (
+        // guarantee exactly one "user" message
+        ".{1,1000}".prop_map(|content| QueryMessage {
+            role: "user".to_string(),
+            content,
+        }),
+        // 0–4 additional messages with any role
+        prop::collection::vec(random_query_message(), 0..4),
+    )
+        .prop_map(|(user_msg, mut others)| {
+            others.insert(0, user_msg.clone());
+            (user_msg, others)
+        })
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 100,
+        failure_persistence: Some(Box::new(proptest::test_runner::FileFailurePersistence::WithSource("proptest-regressions"))),
+        .. ProptestConfig::default()
+    })]
+    #[test]
+    fn test_mock_token_usage(messages in random_prompt_with_user_message()) {
+        let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_mock.json").unwrap();
+        let mut runtime = LLMRuntime::from_config(config).unwrap();
+        runtime.run_stream().unwrap();
+
+        let (user_msg, messages) = messages;
+        let expected_prompt_tokens = serde_json::to_vec(&messages).unwrap().len();
+        let user_content = user_msg.content.clone();
+        let expected_completion_tokens = user_content.len();
+
+        runtime
+            .send_stream(Query::Prompt {
+                messages,
+                tools: vec![],
+                config: Some(QueryConfig::default()),
+                chunk_size: None,
+                timestamp: None,
+            })
+            .unwrap();
+
+        while let Ok(message) = runtime.recv_stream() {
+            match message {
+                Query::Chunk { .. } => {}
+                Query::End { usage } => {
+
+                    let usage = usage.expect("No token usage generated");
+                    prop_assert_eq!(usage.prompt_tokens, expected_prompt_tokens);
+                    prop_assert_eq!(usage.completion_tokens, expected_completion_tokens);
+                    prop_assert_eq!(usage.total_tokens, expected_prompt_tokens + expected_completion_tokens);
+
+                    break;
+                }
+                other => panic!("Unexpected message: {other:?}"),
+            }
+        }
+
+    }
 }

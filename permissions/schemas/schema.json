@@ -367,10 +367,10 @@
           "markdownDescription": "Denies the switch_model command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`\n- `allow-switch-model`\n- `allow-list-available-models`\n- `allow-add-configuration`\n- `allow-health-check`",
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`\n- `allow-switch-model`\n- `allow-list-available-models`\n- `allow-add-configuration`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`\n- `allow-switch-model`\n- `allow-list-available-models`\n- `allow-add-configuration`\n- `allow-health-check`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-stream`\n- `allow-switch-model`\n- `allow-list-available-models`\n- `allow-add-configuration`"
         }
       ]
     }

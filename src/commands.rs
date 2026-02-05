@@ -71,10 +71,10 @@ where
                     app.emit(&event, msg)
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
                 }
-                Query::End => {
+                Query::End { .. } => {
                     tracing::debug!("Reached end of stream");
                     let event = query.try_render_as_event_name()?;
-                    app.emit(&event, "")
+                    app.emit(&event, query)
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
                     break;
