@@ -264,7 +264,6 @@ impl LLMRuntime {
             }
 
             loop {
-                // TODO blocking wait for message
                 match control_rx.recv() {
                     Ok(message) => {
                         tracing::debug!("Sending message to model");

@@ -76,8 +76,6 @@ impl LLMRuntimeModel for Mock {
                         timestamp,
                     };
 
-                    // tracing::info!("Sending Chunk ({id}): {chunk:?}");
-
                     if let Err(error) = response_tx.send(chunk) {
                         return Err(crate::Error::StreamError(error.to_string()));
                     }
