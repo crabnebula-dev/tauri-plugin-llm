@@ -48,6 +48,7 @@ tasks:
     silent: true
     desc: Runs all end to end tests
     cmds:
+      - cargo test --all
       - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG task 'run_tests'
 
   run_tests:
