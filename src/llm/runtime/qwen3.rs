@@ -3,7 +3,9 @@ use std::sync::Arc;
 
 use crate::error::Error;
 use crate::runtime::{LLMRuntimeModel, Query};
-use crate::{LLMRuntimeConfig, ModelConfig, QueryConfig, TemplateProcessor, TokenizerConfig};
+use crate::{
+    LLMRuntimeConfig, ModelConfig, QueryConfig, TemplateProcessor, TokenUsage, TokenizerConfig,
+};
 use candle_core::Device;
 use candle_core::{quantized::gguf_file, Tensor};
 use candle_transformers::{
@@ -72,11 +74,7 @@ impl LLMRuntimeModel for Qwen3Model {
 
         self.template_proc = if tokenizer_config_file.is_some() && self.template.is_some() {
             Some(TemplateProcessor::with_jinja_template())
-        }
-        // else if template_file.is_some() {
-        //     Some(TemplateProcessor::with_go_template())
-        // }
-        else {
+        } else {
             None
         };
 
@@ -157,11 +155,11 @@ impl LLMRuntimeModel for Qwen3Model {
         q: Query,
         response_tx: Arc<std::sync::mpsc::Sender<Query>>,
     ) -> anyhow::Result<(), Error> {
-        self.inference(q, response_tx.clone())?;
+        let usage = self.inference(q, response_tx.clone())?;
 
         tracing::debug!("Qwen3 inference ended. Sending end termination");
         response_tx
-            .send(crate::Query::End)
+            .send(crate::Query::End { usage })
             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
         Ok(())
@@ -174,7 +172,7 @@ impl LLMRuntimeModel for Qwen3Model {
         &mut self,
         message: Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
-    ) -> anyhow::Result<(), Error> {
+    ) -> anyhow::Result<Option<TokenUsage>, Error> {
         tracing::debug!("Qwen3 got message: {:?}", message);
 
         if let Query::Prompt {
@@ -333,9 +331,18 @@ impl LLMRuntimeModel for Qwen3Model {
                 }
             }
 
-            tracing::debug!("Finished inference");
+            let prompt_tokens = tokens.len();
+            let completion_tokens = all_tokens.len();
 
-            return Ok(());
+            tracing::debug!(
+                "Finished inference. Prompt tokens: {prompt_tokens}, Completion tokens: {completion_tokens}"
+            );
+
+            return Ok(Some(TokenUsage {
+                prompt_tokens,
+                completion_tokens,
+                total_tokens: prompt_tokens + completion_tokens,
+            }));
         }
 
         tracing::warn!(
@@ -344,6 +351,6 @@ impl LLMRuntimeModel for Qwen3Model {
             message
         );
 
-        Ok(())
+        Ok(None)
     }
 }

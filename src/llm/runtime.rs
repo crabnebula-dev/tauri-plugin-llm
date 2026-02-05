@@ -48,7 +48,7 @@ pub trait LLMRuntimeModel: Send + Sync {
         &mut self,
         q: crate::Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
-    ) -> Result<(), crate::Error>;
+    ) -> Result<Option<crate::TokenUsage>, crate::Error>;
 
     /// Returns an arbitrary default chunk size.
     ///

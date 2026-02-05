@@ -43,7 +43,9 @@ pub enum Query {
         kind: QueryChunkType,
     },
 
-    End,
+    End {
+        usage: Option<TokenUsage>,
+    },
     Exit,
     Status {
         msg: String,
@@ -73,15 +75,17 @@ pub enum QueryChunkType {
 }
 
 /// Metrics on actual token usage
+#[derive(Debug, Clone, Serialize, Deserialize)]
+
 pub struct TokenUsage {
     /// The number of input tokens
-    pub prompt: usize,
+    pub prompt_tokens: usize,
 
     /// The number of tokens generated
-    pub completion: usize,
+    pub completion_tokens: usize,
 
     /// the total number of tokens used (prompt + completion)
-    pub total: usize,
+    pub total_tokens: usize,
 }
 
 impl Query {
@@ -96,7 +100,7 @@ impl Query {
     pub fn try_render_as_event_name(&self) -> Result<String, Error> {
         match self {
             Query::Chunk { .. } => Ok("query-stream-chunk".to_string()),
-            Query::End => Ok("query-stream-end".to_string()),
+            Query::End { .. } => Ok("query-stream-end".to_string()),
             Query::Status { .. } => Ok("query-stream-error".to_string()),
 
             Query::Prompt { .. } | Query::Response { .. } | Query::Exit => {

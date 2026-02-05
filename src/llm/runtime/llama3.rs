@@ -194,7 +194,7 @@ impl LLMRuntimeModel for LLama3Model {
 
         // send termination
         response_tx
-            .send(crate::Query::End)
+            .send(crate::Query::End { usage: None })
             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
         Ok(())
@@ -204,7 +204,7 @@ impl LLMRuntimeModel for LLama3Model {
         &mut self,
         message: Query,
         response_tx: std::sync::Arc<std::sync::mpsc::Sender<Query>>,
-    ) -> anyhow::Result<(), Error> {
+    ) -> anyhow::Result<Option<crate::TokenUsage>, Error> {
         if let Query::Prompt {
             messages: _,
             tools: _,
@@ -350,7 +350,7 @@ impl LLMRuntimeModel for LLama3Model {
                 }
             }
 
-            return Ok(());
+            return Ok(None);
         }
 
         Err(Error::ExecutionError(

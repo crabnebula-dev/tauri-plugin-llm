@@ -15,11 +15,11 @@ impl LLMRuntimeModel for Mock {
     ) -> anyhow::Result<(), crate::Error> {
         tracing::debug!("Run Inference");
         // Run inference internally
-        self.inference(message, response_tx.clone())?;
+        let usage = self.inference(message, response_tx.clone())?;
 
         // inference is done, so we have to indicate the end
         response_tx
-            .send(crate::Query::End)
+            .send(crate::Query::End { usage })
             .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
         tracing::debug!("Send Query End");
@@ -31,7 +31,7 @@ impl LLMRuntimeModel for Mock {
         &mut self,
         q: crate::Query,
         response_tx: Arc<std::sync::mpsc::Sender<crate::Query>>,
-    ) -> Result<(), crate::Error> {
+    ) -> Result<Option<crate::TokenUsage>, crate::Error> {
         if let Query::Prompt {
             messages,
             tools: _,
@@ -40,7 +40,10 @@ impl LLMRuntimeModel for Mock {
             timestamp,
         } = q
         {
-            let chunk_size = chunk_size.unwrap_or(10);
+            let prompt_tokens = serde_json::to_vec(&messages).map(|v| v.len()).unwrap_or(0);
+
+            let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
+
             let mock_message_bytes = match messages.as_slice() {
                 [] => "No messages for the Mock runtime have been provided.".as_bytes(),
                 [first] => first.content.as_bytes(),
@@ -63,13 +66,16 @@ impl LLMRuntimeModel for Mock {
 
                 if chunks.len().eq(&chunk_size) {
                     tracing::debug!("Sending Chunk");
+
+                    let chunk = crate::Query::Chunk {
+                        id,
+                        data: chunks.to_vec(),
+                        kind: crate::QueryChunkType::String,
+                        timestamp,
+                    };
+
                     response_tx
-                        .send(crate::Query::Chunk {
-                            id,
-                            data: chunks.to_vec(),
-                            kind: crate::QueryChunkType::String,
-                            timestamp,
-                        })
+                        .send(chunk)
                         .map_err(|e| crate::Error::StreamError(e.to_string()))?;
 
                     chunks.truncate(0);
@@ -77,7 +83,13 @@ impl LLMRuntimeModel for Mock {
                 }
             }
 
-            return Ok(());
+            let completion_tokens = mock_message_bytes.len();
+
+            return Ok(Some(crate::TokenUsage {
+                prompt_tokens,
+                completion_tokens,
+                total_tokens: prompt_tokens + completion_tokens,
+            }));
         }
 
         Err(crate::Error::StreamError(

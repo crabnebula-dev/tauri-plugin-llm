@@ -29,6 +29,7 @@ export type Query =
   }
   | {
     type: "End";
+    usage: TokenUsage;
   }
   | {
     type: "Exit";
@@ -37,6 +38,7 @@ export type Query =
     type: "Status";
     msg: string;
   };
+
 
 export interface QueryConfig {
   generate_num_samples: number;
@@ -47,11 +49,17 @@ export interface QueryMessage {
   content: string;
 }
 
+export interface TokenUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
 /// Use this interface to define the callbacks to control the response messages
 export interface CallBacks {
   onData: (id: number, data: Uint8Array, timestamp?: number) => void,
   onError: (msg: string) => void,
-  onEnd: () => void
+  onEnd: (usage?: TokenUsage) => void
 }
 
 /**
@@ -112,7 +120,9 @@ export class LLMStreamListener {
     });
 
     const unlistenEnd = await listen('query-stream-end', (event) => {
-      callb.onEnd();
+      const message = event.payload as Query | null;
+      const usage = message?.type === 'End' ? message.usage : undefined;
+      callb.onEnd(usage);
     });
 
     this.unListeners = [unlistenData, unlistenError, unlistenEnd];
