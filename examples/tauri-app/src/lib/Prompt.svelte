@@ -1,8 +1,8 @@
 <script>
   import { LLMStreamListener } from "tauri-plugin-llm-api";
 
-  // /** @type {import("tauri-plugin-llm-api").TokenUsage | undefined} */
-  // let promptTokenUsage = $state(undefined);
+  /** @type {import("tauri-plugin-llm-api").TokenUsage | undefined} */
+  let promptTokenUsage = $state(undefined);
   let promptMsg = $state("");
   let promptRes = $state("");
   let modelsList = $state("");
@@ -20,7 +20,7 @@
           promptRes;
       },
       onEnd: (usage) => {
-        //promptTokenUsage = usage;
+        promptTokenUsage = usage;
         console.log("end: ", usage);
       },
       onError: (msg) => console.error("error", msg),
@@ -95,11 +95,11 @@
     <button id="prompt-send-btn" onclick={send}> Prompt </button>
   </div>
   <p id="prompt-response">{promptRes}</p>
-  <!-- <p id="prompt-token-usage">
+  <p id="prompt-token-usage">
     {promptTokenUsage
       ? `prompt: ${promptTokenUsage.prompt_tokens}, completion: ${promptTokenUsage.completion_tokens}, total: ${promptTokenUsage.total_tokens}`
       : "No Prompt Token Usage has been provided"}
-  </p> -->
+  </p>
 
   <div class="row">
     <button id="list-models-btn" onclick={listModels}> List Models </button>
