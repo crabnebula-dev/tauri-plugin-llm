@@ -94,3 +94,6 @@ Ok(())
 
 
 
+# License
+
+This software is licensed under the [PolyForm Noncommercial License 1.0.0](./LICENSE_POLYFORM-NONCOM).
