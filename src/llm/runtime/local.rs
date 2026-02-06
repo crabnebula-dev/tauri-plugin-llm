@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::error::Error;
+use crate::iter::IntoIterChunks;
 use crate::loaders::IndexFile;
 use crate::runtime::{LLMRuntimeModel, Query};
 use crate::{
@@ -436,11 +437,7 @@ impl LLMRuntimeModel for LocalRuntime {
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
             };
 
-            let mut all_tokens = vec![];
-            all_tokens.push(next_token);
-
-            let mut chunks = Vec::with_capacity(chunk_size);
-            chunks.push(next_token);
+            let mut all_tokens = vec![next_token];
 
             // Get EOS token
             let eos_token = self
@@ -449,78 +446,83 @@ impl LLMRuntimeModel for LocalRuntime {
                 .and_then(|eos| tokenizer.get_vocab(true).get(eos).copied())
                 .unwrap_or(u32::MAX);
 
-            let mut id = 0;
+            let penalty = self.penalty;
+            let mut index = 0usize;
+            let mut done = false;
+            let mut sample_error: Option<Error> = None;
 
-            // Start sampling
-            for index in 0..generate_num_samples {
-                let input = Tensor::new(&[next_token], device)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?
-                    .unsqueeze(0)
+            // Token iterator: yields tokens until EOS, max_tokens, or error
+            let token_iter = std::iter::once(next_token).chain(std::iter::from_fn(|| {
+                if done || index >= generate_num_samples {
+                    return None;
+                }
+
+                let current_index = index;
+                index += 1;
+
+                let result = (|| -> Result<u32, Error> {
+                    let input = Tensor::new(&[next_token], device)
+                        .map_err(|e| Error::ExecutionError(e.to_string()))?
+                        .unsqueeze(0)
+                        .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
+                    let logits = weights.forward(&input, tokens.len() + current_index)?;
+                    let logits = logits
+                        .squeeze(0)
+                        .map_err(|e| Error::ExecutionError(e.to_string()))?;
+
+                    let start_at = all_tokens.len().saturating_sub(128);
+                    let logits = candle_transformers::utils::apply_repeat_penalty(
+                        &logits,
+                        penalty,
+                        &all_tokens[start_at..],
+                    )
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
-                let logits = weights.forward(&input, tokens.len() + index)?;
-                let logits = logits
-                    .squeeze(0)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
+                    logits_processor
+                        .sample(&logits)
+                        .map_err(|e| Error::ExecutionError(e.to_string()))
+                })();
 
-                // Apply repetition penalty
-                let start_at = all_tokens.len().saturating_sub(128);
-                let logits = candle_transformers::utils::apply_repeat_penalty(
-                    &logits,
-                    self.penalty,
-                    &all_tokens[start_at..],
-                )
-                .map_err(|e| Error::ExecutionError(e.to_string()))?;
-
-                next_token = logits_processor
-                    .sample(&logits)
-                    .map_err(|e| Error::ExecutionError(e.to_string()))?;
-                all_tokens.push(next_token);
-                chunks.push(next_token);
-
-                if chunks.len().eq(&chunk_size) {
-                    let data = match tokenizer.decode(&chunks, true) {
-                        Ok(str) => str.as_bytes().to_vec(),
-                        Err(e) => return Err(Error::ExecutionError(e.to_string())),
-                    };
-
-                    id += 1;
-
-                    tracing::debug!("Sending Chunk");
-
-                    if let Err(e) = response_tx.send(Query::Chunk {
-                        id,
-                        kind: crate::QueryChunkType::String,
-                        data,
-                        timestamp,
-                    }) {
-                        tracing::error!("Error sending chunk: {e}");
-                        return Err(Error::StreamError(e.to_string()));
+                match result {
+                    Ok(token) => {
+                        next_token = token;
+                        all_tokens.push(token);
+                        if token == eos_token {
+                            done = true;
+                        }
+                        Some(token)
                     }
-
-                    chunks.truncate(0);
+                    Err(e) => {
+                        sample_error = Some(e);
+                        None
+                    }
                 }
+            }));
 
-                if next_token == eos_token {
-                    break;
-                }
-            }
+            for (id, chunk) in token_iter.chunks(chunk_size).enumerate() {
+                let chunk_tokens: Vec<u32> = chunk.into_iter().collect();
+                let data = tokenizer
+                    .decode(&chunk_tokens, true)
+                    .map_err(|e| Error::ExecutionError(e.to_string()))?
+                    .as_bytes()
+                    .to_vec();
 
-            // Send remaining chunks
-            if !chunks.is_empty() {
-                let data = match tokenizer.decode(&chunks, true) {
-                    Ok(str) => str.as_bytes().to_vec(),
-                    Err(e) => return Err(Error::ExecutionError(e.to_string())),
-                };
+                tracing::debug!("Sending Chunk {id}");
 
                 if let Err(e) = response_tx.send(Query::Chunk {
-                    id: id + 1,
+                    id,
                     kind: crate::QueryChunkType::String,
                     data,
                     timestamp,
                 }) {
+                    tracing::error!("Error sending chunk: {e}");
                     return Err(Error::StreamError(e.to_string()));
                 }
+            }
+
+            if let Some(e) = sample_error {
+                return Err(e);
             }
 
             let prompt_tokens = tokens.len();
