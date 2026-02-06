@@ -38,15 +38,15 @@ impl LLMRuntimeModel for Mock {
         if let Query::Prompt {
             messages,
             tools: _,
-            config: _,
             chunk_size,
             timestamp,
+            max_tokens: _,
+            temperature: _,
+            model: _,
         } = q
         {
             let prompt_tokens = serde_json::to_vec(&messages).map(|v| v.len()).unwrap_or(0);
-
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
-
             let mock_message_bytes = match messages.as_slice() {
                 [] => "No messages for the Mock runtime have been provided.".as_bytes(),
                 [first] => first.content.as_bytes(),

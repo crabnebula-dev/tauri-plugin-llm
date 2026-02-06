@@ -2,7 +2,7 @@ use std::vec;
 
 use proptest::prelude::*;
 use tauri_plugin_llm::{
-    runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryConfig, QueryMessage,
+    runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryMessage,
 };
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
@@ -32,7 +32,9 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
         },
         ],
         tools: vec![],
-        config: Some(QueryConfig::default()),
+        max_tokens: None,
+            temperature: None,
+            model: None,
         chunk_size : None,
         timestamp : None
     });
@@ -67,7 +69,9 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
         },
         ],
         tools: vec![],
-        config: Some(QueryConfig::default()),
+        max_tokens: None,
+            temperature: None,
+            model: None,
         chunk_size : None,
         timestamp : None
     });
@@ -75,7 +79,7 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
     assert!(result.is_ok(), "{result:?}");
 
     let mut result = vec![];
-
+    tracing::debug!("Assembling message");
     while let Ok(message) = runtime.recv_stream() {
         assert!(matches!(message, Query::Chunk { .. } | Query::End { .. }));
 
@@ -83,8 +87,6 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
             Query::Chunk { data, .. } => result.extend(data),
             _ => break,
         }
-
-        tracing::debug!("Waiting for message ..");
     }
 
     let result_str = String::from_utf8(result);
@@ -112,7 +114,9 @@ async fn test_runtime_mock() -> Result<(), Error> {
             content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(), },
         ],
         tools: vec![],
-        config: Some(QueryConfig::default()),
+        max_tokens: None,
+            temperature: None,
+            model: None,
         chunk_size : None, timestamp : None
     }) {
         while let Ok(message) = runtime.recv_stream() {
@@ -137,7 +141,9 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
                 content: "Message #1".to_string(),
             }],
             tools: vec![],
-            config: Some(QueryConfig::default()),
+            max_tokens: None,
+            temperature: None,
+            model: None,
             chunk_size: Some(25),
             timestamp: None,
         },
@@ -147,7 +153,9 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
                 content: "Message #2".to_string(),
             }],
             tools: vec![],
-            config: Some(QueryConfig::default()),
+            max_tokens: None,
+            temperature: None,
+            model: None,
             chunk_size: Some(25),
             timestamp: None,
         },
@@ -190,7 +198,9 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
                 content: "Just echo This Message 1".to_string(),
             }],
             tools: vec![],
-            config: Some(QueryConfig::default()),
+            max_tokens: None,
+            temperature: None,
+            model: None,
             chunk_size: Some(25),
             timestamp: None,
         },
@@ -200,7 +210,9 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
                 content: "Just echo This Message 2".to_string(),
             }],
             tools: vec![],
-            config: Some(QueryConfig::default()),
+            max_tokens: None,
+            temperature: None,
+            model: None,
             chunk_size: Some(25),
             timestamp: None,
         },
@@ -249,7 +261,9 @@ async fn test_switching_runtimes() -> Result<(), Error> {
                 content: format!("Hello from {}. Please echo just this message.", model_name),
             }],
             tools: vec![],
-            config: Some(QueryConfig::default()),
+            max_tokens: None,
+            temperature: None,
+            model: None,
             chunk_size: Some(25),
             timestamp: None,
         };
@@ -311,7 +325,9 @@ proptest! {
             .send_stream(Query::Prompt {
                 messages,
                 tools: vec![],
-                config: Some(QueryConfig::default()),
+                max_tokens: None,
+            temperature: None,
+            model: None,
                 chunk_size: None,
                 timestamp: None,
             })

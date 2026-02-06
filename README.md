@@ -79,8 +79,11 @@ if let Err(_) = runtime.send_stream(Query::Prompt {
         content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(), },
     ],
     tools: vec![],
-    config: Some(QueryConfig::default()),
-    chunk_size : None, timestamp : None
+    chunk_size: None,
+    timestamp: None,
+    max_tokens: None,
+    temperature: None,
+    model: None,
 }) {
     while let Ok(message) = runtime.recv_stream() {
         assert!(matches!(message, Query::Chunk { ..} | Query::End));

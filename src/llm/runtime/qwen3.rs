@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::error::Error;
 use crate::runtime::{LLMRuntimeModel, Query};
 use crate::{
-    LLMRuntimeConfig, ModelConfig, QueryConfig, TemplateProcessor, TokenUsage, TokenizerConfig,
+    LLMRuntimeConfig, ModelConfig, TemplateProcessor, TokenUsage, TokenizerConfig,
 };
 use candle_core::Device;
 use candle_core::{quantized::gguf_file, Tensor};
@@ -178,9 +178,11 @@ impl LLMRuntimeModel for Qwen3Model {
         if let Query::Prompt {
             messages,
             tools: _,
-            config,
             chunk_size,
             timestamp,
+            max_tokens,
+            temperature: _,
+            model: _,
         } = message.clone()
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
@@ -206,15 +208,7 @@ impl LLMRuntimeModel for Qwen3Model {
                 }
             };
 
-            let QueryConfig {
-                generate_num_samples,
-                temperature: _,
-                model: _,
-            } = config.unwrap_or(QueryConfig {
-                generate_num_samples: 5000,
-                temperature: None,
-                model: None,
-            });
+            let generate_num_samples = max_tokens.unwrap_or(5000);
 
             tracing::debug!("Processing Message: {:?}", message);
 

@@ -20,14 +20,15 @@ pub enum Query {
         /// as defined by the MCP standard
         tools: Vec<String>,
 
-        /// Optional config for the query.
-        /// If no value has been set, the default is assumed
-        #[serde(default, deserialize_with = "null_to_default")]
-        config: Option<QueryConfig>,
-
         chunk_size: Option<usize>,
 
         timestamp: Option<u64>,
+
+        max_tokens: Option<usize>,
+
+        temperature: Option<f32>,
+
+        model: Option<String>,
     },
 
     Response {
@@ -52,13 +53,13 @@ pub enum Query {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(default)]
-pub struct QueryConfig {
-    pub generate_num_samples: usize,
-    pub temperature: Option<f32>,
-    pub model: Option<String>,
-}
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// #[serde(default)]
+// pub struct QueryConfig {
+//     pub max_tokens: usize,
+//     pub temperature: Option<f32>,
+//     pub model: Option<String>,
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QueryMessage {
@@ -106,16 +107,6 @@ impl Query {
             Query::Prompt { .. } | Query::Response { .. } | Query::Exit => {
                 Err(Error::UndefinedClientEvent(format!("{self:?}")))
             }
-        }
-    }
-}
-
-impl Default for QueryConfig {
-    fn default() -> Self {
-        QueryConfig {
-            generate_num_samples: 500,
-            temperature: None,
-            model: None,
         }
     }
 }

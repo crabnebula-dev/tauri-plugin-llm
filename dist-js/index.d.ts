@@ -5,9 +5,11 @@ export type Query = {
     type: "Prompt";
     messages: QueryMessage[];
     tools: string[];
-    config?: QueryConfig;
     chunk_size?: number;
     timestamp?: number;
+    max_tokens?: number;
+    temperature?: number;
+    model?: string;
 } | {
     type: "Response";
     error?: string;
@@ -28,9 +30,6 @@ export type Query = {
     type: "Status";
     msg: string;
 };
-export interface QueryConfig {
-    generate_num_samples: number;
-}
 export interface QueryMessage {
     role: string;
     content: string;
@@ -115,8 +114,8 @@ export declare class LLMStreamListener {
      *     { role: "user", content: "Hello, how are you?" }
      *   ],
      *   tools: [],
-     *   config: { generate_num_samples: 500 },
-     *   chunk_size: 32
+     *   chunk_size: 32,
+     *   max_tokens: 500
      * });
      * ```
      */

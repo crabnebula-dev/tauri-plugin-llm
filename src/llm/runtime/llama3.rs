@@ -1,9 +1,10 @@
+use std::alloc::System;
 use std::fs::File;
 
 use crate::error::Error;
 use crate::loaders::IndexFile;
 use crate::runtime::{LLMRuntimeModel, Query};
-use crate::{LLMRuntimeConfig, ModelConfig, QueryConfig, TemplateProcessor, TokenizerConfig};
+use crate::{LLMRuntimeConfig, ModelConfig, TemplateProcessor, TokenizerConfig};
 use candle_core::Device;
 use candle_core::Tensor;
 use candle_nn::VarBuilder;
@@ -77,6 +78,7 @@ impl LLMRuntimeModel for LLama3Model {
         };
 
         self.template_proc = if tokenizer_config_file.is_some() && self.template.is_some() {
+            tracing::debug!("Using Jinja template processor");
             // the extra check for the `tokenizer_config_file` is to indicate the presence of a jinja template
             Some(TemplateProcessor::with_jinja_template())
         } else {
@@ -142,6 +144,8 @@ impl LLMRuntimeModel for LLama3Model {
             )
         };
 
+        let now = std::time::Instant::now();
+
         // Initialize Logits Processor
         self.logits_processor = {
             let sampling = match sampling_config {
@@ -166,6 +170,12 @@ impl LLMRuntimeModel for LLama3Model {
                     temperature: self.temperature,
                 },
             };
+
+            let diff = std::time::Instant::now().duration_since(now);
+            tracing::debug!(
+                "Loading the logits_processor took {:.2}ms",
+                diff.as_millis()
+            );
 
             let seed = match seed {
                 crate::GenerationSeed::Fixed(inner) => inner as u64,
@@ -208,9 +218,11 @@ impl LLMRuntimeModel for LLama3Model {
         if let Query::Prompt {
             messages: _,
             tools: _,
-            config,
             chunk_size,
             timestamp,
+            max_tokens,
+            temperature: _,
+            model: _,
         } = message.clone()
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
@@ -224,14 +236,12 @@ impl LLMRuntimeModel for LLama3Model {
                 let proc = self.template_proc.as_ref().ok_or(Error::ExecutionError(
                     "Template processor is not intialized".to_string(),
                 ))?;
+
+                tracing::debug!("Applying Template");
                 message.apply_template(template, proc)?
             };
 
-            let QueryConfig {
-                generate_num_samples,
-                temperature: _,
-                model: _,
-            } = config.unwrap();
+            let generate_num_samples = max_tokens.unwrap_or(256);
 
             tracing::debug!("Processing Message: {:?}", message);
 
