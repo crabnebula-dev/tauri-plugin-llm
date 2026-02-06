@@ -33,18 +33,6 @@ File `tauri.conf.json` :
         "model_index_file": "",
         "model_file": "./models/Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf",
         "model_dir": "./models/Qwen3-4B-GGUF/",
-        "model_config": {
-            "top_k": 20,
-            "top_p": 0.8,
-            "temperature": 0.4,
-            "name": "Qwen3-4B-GGUF",
-            "file_type": "GGUF",
-            "penalty": 1.0,
-            "seed": "Random",
-            "thinking": false,
-            "streaming": true
-        },
-        "verbose": true
     }
   }
 }
@@ -94,7 +82,6 @@ if let Err(_) = runtime.send_stream(Query::Prompt {
 Ok(())
 
 ```
-
 
 
 # License

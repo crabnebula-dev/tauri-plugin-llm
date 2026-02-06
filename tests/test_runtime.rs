@@ -41,6 +41,9 @@ async fn test_runtime_local_qwen3_safetensors() -> Result<(), Error> {
         think: false,
         stream: true,
         model: None,
+        penalty: None,
+        seed: None,
+        sampling_config: None,
         chunk_size: None,
         timestamp: None,
     });
@@ -95,8 +98,11 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
         think: false,
         stream: true,
         model: None,
+        penalty: None,
+        seed: None,
+        sampling_config: None,
         chunk_size: None,
-        timestamp: None
+        timestamp: None,
     });
 
     assert!(result.is_ok(), "{result:?}");
@@ -144,8 +150,11 @@ async fn test_runtime_mock() -> Result<(), Error> {
         think: false,
         stream: true,
         model: None,
+        penalty: None,
+        seed: None,
+        sampling_config: None,
         chunk_size: None,
-        timestamp: None
+        timestamp: None,
     }) {
         while let Ok(message) = runtime.recv_stream() {
             assert!(matches!(message, Query::Chunk { .. } | Query::End { .. }));
@@ -176,6 +185,9 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
             think: false,
             stream: true,
             model: None,
+            penalty: None,
+            seed: None,
+            sampling_config: None,
             chunk_size: Some(25),
             timestamp: None,
         },
@@ -192,6 +204,9 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
             think: false,
             stream: true,
             model: None,
+            penalty: None,
+            seed: None,
+            sampling_config: None,
             chunk_size: Some(25),
             timestamp: None,
         },
@@ -241,6 +256,9 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
             think: false,
             stream: true,
             model: None,
+            penalty: None,
+            seed: None,
+            sampling_config: None,
             chunk_size: Some(25),
             timestamp: None,
         },
@@ -257,6 +275,9 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
             think: false,
             stream: true,
             model: None,
+            penalty: None,
+            seed: None,
+            sampling_config: None,
             chunk_size: Some(25),
             timestamp: None,
         },
@@ -312,6 +333,9 @@ async fn test_switching_runtimes() -> Result<(), Error> {
             think: false,
             stream: true,
             model: None,
+            penalty: None,
+            seed: None,
+            sampling_config: None,
             chunk_size: Some(25),
             timestamp: None,
         };
@@ -380,6 +404,9 @@ proptest! {
                 think: false,
                 stream: true,
                 model: None,
+                penalty: None,
+                seed: None,
+                sampling_config: None,
                 chunk_size: None,
                 timestamp: None,
             })

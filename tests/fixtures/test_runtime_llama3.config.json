@@ -5,9 +5,5 @@
     "model_config_file": "./models/models--meta-llama--Llama-3.2-3B-Instruct/snapshots/0cb88a4f764b7a12671c53f0838cd831a0843b95/config.json",
     "model_index_file": "./models/models--meta-llama--Llama-3.2-3B-Instruct/snapshots/0cb88a4f764b7a12671c53f0838cd831a0843b95/model.safetensors.index.json",
     "model_file": "",
-    "model_dir": "./models/models--meta-llama--Llama-3.2-3B-Instruct/snapshots/0cb88a4f764b7a12671c53f0838cd831a0843b95/",
-    "penalty": 5.9,
-    "seed": "Random",
-    "sampling_config": "ArgMax",
-    "verbose": true
+    "model_dir": "./models/models--meta-llama--Llama-3.2-3B-Instruct/snapshots/0cb88a4f764b7a12671c53f0838cd831a0843b95/"
 }

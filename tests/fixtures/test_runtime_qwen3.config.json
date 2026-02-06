@@ -5,9 +5,5 @@
     "model_config_file": "./models/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554/config.json",
     "model_index_file": "./models/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554/model.safetensors.index.json",
     "model_file": "",
-    "model_dir": "./models/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554/",
-    "penalty": 1.1,
-    "seed": "Random",
-    "sampling_config": "ArgMax",
-    "verbose": true
+    "model_dir": "./models/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554/"
 }

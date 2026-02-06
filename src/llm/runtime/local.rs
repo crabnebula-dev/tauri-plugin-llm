@@ -102,9 +102,6 @@ pub struct LocalRuntime {
     pub(crate) weights: Option<ModelWeights>,
     pub(crate) template: Option<String>,
     pub(crate) template_proc: Option<TemplateProcessor>,
-    pub(crate) seed: GenerationSeed,
-    pub(crate) sampling_config: SamplingConfig,
-    pub(crate) penalty: f32,
     pub(crate) eos_token: Option<String>,
 }
 
@@ -116,9 +113,6 @@ impl Default for LocalRuntime {
             weights: None,
             template: None,
             template_proc: None,
-            seed: GenerationSeed::Random,
-            sampling_config: SamplingConfig::default(),
-            penalty: 1.1,
             eos_token: None,
         }
     }
@@ -134,16 +128,18 @@ impl LocalRuntime {
 
     /// Creates a LogitsProcessor based on runtime parameters from Query::Prompt
     fn create_logits_processor(
-        &self,
         temperature: Option<f32>,
         top_k: Option<f32>,
         top_p: Option<f32>,
+        seed: Option<GenerationSeed>,
+        sampling_config: Option<SamplingConfig>,
     ) -> LogitsProcessor {
         let temperature = temperature.map(|t| t as f64).unwrap_or(0.7);
         let top_k = top_k.map(|k| k as usize).unwrap_or(40);
         let top_p = top_p.map(|p| p as f64).unwrap_or(0.9);
 
-        let sampling = match &self.sampling_config {
+        let sampling_config = sampling_config.unwrap_or_default();
+        let sampling = match &sampling_config {
             SamplingConfig::ArgMax => Sampling::ArgMax,
             SamplingConfig::All => Sampling::All { temperature },
             SamplingConfig::TopK => Sampling::TopK {
@@ -162,8 +158,8 @@ impl LocalRuntime {
             SamplingConfig::GumbelSoftmax => Sampling::GumbelSoftmax { temperature },
         };
 
-        let seed = match &self.seed {
-            GenerationSeed::Fixed(inner) => *inner as u64,
+        let seed = match seed.unwrap_or_default() {
+            GenerationSeed::Fixed(inner) => inner as u64,
             GenerationSeed::Random => {
                 let mut rng = rand::rng();
                 let seed = rng.random_range(1..1e10 as u64);
@@ -248,10 +244,6 @@ impl LocalRuntime {
 impl LLMRuntimeModel for LocalRuntime {
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error> {
         let name = &config.name;
-
-        self.penalty = config.penalty.max(0.1);
-        self.seed = config.seed.clone();
-        self.sampling_config = config.sampling_config.clone();
 
         // Set EOS token based on model name
         self.eos_token = if name.contains("Llama") {
@@ -375,12 +367,16 @@ impl LLMRuntimeModel for LocalRuntime {
             think: _,
             stream: _,
             model: _,
+            penalty,
+            seed,
+            sampling_config,
         } = message.clone()
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
 
             // Create logits processor with runtime parameters
-            let mut logits_processor = self.create_logits_processor(temperature, top_k, top_p);
+            let mut logits_processor =
+                Self::create_logits_processor(temperature, top_k, top_p, seed, sampling_config);
 
             // Preprocess message by applying chat template
             let processed_message = {
@@ -446,7 +442,7 @@ impl LLMRuntimeModel for LocalRuntime {
                 .and_then(|eos| tokenizer.get_vocab(true).get(eos).copied())
                 .unwrap_or(u32::MAX);
 
-            let penalty = self.penalty;
+            let penalty = penalty.unwrap_or(1.1).max(0.1);
             let mut index = 0usize;
             let mut done = false;
             let mut sample_error: Option<Error> = None;

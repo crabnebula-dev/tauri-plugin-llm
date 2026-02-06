@@ -39,6 +39,15 @@ pub enum Query {
         stream: bool,
 
         model: Option<String>,
+
+        /// Repetition penalty. Defaults to 1.1 if not provided.
+        penalty: Option<f32>,
+
+        /// Generation seed. Defaults to Random if not provided.
+        seed: Option<GenerationSeed>,
+
+        /// Sampling configuration. Defaults to All if not provided.
+        sampling_config: Option<SamplingConfig>,
     },
 
     Response {
@@ -149,21 +158,6 @@ pub struct LLMRuntimeConfig {
     ///
     /// Use this setting if the model files are distributed with sharded files eg. `*.safetensors`
     pub model_dir: Option<PathBuf>,
-
-    /// Repetition penalty
-    pub penalty: f32,
-
-    /// Some models expect a generation seed.
-    ///
-    /// This can either be a fixed value or random where random is the default, if no explicit
-    /// value has been set.
-    pub seed: GenerationSeed,
-
-    /// Sampling configuration
-    pub sampling_config: SamplingConfig,
-
-    /// Enables logging
-    pub verbose: bool,
 
     /// If the models ships with a separate template file, this can be configured here.
     /// Given a `tokenizer_config_file`, the template file setting will be ignored.

@@ -49,6 +49,9 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
         think: false,
         stream: true,
         model: None,
+        penalty: None,
+        seed: None,
+        sampling_config: None,
     };
 
     runtime.send_stream(query)?;
@@ -77,6 +80,9 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
         think: false,
         stream: true,
         model: None,
+        penalty: None,
+        seed: None,
+        sampling_config: None,
     };
 
     runtime.send_stream(query2)?;

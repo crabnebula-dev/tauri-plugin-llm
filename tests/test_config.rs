@@ -1,24 +1,6 @@
 use proptest::prelude::*;
 use std::path::PathBuf;
-use tauri_plugin_llm::{GenerationSeed, LLMRuntimeConfig, Query, SamplingConfig};
-
-pub fn random_generation_seed() -> impl Strategy<Value = GenerationSeed> {
-    prop_oneof![
-        any::<usize>().prop_map(GenerationSeed::Fixed),
-        Just(GenerationSeed::Random),
-    ]
-}
-
-pub fn random_sampling_config() -> impl Strategy<Value = SamplingConfig> {
-    prop_oneof![
-        Just(SamplingConfig::All),
-        Just(SamplingConfig::ArgMax),
-        Just(SamplingConfig::GumbelSoftmax),
-        Just(SamplingConfig::TopK),
-        Just(SamplingConfig::TopKThenTopP),
-        Just(SamplingConfig::TopP)
-    ]
-}
+use tauri_plugin_llm::{LLMRuntimeConfig, Query};
 
 pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
     (
@@ -41,10 +23,6 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
         "[a-z]{3,10}/[a-z]{3,10}"
             .prop_map(PathBuf::from)
             .prop_map(Some),
-        1.0f32..2.0f32,
-        random_generation_seed(),
-        random_sampling_config(),
-        any::<bool>(),
         "[a-z]{3,10}/[a-z]{3,10}"
             .prop_map(PathBuf::from)
             .prop_map(Some),
@@ -58,10 +36,6 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
                 model_index_file,
                 model_file,
                 model_dir,
-                penalty,
-                seed,
-                sampling_config,
-                verbose,
                 template,
             )| {
                 LLMRuntimeConfig {
@@ -72,10 +46,6 @@ pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
                     model_index_file,
                     model_file,
                     model_dir,
-                    penalty,
-                    seed,
-                    sampling_config,
-                    verbose,
                     template_file: template,
                 }
             },
