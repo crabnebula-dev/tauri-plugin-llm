@@ -20,9 +20,11 @@ pub struct LLama3Model {
     pub(crate) _streaming: bool,
     pub(crate) device: Option<Device>,
     pub(crate) tokenizer: Option<Tokenizer>,
+
     pub(crate) top_k: usize,
     pub(crate) top_p: f64,
     pub(crate) temperature: f64,
+
     pub(crate) _thinking: bool,
     pub(crate) weights: Option<Llama>,
     pub(crate) logits_processor: Option<LogitsProcessor>,
