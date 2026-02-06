@@ -33,10 +33,14 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
         ],
         tools: vec![],
         max_tokens: None,
-            temperature: None,
-            model: None,
-        chunk_size : None,
-        timestamp : None
+        temperature: None,
+        top_k: None,
+        top_p: None,
+        think: false,
+        stream: true,
+        model: None,
+        chunk_size: None,
+        timestamp: None
     });
 
     assert!(result.is_ok(), "{result:?}");
@@ -70,10 +74,14 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
         ],
         tools: vec![],
         max_tokens: None,
-            temperature: None,
-            model: None,
-        chunk_size : None,
-        timestamp : None
+        temperature: None,
+        top_k: None,
+        top_p: None,
+        think: false,
+        stream: true,
+        model: None,
+        chunk_size: None,
+        timestamp: None
     });
 
     assert!(result.is_ok(), "{result:?}");
@@ -115,9 +123,14 @@ async fn test_runtime_mock() -> Result<(), Error> {
         ],
         tools: vec![],
         max_tokens: None,
-            temperature: None,
-            model: None,
-        chunk_size : None, timestamp : None
+        temperature: None,
+        top_k: None,
+        top_p: None,
+        think: false,
+        stream: true,
+        model: None,
+        chunk_size: None,
+        timestamp: None
     }) {
         while let Ok(message) = runtime.recv_stream() {
             assert!(matches!(message, Query::Chunk { .. } | Query::End { .. }));
@@ -143,6 +156,10 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
             tools: vec![],
             max_tokens: None,
             temperature: None,
+            top_k: None,
+            top_p: None,
+            think: false,
+            stream: true,
             model: None,
             chunk_size: Some(25),
             timestamp: None,
@@ -155,6 +172,10 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
             tools: vec![],
             max_tokens: None,
             temperature: None,
+            top_k: None,
+            top_p: None,
+            think: false,
+            stream: true,
             model: None,
             chunk_size: Some(25),
             timestamp: None,
@@ -200,6 +221,10 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
             tools: vec![],
             max_tokens: None,
             temperature: None,
+            top_k: None,
+            top_p: None,
+            think: false,
+            stream: true,
             model: None,
             chunk_size: Some(25),
             timestamp: None,
@@ -212,6 +237,10 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
             tools: vec![],
             max_tokens: None,
             temperature: None,
+            top_k: None,
+            top_p: None,
+            think: false,
+            stream: true,
             model: None,
             chunk_size: Some(25),
             timestamp: None,
@@ -263,6 +292,10 @@ async fn test_switching_runtimes() -> Result<(), Error> {
             tools: vec![],
             max_tokens: None,
             temperature: None,
+            top_k: None,
+            top_p: None,
+            think: false,
+            stream: true,
             model: None,
             chunk_size: Some(25),
             timestamp: None,
@@ -326,8 +359,12 @@ proptest! {
                 messages,
                 tools: vec![],
                 max_tokens: None,
-            temperature: None,
-            model: None,
+                temperature: None,
+                top_k: None,
+                top_p: None,
+                think: false,
+                stream: true,
+                model: None,
                 chunk_size: None,
                 timestamp: None,
             })

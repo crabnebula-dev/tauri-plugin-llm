@@ -37,12 +37,9 @@ impl LLMRuntimeModel for Mock {
     ) -> Result<Option<crate::TokenUsage>, crate::Error> {
         if let Query::Prompt {
             messages,
-            tools: _,
             chunk_size,
             timestamp,
-            max_tokens: _,
-            temperature: _,
-            model: _,
+            ..
         } = q
         {
             let prompt_tokens = serde_json::to_vec(&messages).map(|v| v.len()).unwrap_or(0);

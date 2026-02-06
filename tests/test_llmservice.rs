@@ -44,6 +44,10 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
         timestamp: None,
         max_tokens: Some(100),
         temperature: None,
+        top_k: None,
+        top_p: None,
+        think: false,
+        stream: true,
         model: None,
     };
 
@@ -68,6 +72,10 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
         timestamp: None,
         max_tokens: Some(100),
         temperature: None,
+        top_k: None,
+        top_p: None,
+        think: false,
+        stream: true,
         model: None,
     };
 

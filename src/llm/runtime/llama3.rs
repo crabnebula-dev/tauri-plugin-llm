@@ -1,4 +1,3 @@
-use std::alloc::System;
 use std::fs::File;
 
 use crate::error::Error;
@@ -16,16 +15,17 @@ use candle_transformers::generation::{LogitsProcessor, Sampling};
 use rand::Rng;
 use tokenizers::{AddedToken, Tokenizer};
 
+#[allow(dead_code)]
 pub struct LLama3Model {
-    pub(crate) _streaming: bool,
     pub(crate) device: Option<Device>,
     pub(crate) tokenizer: Option<Tokenizer>,
 
+    pub(crate) stream: bool,
     pub(crate) top_k: usize,
     pub(crate) top_p: f64,
     pub(crate) temperature: f64,
+    pub(crate) think: bool,
 
-    pub(crate) _thinking: bool,
     pub(crate) weights: Option<Llama>,
     pub(crate) logits_processor: Option<LogitsProcessor>,
     pub(crate) cache: Option<model::Cache>,
@@ -224,6 +224,10 @@ impl LLMRuntimeModel for LLama3Model {
             timestamp,
             max_tokens,
             temperature: _,
+            top_k: _,
+            top_p: _,
+            think: _,
+            stream: _,
             model: _,
         } = message.clone()
         {

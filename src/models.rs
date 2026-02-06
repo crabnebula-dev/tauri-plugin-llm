@@ -28,6 +28,16 @@ pub enum Query {
 
         temperature: Option<f32>,
 
+        top_k: Option<f32>,
+
+        top_p: Option<f32>,
+
+        #[serde(default)]
+        think: bool,
+
+        #[serde(default)]
+        stream: bool,
+
         model: Option<String>,
     },
 
@@ -253,12 +263,4 @@ impl LLMRuntimeConfig {
     {
         Ok(serde_json::from_str(content.as_ref())?)
     }
-}
-
-fn null_to_default<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    T: Default + serde::Deserialize<'de>,
-{
-    Ok(Some(Option::deserialize(deserializer)?.unwrap_or_default()))
 }

@@ -14,6 +14,10 @@ export type Query =
     timestamp?: number;
     max_tokens?: number;
     temperature?: number;
+    top_k?: number;
+    top_p?: number;
+    think?: boolean;
+    stream?: boolean;
     model?: string;
   }
   | {

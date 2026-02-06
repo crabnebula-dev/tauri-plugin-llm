@@ -182,6 +182,10 @@ impl LLMRuntimeModel for Qwen3Model {
             timestamp,
             max_tokens,
             temperature: _,
+            top_k: _,
+            top_p: _,
+            think: _,
+            stream: _,
             model: _,
         } = message.clone()
         {
