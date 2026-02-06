@@ -16,16 +16,10 @@ use rand::Rng;
 use tokenizers::Tokenizer;
 
 pub struct Qwen3Model {
-    pub(crate) _streaming: bool,
     pub(crate) device: Option<Device>,
     pub(crate) tokenizer: Option<Tokenizer>,
-    pub(crate) top_k: usize,
-    pub(crate) top_p: f64,
-    pub(crate) temperature: f64,
-    pub(crate) _thinking: bool,
     pub(crate) weights: Option<Qwen3>,
     pub(crate) logits_processor: Option<LogitsProcessor>,
-
     pub(crate) template: Option<String>,
     pub(crate) template_proc: Option<TemplateProcessor>,
 }
@@ -108,28 +102,34 @@ impl LLMRuntimeModel for Qwen3Model {
             )
         };
 
-        // Initialize Logits Processor
+        // Initialize Logits Processor with defaults
+        // Runtime parameters (top_k, top_p, temperature) can be passed via Query::Prompt
         self.logits_processor = {
+            // Default values for sampling - can be overridden at runtime
+            let default_temperature = 0.7;
+            let default_top_k = 40;
+            let default_top_p = 0.9;
+
             let sampling = match sampling_config {
                 crate::SamplingConfig::ArgMax => Sampling::ArgMax,
                 crate::SamplingConfig::All => Sampling::All {
-                    temperature: self.temperature,
+                    temperature: default_temperature,
                 },
                 crate::SamplingConfig::TopK => Sampling::TopK {
-                    k: self.top_k,
-                    temperature: self.temperature,
+                    k: default_top_k,
+                    temperature: default_temperature,
                 },
                 crate::SamplingConfig::TopP => Sampling::TopP {
-                    p: self.top_p,
-                    temperature: self.temperature,
+                    p: default_top_p,
+                    temperature: default_temperature,
                 },
                 crate::SamplingConfig::TopKThenTopP => Sampling::TopKThenTopP {
-                    k: self.top_k,
-                    p: self.top_p,
-                    temperature: self.temperature,
+                    k: default_top_k,
+                    p: default_top_p,
+                    temperature: default_temperature,
                 },
                 crate::SamplingConfig::GumbelSoftmax => Sampling::GumbelSoftmax {
-                    temperature: self.temperature,
+                    temperature: default_temperature,
                 },
             };
 

@@ -32,44 +32,19 @@ pub fn random_sampling_config() -> impl Strategy<Value = SamplingConfig> {
 
 pub fn random_model_config() -> impl Strategy<Value = ModelConfig> {
     (
-        1usize..100usize,
-        0.0f64..1.0f64,
-        0.1f64..2.0f64,
         1.0f32..2.0f32,
         any::<String>(),
         random_model_file_type(),
         random_generation_seed(),
-        any::<bool>(),
-        any::<bool>(),
         random_sampling_config(),
     )
-        .prop_map(
-            |(
-                top_k,
-                top_p,
-                temperature,
-                penalty,
-                name,
-                file_type,
-                seed,
-                thinking,
-                streaming,
-                sampling_config,
-            )| {
-                ModelConfig {
-                    top_k,
-                    top_p,
-                    temperature,
-                    penalty,
-                    name,
-                    file_type,
-                    seed,
-                    thinking,
-                    streaming,
-                    sampling_config,
-                }
-            },
-        )
+        .prop_map(|(penalty, name, file_type, seed, sampling_config)| ModelConfig {
+            penalty,
+            name,
+            file_type,
+            seed,
+            sampling_config,
+        })
 }
 
 pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {

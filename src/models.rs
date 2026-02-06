@@ -159,17 +159,6 @@ pub struct LLMRuntimeConfig {
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct ModelConfig {
-    /// Limits sampling to the K most likely next tokens.
-    pub top_k: usize,
-
-    /// Nucleus sampling. Dynamically selects the smallest
-    /// set of tokens whose cumulative probability exceeds P
-    pub top_p: f64,
-
-    /// Lower Temperatures 0.1 - 0.5 select tokens with high confidence
-    /// Higher Temperatures 0.5 - 1.0 consider more possibilities for the next token
-    pub temperature: f64,
-
     /// Name of the Model
     ///
     /// This setting is being used to detect which model loader to use.
@@ -186,12 +175,6 @@ pub struct ModelConfig {
     /// This can either be a fixed value or random where random is the default, if no explicit
     /// value has been set.
     pub seed: GenerationSeed,
-
-    /// Enable thinking mode, if model supports it
-    pub thinking: bool,
-
-    /// Enable streaming responses
-    pub streaming: bool,
 
     /// Sampling configuration
     pub sampling_config: SamplingConfig,

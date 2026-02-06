@@ -102,28 +102,14 @@ impl LLMRuntime {
     ) -> Result<Box<dyn LLMRuntimeModel>, Error> {
         let LLMRuntimeConfig { model_config, .. } = config.clone();
 
-        let ModelConfig {
-            top_k,
-            top_p,
-            temperature,
-            name,
-            thinking,
-            streaming,
-            penalty,
-            ..
-        } = model_config;
+        let ModelConfig { name, penalty, .. } = model_config;
 
         // TODO:
         // - move initializers to individual constructor functions
         match &name {
             _ if name.contains("Qwen3") => Ok(Box::new(Qwen3Model {
-                _streaming: streaming,
                 device: Some(device),
                 tokenizer: None,
-                top_k,
-                top_p,
-                temperature,
-                _thinking: thinking,
                 weights: None,
                 logits_processor: None,
                 template: None,
@@ -131,13 +117,8 @@ impl LLMRuntime {
             })),
             _ if name.contains("Mock") => Ok(Box::new(Mock)),
             _ if name.contains("Llama") => Ok(Box::new(LLama3Model {
-                stream: streaming,
                 device: Some(device),
                 tokenizer: None,
-                top_k,
-                top_p,
-                temperature,
-                think: thinking,
                 weights: None,
                 logits_processor: None,
                 cache: None,

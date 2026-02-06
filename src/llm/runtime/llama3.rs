@@ -20,12 +20,11 @@ pub struct LLama3Model {
     pub(crate) device: Option<Device>,
     pub(crate) tokenizer: Option<Tokenizer>,
 
-    pub(crate) stream: bool,
-    pub(crate) top_k: usize,
-    pub(crate) top_p: f64,
-    pub(crate) temperature: f64,
-    pub(crate) think: bool,
-
+    // pub(crate) stream: bool,
+    // pub(crate) top_k: usize,
+    // pub(crate) top_p: f64,
+    // pub(crate) temperature: f64,
+    // pub(crate) think: bool,
     pub(crate) weights: Option<Llama>,
     pub(crate) logits_processor: Option<LogitsProcessor>,
     pub(crate) cache: Option<model::Cache>,
@@ -146,38 +145,37 @@ impl LLMRuntimeModel for LLama3Model {
             )
         };
 
-        let now = std::time::Instant::now();
-
-        // Initialize Logits Processor
+        // Initialize Logits Processor with defaults
+        // Runtime parameters (top_k, top_p, temperature) can be passed via Query::Prompt
         self.logits_processor = {
+            // TODO: this block shall be moved to the inference
+            // Default values for sampling - can be overridden at runtime
+            let default_temperature = 0.7;
+            let default_top_k = 40;
+            let default_top_p = 0.9;
+
             let sampling = match sampling_config {
                 crate::SamplingConfig::ArgMax => Sampling::ArgMax,
                 crate::SamplingConfig::All => Sampling::All {
-                    temperature: self.temperature,
+                    temperature: default_temperature,
                 },
                 crate::SamplingConfig::TopK => Sampling::TopK {
-                    k: self.top_k,
-                    temperature: self.temperature,
+                    k: default_top_k,
+                    temperature: default_temperature,
                 },
                 crate::SamplingConfig::TopP => Sampling::TopP {
-                    p: self.top_p,
-                    temperature: self.temperature,
+                    p: default_top_p,
+                    temperature: default_temperature,
                 },
                 crate::SamplingConfig::TopKThenTopP => Sampling::TopKThenTopP {
-                    k: self.top_k,
-                    p: self.top_p,
-                    temperature: self.temperature,
+                    k: default_top_k,
+                    p: default_top_p,
+                    temperature: default_temperature,
                 },
                 crate::SamplingConfig::GumbelSoftmax => Sampling::GumbelSoftmax {
-                    temperature: self.temperature,
+                    temperature: default_temperature,
                 },
             };
-
-            let diff = std::time::Instant::now().duration_since(now);
-            tracing::debug!(
-                "Loading the logits_processor took {:.2}ms",
-                diff.as_millis()
-            );
 
             let seed = match seed {
                 crate::GenerationSeed::Fixed(inner) => inner as u64,
