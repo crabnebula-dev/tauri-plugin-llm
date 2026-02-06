@@ -1,208 +1,212 @@
+/**
+ * End-to-end tests for tauri-plugin-llm.
+ *
+ * These tests call the Tauri backend directly via window.__TAURI_INTERNALS__
+ * running inside the webview via browser.executeAsync(). No DOM elements,
+ * no Svelte components, no UI interaction — just IPC.
+ */
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Invoke a Tauri plugin command directly inside the webview.
+ *
+ * @param {string} cmd   - The fully-qualified command (e.g. "plugin:llm|stream")
+ * @param {object} args  - Arguments to pass to the command
+ * @returns {Promise<*>} - The command's return value
+ * @throws {Error}       - If the command rejects
+ */
+async function invoke(cmd, args = {}) {
+  const [err, value] = await browser.executeAsync(
+    async (cmd, args, done) => {
+      try {
+        done([null, await window.__TAURI_INTERNALS__.invoke(cmd, args)]);
+      } catch (e) {
+        done([e.message || String(e), null]);
+      }
+    },
+    cmd,
+    args,
+  );
+  if (err !== null) {
+    throw new Error(`invoke("${cmd}") failed: ${err}`);
+  }
+  return value;
+}
+
+/**
+ * Send a streaming prompt and collect all response chunks until the stream ends.
+ *
+ * Sets up Tauri event listeners for chunk/error/end, fires the stream command,
+ * and resolves once the backend signals completion. Everything runs inside the
+ * webview — no DOM interaction.
+ *
+ * @param {Array<{role: string, content: string}>} messages  - Chat messages
+ * @param {object}  [opts]
+ * @param {number}  [opts.chunkSize=200]   - Bytes per chunk
+ * @param {number}  [opts.timeoutMs=30000] - Max wait before giving up
+ * @returns {Promise<{error: string|null, chunks: Array<{id: number, text: string}>, tokenUsage: object|null}>}
+ */
+async function streamPrompt(messages, opts = {}) {
+  const { chunkSize = 200, timeoutMs = 30000 } = opts;
+
+  return browser.executeAsync(
+    async (messages, chunkSize, timeoutMs, done) => {
+      const { invoke, transformCallback } = window.__TAURI_INTERNALS__;
+      const chunks = [];
+      let tokenUsage = null;
+      const listeners = [];
+
+      const timeout = setTimeout(() => {
+        cleanup().then(() =>
+          done({
+            error: "Timed out waiting for stream end",
+            chunks,
+            tokenUsage,
+          }),
+        );
+      }, timeoutMs);
+
+      // Register a Tauri event listener via the internal plugin API
+      async function on(event, handler) {
+        const id = transformCallback(handler);
+        await invoke("plugin:event|listen", {
+          event,
+          target: { kind: "Any" },
+          handler: id,
+        });
+        listeners.push({ event, eventId: id });
+      }
+
+      // Tear down all listeners we registered
+      async function cleanup() {
+        for (const listener of listeners) {
+          try {
+            await invoke("plugin:event|unlisten", listener);
+          } catch (_) {
+            /* best effort */
+          }
+        }
+      }
+
+      // Wire up listeners BEFORE starting the stream so we don't miss events
+      await on("query-stream-chunk", (e) => {
+        if (e.payload?.type === "Chunk") {
+          const bytes = e.payload.data;
+          const text = new TextDecoder().decode(
+            bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes),
+          );
+          chunks.push({ id: e.payload.id, text });
+        }
+      });
+
+      await on("query-stream-error", (e) => {
+        if (e.payload?.type === "Status") {
+          clearTimeout(timeout);
+          cleanup().then(() =>
+            done({ error: e.payload.msg, chunks, tokenUsage }),
+          );
+        }
+      });
+
+      await on("query-stream-end", (e) => {
+        if (e.payload?.type === "End") {
+          tokenUsage = e.payload.usage;
+        }
+        clearTimeout(timeout);
+        cleanup().then(() => done({ error: null, chunks, tokenUsage }));
+      });
+
+      // Fire the stream command
+      try {
+        await invoke("plugin:llm|stream", {
+          message: {
+            type: "Prompt",
+            messages,
+            tools: [],
+            chunk_size: chunkSize,
+          },
+        });
+      } catch (e) {
+        clearTimeout(timeout);
+        cleanup().then(() =>
+          done({ error: e.message || String(e), chunks, tokenUsage }),
+        );
+      }
+    },
+    messages,
+    chunkSize,
+    timeoutMs,
+  );
+}
+
+// ─── Tests ──────────────────────────────────────────────────────────────────
+
 describe("End to end tests", () => {
-  it("should receive streamed response via LLMStreamListener events", async () => {
-    // This test verifies the complete event-driven flow:
-    // 1. Button click triggers llm.stream() call to backend
-    // 2. Backend processes query and sends events back (query-stream-chunk, query-stream-end)
-    // 3. LLMStreamListener callbacks (onData, onEnd) receive and process events
-    // 4. onData callback updates the UI with received chunks
-    // 5. UI displays the accumulated response
+  it("should list available models via IPC", async () => {
+    const models = await invoke("plugin:llm|list_available_models");
 
-    const promptInput = await $("input#prompt-input");
-    const promptButton = await $("button#prompt-send-btn");
-
-    // Optionally set a custom message (or use default "Hello World! Echo this message")
-    if (process.platform !== "linux") {
-      await promptInput.setValue("Test message for e2e");
-    }
-
-    // Click the button to trigger the stream call
-    await promptButton.click();
-
-    // Wait for the response to appear in the UI
-    // The Mock runtime echoes back the message content in chunks
-    // The onData callback receives these chunks and updates promptRes
-    const promptResponse = await $("p#prompt-response");
-    await promptResponse.waitUntil(
-      async function () {
-        return (await this.getText()) !== "";
-      },
-      {
-        timeout: 60000,
-        timeoutMsg: "expected response from backend events after 60s",
-        interval: 1000,
-      }
-    );
-
-    // Verify the response contains the echoed message
-    // Mock runtime returns the user message content in chunks
-    if (process.platform !== "linux") {
-      await expect(promptResponse).toHaveText(
-        expect.stringContaining("Test message for e2e")
-      );
-    } else {
-      // On Linux, default message is used
-      await expect(promptResponse).toHaveText(
-        expect.stringContaining("Hello World! Echo this message")
-      );
-    }
+    expect(models).toBeInstanceOf(Array);
+    expect(models.length).toBeGreaterThan(0);
+    expect(models).toContain("Mock");
   });
 
-  it("should receive token usage after stream ends", async () => {
-    // This test verifies that TokenUsage is reported via onEnd after streaming:
-    // 1. Send a prompt to trigger the stream
-    // 2. Wait for the streamed response to appear
-    // 3. Verify that token usage (prompt_tokens, completion_tokens, total_tokens) is displayed
+  it("should switch model via IPC", async () => {
+    const models = await invoke("plugin:llm|list_available_models");
+    expect(models.length).toBeGreaterThan(0);
 
-    const promptInput = await $("input#prompt-input");
-    const promptButton = await $("button#prompt-send-btn");
-
-    if (process.platform !== "linux") {
-      await promptInput.setValue("Token usage test message");
-    }
-
-    await promptButton.click();
-
-    // Wait for the streamed response first
-    const promptResponse = await $("p#prompt-response");
-    await promptResponse.waitUntil(
-      async function () {
-        return (await this.getText()) !== "";
-      },
-      {
-        timeout: 60000,
-        timeoutMsg: "expected response from backend events after 60s",
-        interval: 1000,
-      }
-    );
-
-    // Wait for token usage to be populated with actual values
-    const promptTokenUsage = await $("p#prompt-token-usage");
-    await promptTokenUsage.waitUntil(
-      async function () {
-        const text = await this.getText();
-        return text.includes("prompt:");
-      },
-      {
-        timeout: 60000,
-        timeoutMsg: "expected token usage from backend events after 60s",
-        interval: 1000,
-      }
-    );
-
-    // Verify the token usage contains expected fields
-    await expect(promptTokenUsage).toHaveText(
-      expect.stringContaining("prompt:")
-    );
-    await expect(promptTokenUsage).toHaveText(
-      expect.stringContaining("completion:")
-    );
-    await expect(promptTokenUsage).toHaveText(
-      expect.stringContaining("total:")
-    );
+    // switchModel resolves void on success, rejects on failure
+    await invoke("plugin:llm|switch_model", { id: models[0] });
   });
 
-  it("should list available models via listAvailableModels()", async () => {
-    // This test verifies the listAvailableModels backend function:
-    // 1. Button click triggers llm.listAvailableModels() call
-    // 2. Backend returns list of available model names
-    // 3. UI displays the list in a div
-    // 4. Verify the list is not empty and contains expected models
-
-    const listModelsButton = await $("#list-models-btn");
-    const modelsList = await $("#models-list");
-
-    // Click the button to fetch available models
-    console.log("Clicking list models button...");
-    await listModelsButton.click();
-
-    // Wait for the models list to appear
-    console.log("Waiting for models list to populate...");
-    await modelsList.waitUntil(
-      async function () {
-        const text = await this.getText();
-        console.log("Models list text:", text);
-        return text !== "";
-      },
+  it("should receive streamed response chunks via events", async () => {
+    const { error, chunks } = await streamPrompt([
       {
-        timeout: 10000,
-        timeoutMsg: "expected models list to populate after 10s",
-        interval: 500,
-      }
-    );
+        role: "system",
+        content:
+          "You are a helpful assistant. You repeat the incoming message in your own words.",
+      },
+      { role: "user", content: "Hello from e2e test" },
+    ]);
 
-    // Verify the list contains at least one model
-    const modelsText = await modelsList.getText();
-    console.log("Final models list:", modelsText);
+    expect(error).toBeNull();
+    expect(chunks.length).toBeGreaterThan(0);
 
-    // Check that we got a non-empty response
-    await expect(modelsList).toHaveText(expect.not.stringMatching(/^$/));
+    // Mock runtime echoes the user message content back
+    const fullResponse = chunks.map((c) => c.text).join("");
+    expect(fullResponse).toContain("Hello from e2e test");
 
-    // Optionally verify that "Mock" model is in the list (should always be available in test env)
-    await expect(modelsList).toHaveText(expect.stringContaining("Mock"));
+    // Chunk IDs should be sequential (iterator enumerate)
+    chunks.forEach((chunk, i) => {
+      expect(chunk.id).toBe(i);
+    });
   });
 
-  it("should switch model and send a message successfully", async () => {
-    // This test verifies the switchModel flow:
-    // 1. List available models to find one to switch to
-    // 2. Switch to that model (reusing "Mock" since it's the only one configured)
-    // 3. Send a message after switching and verify we get a response
+  it("should report token usage after stream ends", async () => {
+    const { error, tokenUsage } = await streamPrompt([
+      { role: "system", content: "Echo the message." },
+      { role: "user", content: "Token usage test" },
+    ]);
 
-    const switchModelButton = await $("#switch-model-btn");
-    const switchModelResult = await $("#switch-model-result");
-
-    // Click the button to switch model
-    console.log("Clicking switch model button...");
-    await switchModelButton.click();
-
-    // Wait for the switch result to appear
-    console.log("Waiting for switch model result...");
-    await switchModelResult.waitUntil(
-      async function () {
-        const text = await this.getText();
-        console.log("Switch model result text:", text);
-        return text !== "";
-      },
-      {
-        timeout: 10000,
-        timeoutMsg: "expected switch model result after 10s",
-        interval: 500,
-      }
-    );
-
-    // Verify the switch was successful
-    const resultText = await switchModelResult.getText();
-    console.log("Switch model result:", resultText);
-    await expect(switchModelResult).toHaveText(
-      expect.stringContaining("Switched to:")
-    );
-
-    // Now send a message to verify the switched model works
-    const promptInput = await $("input#prompt-input");
-    const promptButton = await $("button#prompt-send-btn");
-
-    if (process.platform !== "linux") {
-      await promptInput.setValue("Message after model switch");
-    }
-
-    await promptButton.click();
-
-    const promptResponse = await $("p#prompt-response");
-    await promptResponse.waitUntil(
-      async function () {
-        return (await this.getText()) !== "";
-      },
-      {
-        timeout: 60000,
-        timeoutMsg:
-          "expected response from backend after model switch within 60s",
-        interval: 1000,
-      }
-    );
-
-    // Verify we got a non-empty response after switching
-    const responseText = await promptResponse.getText();
-    console.log("Response after model switch:", responseText);
-    expect(responseText.length).toBeGreaterThan(0);
+    expect(error).toBeNull();
+    expect(tokenUsage).toBeDefined();
+    expect(tokenUsage.prompt_tokens).toBeGreaterThanOrEqual(0);
+    expect(tokenUsage.completion_tokens).toBeGreaterThanOrEqual(0);
+    expect(tokenUsage.total_tokens).toBeGreaterThanOrEqual(0);
   });
 
+  it("should stream successfully after model switch", async () => {
+    const models = await invoke("plugin:llm|list_available_models");
+    await invoke("plugin:llm|switch_model", { id: models[0] });
+
+    const { error, chunks } = await streamPrompt([
+      { role: "user", content: "Message after model switch" },
+    ]);
+
+    expect(error).toBeNull();
+    expect(chunks.length).toBeGreaterThan(0);
+
+    const fullResponse = chunks.map((c) => c.text).join("");
+    expect(fullResponse.length).toBeGreaterThan(0);
+  });
 });
