@@ -123,6 +123,11 @@ impl Query {
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct LLMRuntimeConfig {
+    /// Name of the Model
+    ///
+    /// This setting is being used to detect which model loader to use.
+    pub name: String,
+
     /// Path to `tokenizer.json`
     pub tokenizer_file: Option<PathBuf>,
 
@@ -132,40 +137,18 @@ pub struct LLMRuntimeConfig {
     /// path to `config.json`
     pub model_config_file: Option<PathBuf>,
 
-    /// Path to `model.safetensors.index.json`
+    /// Path to `model.safetensors.index.json`.
+    /// If present, the model format is inferred as Safetensors.
     pub model_index_file: Option<PathBuf>,
 
-    /// Path to `model.EXTENSION`
-    ///
-    /// The path to the model file depends on the model type. Some models use sharded
-    /// model files eg. `*.safetensors`. For split files use `model_dir`
+    /// Path to `model.EXTENSION` (e.g. `.gguf`).
+    /// If present (and no `model_index_file`), the model format is inferred as GGUF.
     pub model_file: Option<PathBuf>,
 
     /// Path to model directory
     ///
-    /// Use this setting, if the model files are distributed with sharded files eg. `*.safetensors`
+    /// Use this setting if the model files are distributed with sharded files eg. `*.safetensors`
     pub model_dir: Option<PathBuf>,
-
-    /// The Modelconfiguration
-    pub model_config: ModelConfig,
-
-    /// Enables logging
-    pub verbose: bool,
-
-    /// If the models ships with a separate template file, this can be configure here
-    /// Given a `tokenizer_config_file`, the template file setting will be ignored
-    pub template_file: Option<PathBuf>,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, Default)]
-pub struct ModelConfig {
-    /// Name of the Model
-    ///
-    /// This setting is being used to detect which model loader to use.
-    pub name: String,
-
-    /// Depending on the mode file type, a different loader will be selected internally
-    pub file_type: ModelFileType,
 
     /// Repetition penalty
     pub penalty: f32,
@@ -178,6 +161,13 @@ pub struct ModelConfig {
 
     /// Sampling configuration
     pub sampling_config: SamplingConfig,
+
+    /// Enables logging
+    pub verbose: bool,
+
+    /// If the models ships with a separate template file, this can be configured here.
+    /// Given a `tokenizer_config_file`, the template file setting will be ignored.
+    pub template_file: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
@@ -186,19 +176,6 @@ pub enum GenerationSeed {
 
     #[default]
     Random,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, Default)]
-pub enum ModelFileType {
-    // *.gguf
-    GGUF,
-
-    // *.safetensors
-    #[default]
-    Safetensors,
-
-    // *.pth
-    Pickle,
 }
 
 /// SampleConfig is copied 1:1 from
@@ -229,6 +206,22 @@ pub struct TokenizerConfig {
 }
 
 impl LLMRuntimeConfig {
+    /// Returns true if a `model_index_file` is present, indicating Safetensors format
+    pub fn is_safetensors(&self) -> bool {
+        self.model_index_file
+            .as_ref()
+            .map(|p| !p.as_os_str().is_empty())
+            .unwrap_or(false)
+    }
+
+    /// Returns true if a `model_file` is present (and no index file), indicating GGUF format
+    pub fn is_gguf(&self) -> bool {
+        self.model_file
+            .as_ref()
+            .map(|p| !p.as_os_str().is_empty())
+            .unwrap_or(false)
+    }
+
     /// Loads a config from path
     pub fn from_path<P>(path: P) -> Result<Self, Error>
     where

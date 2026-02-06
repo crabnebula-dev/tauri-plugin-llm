@@ -1,13 +1,15 @@
 //! LLM Inference
-mod llama3;
+// mod llama3;
+pub mod local;
 mod mock;
-mod qwen3;
+// mod qwen3;
 
 use crate::error::Error;
-use crate::runtime::llama3::LLama3Model;
+// use crate::runtime::llama3::LLama3Model;
+use crate::runtime::local::LocalRuntime;
 use crate::runtime::mock::Mock;
+use crate::LLMRuntimeConfig;
 use crate::Query;
-use crate::{runtime::qwen3::Qwen3Model, LLMRuntimeConfig, ModelConfig};
 use anyhow::Result;
 use candle_core::Device;
 use std::sync::mpsc::{Receiver, Sender};
@@ -91,43 +93,17 @@ impl LLMRuntime {
 
     /// Creates a model instance based on the model name.
     /// Called lazily when the first Query::Prompt is received.
-    fn create_model(
-        model_name: &str,
-        config: &LLMRuntimeConfig,
-        device: Device,
-    ) -> Result<Box<dyn LLMRuntimeModel>, Error> {
-        let ModelConfig {
-            penalty,
-            seed,
-            sampling_config,
-            ..
-        } = config.model_config.clone();
-
+    fn create_model(model_name: &str, device: Device) -> Result<Box<dyn LLMRuntimeModel>, Error> {
         match model_name {
-            name if name.contains("Qwen3") => Ok(Box::new(Qwen3Model {
-                device: Some(device),
-                tokenizer: None,
-                weights: None,
-                template: None,
-                template_proc: None,
-                seed,
-                sampling_config,
-            })),
-            name if name.contains("Mock") => Ok(Box::new(Mock)),
-            name if name.contains("Llama") => Ok(Box::new(LLama3Model {
-                device: Some(device),
-                tokenizer: None,
-                weights: None,
-                cache: None,
-                penalty,
-                template: None,
-                template_proc: None,
-                seed,
-                sampling_config,
-            })),
-            _ => Err(Error::ExecutionError(format!(
-                "Unknown Model Name: {model_name}"
-            ))),
+            // LocalRuntime must be checked first - it's a generic runtime that can load different model formats
+            // name if name.starts_with("Local") => Ok(Box::new(LocalRuntime::new(device))),
+            name if name.starts_with("Mock") => Ok(Box::new(Mock)),
+            _ => {
+                // Fall back to LocalRuntime for unknown models - it will determine
+                // the correct loader based on ModelFileType in the config
+                tracing::info!("Using LocalRuntime for model: {model_name}");
+                Ok(Box::new(LocalRuntime::new(device)))
+            }
         }
     }
 
@@ -237,50 +213,58 @@ impl LLMRuntime {
         tracing::debug!("Spawning worker thread (model will be loaded on first prompt)");
 
         let worker = tauri::async_runtime::spawn_blocking(move || {
-            let mut model: Option<Box<dyn LLMRuntimeModel>> = None;
+            let mut current_model: Option<Box<dyn LLMRuntimeModel>> = None;
 
             loop {
                 match control_rx.recv() {
-                    Ok(message) => {
-                        match message {
-                            Query::Prompt { model: ref query_model, .. } => {
-                                // Lazily create and initialize model on first prompt
-                                if model.is_none() {
-                                    let model_name = query_model
-                                        .as_ref()
-                                        .map(|s| s.as_str())
-                                        .unwrap_or(&config.model_config.name);
+                    Ok(message) => match message {
+                        Query::Prompt {
+                            model: ref query_model,
+                            ..
+                        } => {
+                            if current_model.is_none() {
+                                let model_name = query_model
+                                    .as_ref()
+                                    .map(|s| s.as_str())
+                                    .unwrap_or(&config.name);
 
-                                    tracing::debug!("Creating model: {}", model_name);
+                                tracing::debug!("Creating model: {}", model_name);
 
-                                    let device = LLMRuntime::load_default_device();
-                                    match LLMRuntime::create_model(model_name, &config, device) {
-                                        Ok(mut m) => {
-                                            tracing::debug!("Initializing model");
-                                            if let Err(error) = m.init(&config) {
-                                                tracing::error!("Error initializing model: {}", error);
-                                                continue;
-                                            }
-                                            model = Some(m);
+                                let device = LLMRuntime::load_default_device();
+
+                                match Self::create_model(model_name, device) {
+                                    Ok(mut model) => {
+                                        tracing::debug!("Initializing model");
+                                        if let Err(error) = model.init(&config) {
+                                            tracing::error!("Error initializing model: {}", error);
+
+                                            let _ = response_tx.send(Query::Status {
+                                                msg: error.to_string(),
+                                            });
+                                            break;
                                         }
-                                        Err(error) => {
-                                            tracing::error!("Error creating model: {}", error);
-                                            continue;
-                                        }
+                                        current_model = Some(model);
                                     }
-                                }
-
-                                if let Some(ref mut m) = model {
-                                    tracing::debug!("Sending message to model");
-                                    if let Err(error) = m.execute(message, response_tx.clone()) {
-                                        tracing::error!("Error execute streaming: {error}");
+                                    Err(error) => {
+                                        tracing::error!("Error Creating Runtime: {error}");
+                                        let _ = response_tx.send(Query::Status {
+                                            msg: error.to_string(),
+                                        });
+                                        break;
                                     }
                                 }
                             }
-                            Query::Exit => break,
-                            _ => {}
+
+                            if let Some(ref mut m) = current_model {
+                                tracing::debug!("Sending message to model");
+                                if let Err(error) = m.execute(message, response_tx.clone()) {
+                                    tracing::error!("Error execute streaming: {error}");
+                                }
+                            }
                         }
-                    }
+                        Query::Exit => break,
+                        _ => {}
+                    },
                     Err(error) => {
                         tracing::error!("Error! Couldn't receive control message: {error}. Waiting for next message");
                     }

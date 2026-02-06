@@ -13,26 +13,28 @@ fn enable_logging() {
 }
 
 #[tokio::test]
-#[ignore = "Load the Qwen3 model first, then run this test manually"]
-async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
+#[ignore = "Load the Qwen3 model first, then run the test manually"]
+async fn test_runtime_local_qwen3_safetensors() -> Result<(), Error> {
+    enable_logging();
+
     let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
     let mut runtime = LLMRuntime::from_config(config)?;
 
     runtime.run_stream()?;
 
-    tracing::info!("Sending Message");
-
     let result = runtime.send_stream(Query::Prompt {
-        messages: vec![QueryMessage {
-            role: "user".to_string(),
-            content: "Hello, World".to_string(), },
+        messages: vec![
             QueryMessage {
-            role: "system".to_string(),
-            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string()
-        },
+                role: "user".to_string(),
+                content: "Hello, World".to_string(),
+            },
+            QueryMessage {
+                role: "system".to_string(),
+                content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything.".to_string(),
+            },
         ],
         tools: vec![],
-        max_tokens: None,
+        max_tokens: Some(50),
         temperature: None,
         top_k: None,
         top_p: None,
@@ -40,15 +42,28 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
         stream: true,
         model: None,
         chunk_size: None,
-        timestamp: None
+        timestamp: None,
     });
 
     assert!(result.is_ok(), "{result:?}");
 
+    let mut result = vec![];
+    tracing::debug!("Assembling message");
+
     while let Ok(message) = runtime.recv_stream() {
-        assert!(matches!(message, Query::Chunk { .. }));
-        break;
+        assert!(matches!(message, Query::Chunk { .. } | Query::End { .. }));
+
+        match message {
+            Query::Chunk { data, .. } => result.extend(data),
+            _ => break,
+        }
     }
+
+    let result_str = String::from_utf8(result);
+    assert!(result_str.is_ok());
+
+    let s = result_str.unwrap();
+    tracing::debug!("Received LocalRuntime Response: {s}");
 
     Ok(())
 }
@@ -276,7 +291,7 @@ async fn test_switching_runtimes() -> Result<(), Error> {
     let mut service = LLMService::from_runtime_configs(&configs);
 
     for config in configs {
-        let model_name = config.model_config.name.clone();
+        let model_name = config.name.clone();
 
         tracing::info!("Activating model: {}", model_name);
 

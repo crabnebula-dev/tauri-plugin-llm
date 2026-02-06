@@ -15,7 +15,7 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
 
     // Clone the config and modify the name to "Mock2"
     let mut mock2_config = mock_config.clone();
-    mock2_config.model_config.name = "Mock2".to_string();
+    mock2_config.name = "Mock2".to_string();
 
     // Serialize the new config to JSON string
     let mock2_config_json = serde_json::to_string(&mock2_config)?;
