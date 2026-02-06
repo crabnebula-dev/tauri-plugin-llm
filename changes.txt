@@ -1,0 +1,1 @@
+Moved logits_processor creation to inference time in llama3.rs and qwen3.rs; refactored runtime.rs for lazy model loading on first Query::Prompt.

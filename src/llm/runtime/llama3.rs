@@ -15,22 +15,55 @@ use candle_transformers::generation::{LogitsProcessor, Sampling};
 use rand::Rng;
 use tokenizers::{AddedToken, Tokenizer};
 
+use crate::{GenerationSeed, SamplingConfig};
+
 #[allow(dead_code)]
 pub struct LLama3Model {
     pub(crate) device: Option<Device>,
     pub(crate) tokenizer: Option<Tokenizer>,
-
-    // pub(crate) stream: bool,
-    // pub(crate) top_k: usize,
-    // pub(crate) top_p: f64,
-    // pub(crate) temperature: f64,
-    // pub(crate) think: bool,
     pub(crate) weights: Option<Llama>,
-    pub(crate) logits_processor: Option<LogitsProcessor>,
     pub(crate) cache: Option<model::Cache>,
     pub(crate) penalty: f32,
     pub(crate) template: Option<String>,
     pub(crate) template_proc: Option<TemplateProcessor>,
+    pub(crate) seed: GenerationSeed,
+    pub(crate) sampling_config: SamplingConfig,
+}
+
+impl LLama3Model {
+    /// Creates a LogitsProcessor based on runtime parameters from Query::Prompt
+    fn create_logits_processor(
+        &self,
+        temperature: Option<f32>,
+        top_k: Option<f32>,
+        top_p: Option<f32>,
+    ) -> LogitsProcessor {
+        // Use provided values or defaults
+        let temperature = temperature.map(|t| t as f64).unwrap_or(0.7);
+        let top_k = top_k.map(|k| k as usize).unwrap_or(40);
+        let top_p = top_p.map(|p| p as f64).unwrap_or(0.9);
+
+        let sampling = match &self.sampling_config {
+            SamplingConfig::ArgMax => Sampling::ArgMax,
+            SamplingConfig::All => Sampling::All { temperature },
+            SamplingConfig::TopK => Sampling::TopK { k: top_k, temperature },
+            SamplingConfig::TopP => Sampling::TopP { p: top_p, temperature },
+            SamplingConfig::TopKThenTopP => Sampling::TopKThenTopP { k: top_k, p: top_p, temperature },
+            SamplingConfig::GumbelSoftmax => Sampling::GumbelSoftmax { temperature },
+        };
+
+        let seed = match &self.seed {
+            GenerationSeed::Fixed(inner) => *inner as u64,
+            GenerationSeed::Random => {
+                let mut rng = rand::rng();
+                let seed = rng.random_range(1..1e10 as u64);
+                tracing::debug!("Using seed for Logits Processor: {seed}");
+                seed
+            }
+        };
+
+        LogitsProcessor::from_sampling(seed, sampling)
+    }
 }
 
 impl LLMRuntimeModel for LLama3Model {
@@ -55,6 +88,8 @@ impl LLMRuntimeModel for LLama3Model {
         } = config.model_config.clone();
 
         self.penalty = penalty.max(0.1);
+        self.seed = seed;
+        self.sampling_config = sampling_config;
 
         // set template
         self.template = {
@@ -145,52 +180,6 @@ impl LLMRuntimeModel for LLama3Model {
             )
         };
 
-        // Initialize Logits Processor with defaults
-        // Runtime parameters (top_k, top_p, temperature) can be passed via Query::Prompt
-        self.logits_processor = {
-            // TODO: this block shall be moved to the inference
-            // Default values for sampling - can be overridden at runtime
-            let default_temperature = 0.7;
-            let default_top_k = 40;
-            let default_top_p = 0.9;
-
-            let sampling = match sampling_config {
-                crate::SamplingConfig::ArgMax => Sampling::ArgMax,
-                crate::SamplingConfig::All => Sampling::All {
-                    temperature: default_temperature,
-                },
-                crate::SamplingConfig::TopK => Sampling::TopK {
-                    k: default_top_k,
-                    temperature: default_temperature,
-                },
-                crate::SamplingConfig::TopP => Sampling::TopP {
-                    p: default_top_p,
-                    temperature: default_temperature,
-                },
-                crate::SamplingConfig::TopKThenTopP => Sampling::TopKThenTopP {
-                    k: default_top_k,
-                    p: default_top_p,
-                    temperature: default_temperature,
-                },
-                crate::SamplingConfig::GumbelSoftmax => Sampling::GumbelSoftmax {
-                    temperature: default_temperature,
-                },
-            };
-
-            let seed = match seed {
-                crate::GenerationSeed::Fixed(inner) => inner as u64,
-                crate::GenerationSeed::Random => {
-                    let mut rng = rand::rng();
-                    let seed = rng.random_range(1..1e10 as u64);
-                    tracing::debug!("Using seed for Logits Processor: {seed}");
-
-                    seed
-                }
-            };
-
-            Some(LogitsProcessor::from_sampling(seed, sampling))
-        };
-
         Ok(())
     }
 
@@ -221,9 +210,9 @@ impl LLMRuntimeModel for LLama3Model {
             chunk_size,
             timestamp,
             max_tokens,
-            temperature: _,
-            top_k: _,
-            top_p: _,
+            temperature,
+            top_k,
+            top_p,
             think: _,
             stream: _,
             model: _,
@@ -231,6 +220,9 @@ impl LLMRuntimeModel for LLama3Model {
         {
             let chunk_size = chunk_size.unwrap_or(self.default_chunksize());
             tracing::debug!("Using chunk size: {chunk_size}");
+
+            // Create logits processor with runtime parameters
+            let mut logits_processor = self.create_logits_processor(temperature, top_k, top_p);
 
             // preprocess message by applying chat template
             let message = {
@@ -251,9 +243,7 @@ impl LLMRuntimeModel for LLama3Model {
 
             // get defaults
             let tokenizer = self.tokenizer.as_ref().unwrap();
-
             let model = self.weights.as_mut().unwrap();
-            let logits_processor = self.logits_processor.as_mut().unwrap();
             let device = self.device.as_ref().unwrap();
 
             // encode message
@@ -275,8 +265,7 @@ impl LLMRuntimeModel for LLama3Model {
                 let logits = logits
                     .squeeze(0)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
-                logits_processor
-                    .sample(&logits)
+                logits_processor.sample(&logits)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?
             };
 
@@ -317,8 +306,7 @@ impl LLMRuntimeModel for LLama3Model {
                 )
                 .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
-                next_token = logits_processor
-                    .sample(&logits)
+                next_token = logits_processor.sample(&logits)
                     .map_err(|e| Error::ExecutionError(e.to_string()))?;
                 all_tokens.push(next_token);
                 chunks.push(next_token);

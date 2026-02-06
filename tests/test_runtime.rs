@@ -54,7 +54,7 @@ async fn test_runtime_qwen3_4b_gguf() -> Result<(), Error> {
 }
 
 #[tokio::test]
-// #[ignore = "Load the LLama3.2 model first, then run the test manually"]
+#[ignore = "Load the LLama3.2 model first, then run the test manually"]
 async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
     enable_logging();
 
