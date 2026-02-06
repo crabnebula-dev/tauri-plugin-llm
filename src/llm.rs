@@ -73,7 +73,7 @@ impl LLMService {
             if filename.ends_with(".json") {
                 match LLMRuntimeConfig::from_path(entry.path()) {
                     Ok(llm_config) => {
-                        configs.insert(llm_config.model_config.name.clone(), llm_config);
+                        configs.insert(llm_config.name.clone(), llm_config);
                     }
                     Err(error) => {
                         tracing::error!(
@@ -105,12 +105,7 @@ impl LLMService {
         let config = LLMRuntimeConfig::from_path(path)?;
 
         Ok(Self {
-            configs: Some(
-                [config]
-                    .into_iter()
-                    .map(|c| (c.model_config.name.clone(), c))
-                    .collect(),
-            ),
+            configs: Some([config].into_iter().map(|c| (c.name.clone(), c)).collect()),
             active: None,
         })
     }
@@ -124,7 +119,7 @@ impl LLMService {
 
         for p in paths {
             let config = LLMRuntimeConfig::from_path(p)?;
-            let name = config.model_config.name.clone();
+            let name = config.name.clone();
 
             configs.insert(name, config);
         }
@@ -149,7 +144,7 @@ impl LLMService {
     pub fn from_runtime_configs(configs: &[LLMRuntimeConfig]) -> Self {
         let mappings = configs
             .iter()
-            .map(|c| (c.model_config.name.clone(), c.clone()))
+            .map(|c| (c.name.clone(), c.clone()))
             .collect();
 
         Self {
@@ -187,11 +182,11 @@ impl LLMService {
 
         match self.configs {
             Some(ref mut inner) => {
-                inner.insert(c.model_config.name.clone(), c);
+                inner.insert(c.name.clone(), c);
             }
             None => {
                 let mut configs = HashMap::new();
-                configs.insert(c.model_config.name.clone(), c);
+                configs.insert(c.name.clone(), c);
 
                 self.configs = Some(configs)
             }

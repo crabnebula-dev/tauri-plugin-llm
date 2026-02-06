@@ -5,14 +5,33 @@ export type ChunkStreamDataCallback = (id: number, data: string) => void;
 export type ChunkStreamEndCallback = () => void;
 export type ChunkStreamErrorCallback = (msg: string) => void;
 
+export type GenerationSeed = "Random" | { Fixed: number };
+
+export type SamplingConfig =
+  | "ArgMax"
+  | "All"
+  | "TopK"
+  | "TopP"
+  | "TopKThenTopP"
+  | "GumbelSoftmax";
+
 export type Query =
   | {
     type: "Prompt";
     messages: QueryMessage[];
     tools: string[];
-    config?: QueryConfig;
     chunk_size?: number;
     timestamp?: number;
+    max_tokens?: number;
+    temperature?: number;
+    top_k?: number;
+    top_p?: number;
+    think?: boolean;
+    stream?: boolean;
+    model?: string;
+    penalty?: number;
+    seed?: GenerationSeed;
+    sampling_config?: SamplingConfig;
   }
   | {
     type: "Response";
@@ -38,11 +57,6 @@ export type Query =
     type: "Status";
     msg: string;
   };
-
-
-export interface QueryConfig {
-  generate_num_samples: number;
-}
 
 export interface QueryMessage {
   role: string;
@@ -170,8 +184,8 @@ export class LLMStreamListener {
    *     { role: "user", content: "Hello, how are you?" }
    *   ],
    *   tools: [],
-   *   config: { generate_num_samples: 500 },
-   *   chunk_size: 32
+   *   chunk_size: 32,
+   *   max_tokens: 500
    * });
    * ```
    */
@@ -231,12 +245,7 @@ export class LLMStreamListener {
    * const listener = new LLMStreamListener();
    *
    * const newConfig = {
-   *   model_config: {
-   *     name: "Llama-3.2-3B-Custom",
-   *     sampling_config: "TopKThenTopP",
-   *     seed: { type: "Random" },
-   *     penalty: 1.1
-   *   },
+   *   name: "Llama-3.2-3B-Custom",
    *   tokenizer_file: "/path/to/tokenizer.json",
    *   model_file: "/path/to/model.gguf"
    * };

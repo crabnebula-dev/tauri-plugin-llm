@@ -20,14 +20,34 @@ pub enum Query {
         /// as defined by the MCP standard
         tools: Vec<String>,
 
-        /// Optional config for the query.
-        /// If no value has been set, the default is assumed
-        #[serde(default, deserialize_with = "null_to_default")]
-        config: Option<QueryConfig>,
-
         chunk_size: Option<usize>,
 
         timestamp: Option<u64>,
+
+        max_tokens: Option<usize>,
+
+        temperature: Option<f32>,
+
+        top_k: Option<f32>,
+
+        top_p: Option<f32>,
+
+        #[serde(default)]
+        think: bool,
+
+        #[serde(default)]
+        stream: bool,
+
+        model: Option<String>,
+
+        /// Repetition penalty. Defaults to 1.1 if not provided.
+        penalty: Option<f32>,
+
+        /// Generation seed. Defaults to Random if not provided.
+        seed: Option<GenerationSeed>,
+
+        /// Sampling configuration. Defaults to All if not provided.
+        sampling_config: Option<SamplingConfig>,
     },
 
     Response {
@@ -52,13 +72,13 @@ pub enum Query {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(default)]
-pub struct QueryConfig {
-    pub generate_num_samples: usize,
-    pub temperature: Option<f32>,
-    pub model: Option<String>,
-}
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// #[serde(default)]
+// pub struct QueryConfig {
+//     pub max_tokens: usize,
+//     pub temperature: Option<f32>,
+//     pub model: Option<String>,
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QueryMessage {
@@ -110,18 +130,13 @@ impl Query {
     }
 }
 
-impl Default for QueryConfig {
-    fn default() -> Self {
-        QueryConfig {
-            generate_num_samples: 500,
-            temperature: None,
-            model: None,
-        }
-    }
-}
-
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct LLMRuntimeConfig {
+    /// Name of the Model
+    ///
+    /// This setting is being used to detect which model loader to use.
+    pub name: String,
+
     /// Path to `tokenizer.json`
     pub tokenizer_file: Option<PathBuf>,
 
@@ -131,69 +146,22 @@ pub struct LLMRuntimeConfig {
     /// path to `config.json`
     pub model_config_file: Option<PathBuf>,
 
-    /// Path to `model.safetensors.index.json`
+    /// Path to `model.safetensors.index.json`.
+    /// If present, the model format is inferred as Safetensors.
     pub model_index_file: Option<PathBuf>,
 
-    /// Path to `model.EXTENSION`
-    ///
-    /// The path to the model file depends on the model type. Some models use sharded
-    /// model files eg. `*.safetensors`. For split files use `model_dir`
+    /// Path to `model.EXTENSION` (e.g. `.gguf`).
+    /// If present (and no `model_index_file`), the model format is inferred as GGUF.
     pub model_file: Option<PathBuf>,
 
     /// Path to model directory
     ///
-    /// Use this setting, if the model files are distributed with sharded files eg. `*.safetensors`
+    /// Use this setting if the model files are distributed with sharded files eg. `*.safetensors`
     pub model_dir: Option<PathBuf>,
 
-    /// The Modelconfiguration
-    pub model_config: ModelConfig,
-
-    /// Enables logging
-    pub verbose: bool,
-
-    /// If the models ships with a separate template file, this can be configure here
-    /// Given a `tokenizer_config_file`, the template file setting will be ignored
+    /// If the models ships with a separate template file, this can be configured here.
+    /// Given a `tokenizer_config_file`, the template file setting will be ignored.
     pub template_file: Option<PathBuf>,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, Default)]
-pub struct ModelConfig {
-    /// Limits sampling to the K most likely next tokens.
-    pub top_k: usize,
-
-    /// Nucleus sampling. Dynamically selects the smallest
-    /// set of tokens whose cumulative probability exceeds P
-    pub top_p: f64,
-
-    /// Lower Temperatures 0.1 - 0.5 select tokens with high confidence
-    /// Higher Temperatures 0.5 - 1.0 consider more possibilities for the next token
-    pub temperature: f64,
-
-    /// Name of the Model
-    ///
-    /// This setting is being used to detect which model loader to use.
-    pub name: String,
-
-    /// Depending on the mode file type, a different loader will be selected internally
-    pub file_type: ModelFileType,
-
-    /// Repetition penalty
-    pub penalty: f32,
-
-    /// Some models expect a generation seed.
-    ///
-    /// This can either be a fixed value or random where random is the default, if no explicit
-    /// value has been set.
-    pub seed: GenerationSeed,
-
-    /// Enable thinking mode, if model supports it
-    pub thinking: bool,
-
-    /// Enable streaming responses
-    pub streaming: bool,
-
-    /// Sampling configuration
-    pub sampling_config: SamplingConfig,
 }
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
@@ -202,19 +170,6 @@ pub enum GenerationSeed {
 
     #[default]
     Random,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, Default)]
-pub enum ModelFileType {
-    // *.gguf
-    GGUF,
-
-    // *.safetensors
-    #[default]
-    Safetensors,
-
-    // *.pth
-    Pickle,
 }
 
 /// SampleConfig is copied 1:1 from
@@ -245,6 +200,22 @@ pub struct TokenizerConfig {
 }
 
 impl LLMRuntimeConfig {
+    /// Returns true if a `model_index_file` is present, indicating Safetensors format
+    pub fn is_safetensors(&self) -> bool {
+        self.model_index_file
+            .as_ref()
+            .map(|p| !p.as_os_str().is_empty())
+            .unwrap_or(false)
+    }
+
+    /// Returns true if a `model_file` is present (and no index file), indicating GGUF format
+    pub fn is_gguf(&self) -> bool {
+        self.model_file
+            .as_ref()
+            .map(|p| !p.as_os_str().is_empty())
+            .unwrap_or(false)
+    }
+
     /// Loads a config from path
     pub fn from_path<P>(path: P) -> Result<Self, Error>
     where
@@ -262,12 +233,4 @@ impl LLMRuntimeConfig {
     {
         Ok(serde_json::from_str(content.as_ref())?)
     }
-}
-
-fn null_to_default<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    T: Default + serde::Deserialize<'de>,
-{
-    Ok(Some(Option::deserialize(deserializer)?.unwrap_or_default()))
 }

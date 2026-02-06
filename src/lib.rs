@@ -7,6 +7,7 @@ mod llm;
 mod mobile;
 mod models;
 
+pub mod iter;
 mod templates;
 
 pub use templates::*;
@@ -93,7 +94,7 @@ impl Builder {
 
                     // initialize and activate runtime by config
                     // TODO: We may have more than one model config available
-                    service.activate(config.llmconfig.model_config.name)?;
+                    service.activate(config.llmconfig.name.clone())?;
 
                     PluginState {
                         runtime: Arc::new(Mutex::new(service)),

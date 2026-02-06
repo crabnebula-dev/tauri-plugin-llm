@@ -1,4 +1,4 @@
-use tauri_plugin_llm::{Error, LLMRuntimeConfig, LLMService, Query, QueryConfig, QueryMessage};
+use tauri_plugin_llm::{Error, LLMRuntimeConfig, LLMService, Query, QueryMessage};
 
 #[tokio::test]
 async fn test_add_config_at_runtime() -> Result<(), Error> {
@@ -15,7 +15,7 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
 
     // Clone the config and modify the name to "Mock2"
     let mut mock2_config = mock_config.clone();
-    mock2_config.model_config.name = "Mock2".to_string();
+    mock2_config.name = "Mock2".to_string();
 
     // Serialize the new config to JSON string
     let mock2_config_json = serde_json::to_string(&mock2_config)?;
@@ -40,13 +40,18 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
             content: "Hello from Mock".to_string(),
         }],
         tools: vec![],
-        config: Some(QueryConfig {
-            generate_num_samples: 100,
-            temperature: None,
-            model: None,
-        }),
         chunk_size: Some(10),
         timestamp: None,
+        max_tokens: Some(100),
+        temperature: None,
+        top_k: None,
+        top_p: None,
+        think: false,
+        stream: true,
+        model: None,
+        penalty: None,
+        seed: None,
+        sampling_config: None,
     };
 
     runtime.send_stream(query)?;
@@ -66,13 +71,18 @@ async fn test_add_config_at_runtime() -> Result<(), Error> {
             content: "Hello from Mock2".to_string(),
         }],
         tools: vec![],
-        config: Some(QueryConfig {
-            generate_num_samples: 100,
-            temperature: None,
-            model: None,
-        }),
         chunk_size: Some(10),
         timestamp: None,
+        max_tokens: Some(100),
+        temperature: None,
+        top_k: None,
+        top_p: None,
+        think: false,
+        stream: true,
+        model: None,
+        penalty: None,
+        seed: None,
+        sampling_config: None,
     };
 
     runtime.send_stream(query2)?;
