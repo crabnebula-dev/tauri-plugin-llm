@@ -200,13 +200,22 @@ impl LLMRuntime {
     pub fn run_stream(&mut self) -> Result<(), Error> {
         let config = self.config.clone();
 
-        let control_rx = self
+        let control_rx = match self
             .control
             .1
             .lock()
             .expect("Failed to acquire lock")
             .take()
-            .unwrap();
+        {
+            Some(ctrlrx) => ctrlrx,
+            None => {
+                tracing::error!("Runtime does not contain a control channel");
+
+                return Err(Error::ExecutionError(
+                    "Runtime is missing control channel".to_string(),
+                ));
+            }
+        };
 
         let response_tx = self.response.0.clone();
 
