@@ -94,10 +94,15 @@ impl LLMRuntime {
     /// Creates a model instance based on the model name.
     /// Called lazily when the first Query::Prompt is received.
     fn create_model(model_name: &str, device: Device) -> Result<Box<dyn LLMRuntimeModel>, Error> {
+        tracing::debug!("Loading Model: {model_name}");
         match model_name {
             // LocalRuntime must be checked first - it's a generic runtime that can load different model formats
             // name if name.starts_with("Local") => Ok(Box::new(LocalRuntime::new(device))),
-            name if name.starts_with("Mock") => Ok(Box::new(Mock)),
+            name if name.starts_with("Mock") => {
+                tracing::debug!("Using Mock Runtime.");
+
+                Ok(Box::new(Mock))
+            }
             _ => {
                 // Fall back to LocalRuntime for unknown models - it will determine
                 // the correct loader based on ModelFileType in the config
