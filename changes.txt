@@ -1,3 +1,0 @@
-Moved logits_processor creation to inference time in llama3.rs and qwen3.rs; refactored runtime.rs for lazy model loading on first Query::Prompt.
-Added LocalRuntime in local.rs - a generic model loader supporting GGUF, Safetensors formats based on ModelFileType config.
-Flattened ModelConfig into LLMRuntimeConfig; removed ModelFileType (inferred from config fields); added Qwen3 safetensors support to LocalRuntime.
