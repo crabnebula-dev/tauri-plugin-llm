@@ -4,96 +4,200 @@ This Tauri plugin allows loading and running inference on various large language
 
 | Platform | Supported |
 | -------- | --------- |
-| Linux    | ✓        |
-| Windows  | ✓        |
+| Linux    | ✓         |
+| Windows  | ✓         |
 | macOS    | ✓         |
 | Android  | ?         |
 | iOS      | ?         |
 
-# Requirements
+## Requirements
 
 - Rust >= 1.77
 
-# Install
+## Install
 
-# Usage
+## Supported Models
 
-The plugin is not bundled with any LLM. The LLM must be shipped separately. In order to load an LLM, a specific configuration must be provided for the plugin. The JSON example configuration sets `Qwen3-4B-GGUF` as model to be loaded. 
+| Model | GGUF | Safetensors |
+| ----- | ---- | ----------- |
+| Llama 3.x | ✓ | ✓ |
+| Qwen3 | ✓ | ✓ |
 
-File `tauri.conf.json` :
+and much more to follow...
+
+## Usage
+
+The plugin is not bundled with any LLM. The LLM must be shipped separately. In order to load an LLM, a specific configuration must be provided for the plugin.
+
+### Configuration
+
+Add the plugin configuration to your `tauri.conf.json`. The `llmconfig` section defines the model to load:
+
 ```json
 {
-  "build": { ... },
-  "tauri": { ... },
   "plugins": {
-    "tauri-plugin-llm": {
-        "tokenizer_file": "./models/Qwen3-4B-Instruct-2507-FP8/tokenizer.json",
-        "tokenizer_config_file": "./models/Qwen3-4B-Instruct-2507-FP8/tokenizer_config.json",
-        "model_config_file": "./models/Qwen3-4B-Instruct-2507-FP8/config.json",
-        "model_index_file": "",
-        "model_file": "./models/Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf",
-        "model_dir": "./models/Qwen3-4B-GGUF/",
-        "model_config": {
-            "top_k": 20,
-            "top_p": 0.8,
-            "temperature": 0.4,
-            "name": "Qwen3-4B-GGUF",
-            "file_type": "GGUF",
-            "penalty": 1.0,
-            "seed": "Random",
-            "thinking": false,
-            "streaming": true
-        },
-        "verbose": true
+    "llm": {
+      "llmconfig": {
+        "name": "Qwen3-4B-GGUF",
+        "tokenizer_file": "./models/Qwen3-4B-GGUF/tokenizer.json",
+        "model_file": "./models/Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf"
+      }
     }
   }
 }
-
 ```
 
-> **Note**: _The example above shows a model present at some folder called `model`. The model itself will not be shipped with the plugin._
+For Safetensors models (sharded weights), use `model_index_file` and `model_dir` instead of `model_file`:
 
+```json
+{
+  "plugins": {
+    "llm": {
+      "llmconfig": {
+        "name": "Local-Qwen--Qwen3-4B-Instruct-2507",
+        "tokenizer_file": "./models/Qwen3-4B-Instruct-2507/tokenizer.json",
+        "tokenizer_config_file": "./models/Qwen3-4B-Instruct-2507/tokenizer_config.json",
+        "model_config_file": "./models/Qwen3-4B-Instruct-2507/config.json",
+        "model_index_file": "./models/Qwen3-4B-Instruct-2507/model.safetensors.index.json",
+        "model_dir": "./models/Qwen3-4B-Instruct-2507/"
+      }
+    }
+  }
+}
+```
 
-The `LLMRuntime` will try to load an LLM and defer the initialization process to the actual loader. The Tauri Plugin LLM does not support all available models, yet. Internally, the model will be run in a dedicated thread to avoid blocking the main thread. 
+> **Note**: The model files are not shipped with the plugin. You must download them separately.
 
-```Rust
-// For demonstration purposes we load the configuration from the tests. 
-// Normally you would load the tauri config
+#### LLMRuntimeConfig Fields
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `name` | `string` | Model identifier, used for model selection |
+| `tokenizer_file` | `string?` | Path to `tokenizer.json` |
+| `tokenizer_config_file` | `string?` | Path to `tokenizer_config.json` |
+| `model_config_file` | `string?` | Path to `config.json` |
+| `model_index_file` | `string?` | Path to `model.safetensors.index.json` (implies Safetensors format) |
+| `model_file` | `string?` | Path to model file, e.g. `.gguf` (implies GGUF format) |
+| `model_dir` | `string?` | Path to model directory for sharded Safetensors files |
+| `template_file` | `string?` | Path to a custom chat template file |
+
+### Rust API
+
+The `LLMRuntime` loads the model lazily on the first prompt and runs inference in a dedicated thread.
+
+```rust
 let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
-
-// Initialize the Runtime and detect available specific runtimes
 let mut runtime = LLMRuntime::from_config(config)?;
 
-// Starting the runtime. This will internally initialize the model and 
-// then run inference on the model on the incoming message.
 runtime.run_stream()?;
 
-// You would run the following code in a loop. This example shows 
-// how to get individual chunks of the response. 
-if let Err(_) = runtime.send_stream(Query::Prompt {
-    messages: vec![QueryMessage {
-        role: "user".to_string(),
-        content: "Hello, World".to_string(), },
+runtime.send_stream(Query::Prompt {
+    messages: vec![
         QueryMessage {
-        role: "system".to_string(),
-        content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string(), },
+            role: "system".to_string(),
+            content: "You are a helpful assistant.".to_string(),
+        },
+        QueryMessage {
+            role: "user".to_string(),
+            content: "Hello, World".to_string(),
+        },
     ],
     tools: vec![],
-    config: Some(QueryConfig::default()),
-    chunk_size : None, timestamp : None
-}) {
-    while let Ok(message) = runtime.recv_stream() {
-        assert!(matches!(message, Query::Chunk { ..} | Query::End));
-        break;
+    max_tokens: Some(200),
+    temperature: None,
+    top_k: None,
+    top_p: None,
+    think: false,
+    stream: true,
+    model: None,
+    penalty: None,
+    seed: None,
+    sampling_config: None,
+    chunk_size: None,
+    timestamp: None,
+})?;
+
+while let Ok(message) = runtime.recv_stream() {
+    match message {
+        Query::Chunk { data, .. } => {
+            print!("{}", String::from_utf8_lossy(&data));
+        }
+        Query::End { usage } => {
+            if let Some(usage) = usage {
+                println!("\nTokens: {} prompt, {} completion",
+                    usage.prompt_tokens, usage.completion_tokens);
+            }
+            break;
+        }
+        _ => break,
     }
 }
-    
-Ok(())
-
 ```
 
+#### Query::Prompt Fields
 
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `messages` | `Vec<QueryMessage>` | Chat messages (`role` + `content`) |
+| `tools` | `Vec<String>` | Tool definitions (MCP-compatible JSON) |
+| `max_tokens` | `usize?` | Maximum tokens to generate |
+| `temperature` | `f32?` | Sampling temperature |
+| `top_k` | `f32?` | Top-K sampling parameter |
+| `top_p` | `f32?` | Top-P (nucleus) sampling parameter |
+| `think` | `bool` | Enable thinking/reasoning mode |
+| `stream` | `bool` | Enable streaming output |
+| `model` | `string?` | Target model name (for multi-model setups) |
+| `penalty` | `f32?` | Repetition penalty (defaults to 1.1) |
+| `seed` | `GenerationSeed?` | `"Random"` (default) or `{ "Fixed": N }` |
+| `sampling_config` | `SamplingConfig?` | Sampling strategy: `"ArgMax"`, `"All"` (default), `"TopK"`, `"TopP"`, `"TopKThenTopP"`, `"GumbelSoftmax"` |
+| `chunk_size` | `usize?` | Number of tokens per streamed chunk |
+| `timestamp` | `u64?` | Optional timestamp for the request |
 
-# License
+### TypeScript / Frontend API
+
+```typescript
+import { LLMStreamListener } from "tauri-plugin-llm-api";
+
+const listener = new LLMStreamListener();
+
+await listener.setup({
+  onData: (id, data, timestamp) => {
+    console.log(new TextDecoder().decode(data));
+  },
+  onError: (msg) => console.error("Error:", msg),
+  onEnd: (usage) => {
+    if (usage) {
+      console.log(`Tokens: ${usage.prompt_tokens} prompt, ${usage.completion_tokens} completion`);
+    }
+  },
+});
+
+await listener.stream({
+  type: "Prompt",
+  messages: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "Hello!" },
+  ],
+  tools: [],
+  max_tokens: 200,
+  stream: true,
+});
+
+// Switch models at runtime
+const models = await listener.listAvailableModels();
+await listener.switchModel("Qwen3-4B-GGUF");
+
+// Add a new model configuration dynamically
+await listener.addConfiguration(JSON.stringify({
+  name: "Llama-3.2-3B",
+  tokenizer_file: "/path/to/tokenizer.json",
+  model_file: "/path/to/model.gguf",
+}));
+
+// Clean up when done
+listener.teardown();
+```
+
+## License
 
 This software is licensed under the [PolyForm Noncommercial License 1.0.0](./LICENSE_POLYFORM-NONCOM).

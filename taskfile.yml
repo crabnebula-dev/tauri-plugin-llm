@@ -25,29 +25,35 @@ tasks:
 
   fetch_llama3.2_instruct:
     silent: true
-    vars:
-      HF_TOKEN: 
-        sh: security find-generic-password -a "huggingface-token" -w
-      MODEL: "meta-llama/Llama-3.2-3B-Instruct"
+    desc: Downloads meta-llama/Llama-3.2-3B-Instruct via HF API in container
     cmds:
       - task: fetch
-        vars:
-          HF_TOKEN: "{{.HF_TOKEN}}"
-          MODEL: "{{.MODEL}}"
+        vars: { MODEL: "meta-llama/Llama-3.2-3B-Instruct" }
+
+  fetch_qwen3_4b_instruct:
+    silent: true
+    desc: Downloads Qwen/Qwen3-4B-Instruct-2507 via HF API in container
+    cmds:
+      - task: fetch
+        vars: { MODEL: "Qwen/Qwen3-4B-Instruct-2507" }
 
   fetch:
     silent: true
-    desc: Download "meta-llama/Llama-3.2-3B-Instruct". Requires HF token!
+    desc: Downloads a model via HF API in container. Requires HF token!
     requires:
-      vars: [HF_TOKEN, MODEL]
+      vars: [MODEL]
+    vars:
+      HF_TOKEN:
+        sh: '[ "$(uname)" = "Darwin" ] && security find-generic-password -a "huggingface-token" -w || echo ""'
     cmds:
-      - echo "{{.MODEL}}"
+      - echo "Downloading {{.MODEL}}"
       - $CONTAINER_RUNTIME run -ti --rm -v $(pwd)/models:/models --env HF_TOKEN="{{.HF_TOKEN}}" --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash -c "hf download --cache-dir /models {{.MODEL}}" 
 
   tests:
     silent: true
     desc: Runs all end to end tests
     cmds:
+      - cargo test --all
       - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG task 'run_tests'
 
   run_tests:
