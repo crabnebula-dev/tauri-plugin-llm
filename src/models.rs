@@ -18,6 +18,7 @@ pub enum Query {
         /// This may change in the future. For now a model can be
         /// informed about available tools by a json encoded message
         /// as defined by the MCP standard
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         tools: Vec<String>,
 
         chunk_size: Option<usize>,

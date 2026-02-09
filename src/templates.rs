@@ -65,8 +65,15 @@ impl TemplateProcessor {
     }
 
     fn render_jinja_template(&self, source: &str, input: &str) -> Result<String, Error> {
-        let ctx: serde_json::Value =
+        let mut ctx: serde_json::Value =
             serde_json::from_str(input).map_err(|e| Error::TemplateError(e.to_string()))?;
+
+        // CRITICAL: Set add_generation_prompt to true for instruct models
+        // This adds the assistant header (e.g., <|start_header_id|>assistant<|end_header_id|>)
+        // so the model knows it should generate a response
+        if let Some(obj) = ctx.as_object_mut() {
+            obj.insert("add_generation_prompt".to_string(), serde_json::json!(true));
+        }
 
         let mut env = Environment::new();
         env.add_template("template", source)
