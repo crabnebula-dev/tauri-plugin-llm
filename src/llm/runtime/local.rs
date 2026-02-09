@@ -20,8 +20,10 @@ use tokenizers::Tokenizer;
 
 // Model weight types supported by candle
 use candle_transformers::models::llama::{self as llama_model, Llama, LlamaConfig};
+
 use candle_transformers::models::quantized_llama::ModelWeights as QuantizedLlamaWeights;
 use candle_transformers::models::quantized_qwen3::ModelWeights as QuantizedQwen3Weights;
+
 use candle_transformers::models::qwen3::{self as qwen3_model, Config as Qwen3Config};
 
 /// Abstraction over different model weight types
@@ -36,7 +38,7 @@ pub enum ModelWeights {
         cache: llama_model::Cache,
     },
     /// Full precision Qwen3 weights (Safetensors format)
-    Qwen3(qwen3_model::Model),
+    Qwen3(qwen3_model::ModelForCausalLM),
 }
 
 impl ModelWeights {
@@ -221,7 +223,7 @@ impl LocalRuntime {
             let mut config_file = File::open(model_config_file)?;
             let qwen3_config: Qwen3Config = serde_json::from_reader(&mut config_file)?;
 
-            let model = qwen3_model::Model::new(&qwen3_config, vb)
+            let model = qwen3_model::ModelForCausalLM::new(&qwen3_config, vb)
                 .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
             Ok(ModelWeights::Qwen3(model))
@@ -245,6 +247,8 @@ impl LLMRuntimeModel for LocalRuntime {
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error> {
         let name = &config.name;
 
+        // TODO: This can be an external function to decide which EOS token
+        // is being used per model
         // Set EOS token based on model name
         self.eos_token = if name.contains("Llama") {
             Some("<|eot_id|>".to_string())
