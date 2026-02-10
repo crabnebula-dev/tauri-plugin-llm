@@ -82,25 +82,27 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
     runtime.run_stream()?;
 
     let result = runtime.send_stream(Query::Prompt {
-        messages: vec![QueryMessage {
-            role: "user".to_string(),
-            content: "Hello, World".to_string(), },
+        messages: vec![
             QueryMessage {
-            role: "system".to_string(),
-            content: "You are a helpful assistant. Your task is to echo the incoming message. Do not describe anything. ".to_string()
-        },
+                role: "system".to_string(),
+                content: "You are a helpful assistant. Answer questions concisely.".to_string()
+            },
+            QueryMessage {
+                role: "user".to_string(),
+                content: "Just echo 'hello, World!'".to_string(),
+            },
         ],
         tools: vec![],
-        max_tokens: None,
-        temperature: None,
+        max_tokens: Some(50),
+        temperature: Some(0.0),
         top_k: None,
         top_p: None,
         think: false,
         stream: true,
         model: None,
-        penalty: None,
+        penalty: Some(1.5),  // Stronger repetition penalty
         seed: None,
-        sampling_config: None,
+        sampling_config: Some(tauri_plugin_llm::SamplingConfig::ArgMax),  // Greedy sampling
         chunk_size: None,
         timestamp: None,
     });

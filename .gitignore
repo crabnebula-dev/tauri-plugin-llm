@@ -11,3 +11,4 @@ package-lock.json
 ffi/libs/
 .venv/
 .pnpm-store/
+TODO.md
