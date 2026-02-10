@@ -9,7 +9,8 @@ use tokenizers::AddedToken;
 
 /// A query type.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
+// #[serde(tag = "type")] // we changed this to only see the values
+#[serde(untagged)]
 pub enum Query {
     Prompt {
         messages: Vec<QueryMessage>,
@@ -73,14 +74,6 @@ pub enum Query {
     },
 }
 
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// #[serde(default)]
-// pub struct QueryConfig {
-//     pub max_tokens: usize,
-//     pub temperature: Option<f32>,
-//     pub model: Option<String>,
-// }
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QueryMessage {
     pub role: String,
@@ -93,6 +86,7 @@ pub struct QueryMessage {
 pub enum QueryChunkType {
     String,
     Bytes,
+    ToolCall,
 }
 
 /// Metrics on actual token usage

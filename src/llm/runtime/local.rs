@@ -266,30 +266,33 @@ impl LLMRuntimeModel for LocalRuntime {
     fn init(&mut self, config: &LLMRuntimeConfig) -> Result<(), Error> {
         let name = &config.name;
 
-        // TODO: This can be an external function to decide which EOS token
-        // is being used per model
-        // Set EOS tokens based on model name
-        self.eos_tokens = if name.contains("Llama") {
-            // Llama 3.2 has multiple EOS tokens
-            vec![
-                "<|eot_id|>".to_string(),      // End of turn (128009)
-                "<|end_of_text|>".to_string(), // End of text (128001)
-            ]
-        } else if name.contains("Qwen") {
-            vec!["<|im_end|>".to_string()]
+        // Load tokenizer config if available
+        let tokenizer_config_json: Option<TokenizerConfig> =
+            if let Some(t) = &config.tokenizer_config_file {
+                let mut file = File::open(t)?;
+                Some(serde_json::from_reader(&mut file)?)
+            } else {
+                None
+            };
+
+        // Set EOS tokens from tokenizer_config.json, falling back to defaults
+        self.eos_tokens = if let Some(eos) = tokenizer_config_json
+            .as_ref()
+            .and_then(|tc| tc.eos_token.as_ref())
+        {
+            tracing::info!("Using EOS token from tokenizer_config: {eos}");
+            vec![eos.clone()]
         } else {
+            tracing::warn!("No EOS token in tokenizer_config, falling back to default");
             vec!["</s>".to_string()]
         };
 
         // Load template
         self.template = {
-            if let Some(t) = &config.tokenizer_config_file {
-                let mut file = File::open(t)?;
-                let tokenizer_config_json: TokenizerConfig = serde_json::from_reader(&mut file)?;
-
-                if let Some(template) = tokenizer_config_json.chat_template {
+            if let Some(tc) = &tokenizer_config_json {
+                if let Some(template) = &tc.chat_template {
                     tracing::info!("Loaded Template from tokenizer_config file");
-                    Some(template)
+                    Some(template.clone())
                 } else {
                     tracing::info!("The tokenizer_config file does not provide a chat template");
                     None
@@ -434,13 +437,13 @@ impl LLMRuntimeModel for LocalRuntime {
 
             let generate_num_samples = max_tokens.unwrap_or(500);
 
-            tracing::info!("=== Inference Debug Info ===");
-            tracing::info!("Processed message: {}", processed_message);
-            tracing::info!("Max tokens: {}", generate_num_samples);
-            tracing::info!("Temperature: {:?}", temperature);
-            tracing::info!("Top-k: {:?}", top_k);
-            tracing::info!("Top-p: {:?}", top_p);
-            tracing::info!("Sampling config: {:?}", sampling_config);
+            // tracing::info!("=== Inference Debug Info ===");
+            // tracing::info!("Processed message: {}", processed_message);
+            // tracing::info!("Max tokens: {}", generate_num_samples);
+            // tracing::info!("Temperature: {:?}", temperature);
+            // tracing::info!("Top-k: {:?}", top_k);
+            // tracing::info!("Top-p: {:?}", top_p);
+            // tracing::info!("Sampling config: {:?}", sampling_config);
 
             let tokenizer = self.tokenizer.as_ref().unwrap();
             let weights = self.weights.as_mut().unwrap();
@@ -529,6 +532,8 @@ impl LLMRuntimeModel for LocalRuntime {
                         next_token = token;
                         all_tokens.push(token);
                         if eos_token_ids.contains(&token) {
+                            tracing::debug!("FOUND EOS TOKEN");
+
                             done = true;
                         }
                         Some(token)

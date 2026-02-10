@@ -1,11 +1,8 @@
 //! LLM Inference
-// mod llama3;
 pub mod local;
 mod mock;
-// mod qwen3;
 
 use crate::error::Error;
-// use crate::runtime::llama3::LLama3Model;
 use crate::runtime::local::LocalRuntime;
 use crate::runtime::mock::Mock;
 use crate::LLMRuntimeConfig;
@@ -14,7 +11,6 @@ use anyhow::Result;
 use candle_core::Device;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, RwLock};
-use tauri::{AppHandle, Runtime};
 
 #[allow(clippy::type_complexity)]
 pub struct LLMRuntime {
@@ -26,11 +22,6 @@ pub struct LLMRuntime {
         Arc<Mutex<Option<Receiver<Query>>>>,
     ),
     response: (Arc<Sender<Query>>, Arc<Mutex<Receiver<Query>>>),
-}
-
-impl LLMRuntime {
-    /// This
-    pub fn handle_app_events<R: Runtime>(&self, _app: &AppHandle<R>) {}
 }
 
 pub trait LLMRuntimeModel: Send + Sync {
@@ -273,6 +264,11 @@ impl LLMRuntime {
                                 tracing::debug!("Sending message to model");
                                 if let Err(error) = m.execute(message, response_tx.clone()) {
                                     tracing::error!("Error execute streaming: {error}");
+
+                                    let _ = response_tx.send(Query::Status {
+                                        msg: error.to_string(),
+                                    });
+                                    break;
                                 }
                             }
                         }

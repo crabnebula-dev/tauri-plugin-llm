@@ -32,7 +32,7 @@ tracing-appender    = {version = "0.2.3"}
 tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
 
 # templating. 
-minijinja           = { version = "2.15.1" }
+minijinja           = { version = "2.15.1", features = ["json"] }
 
 # Optional dependency to MCPurify. Please check the LICENSE before enabling MCPurify.
 # mcpurify          = { git = "git@github.com:crabnebula-dev/MCPurify.git", optional = true }

@@ -57,6 +57,7 @@ impl TemplateProcessor {
         Self::from_raw_template(std::fs::read_to_string(source)?)
     }
 
+    /// Renders the template's `source` and applies any `input` values.
     pub fn render(&self, source: &str, input: &str) -> Result<String, Error> {
         match self.kind {
             TemplateType::Jinja => self.render_jinja_template(source, input),
@@ -71,11 +72,15 @@ impl TemplateProcessor {
         // CRITICAL: Set add_generation_prompt to true for instruct models
         // This adds the assistant header (e.g., <|start_header_id|>assistant<|end_header_id|>)
         // so the model knows it should generate a response
-        if let Some(obj) = ctx.as_object_mut() {
-            obj.insert("add_generation_prompt".to_string(), serde_json::json!(true));
-        }
+        // if let Some(obj) = ctx.as_object_mut() {
+        //     obj.insert("add_generation_prompt".to_string(), serde_json::json!(true));
+        // }
 
         let mut env = Environment::new();
+
+        // extensions here
+        self.set_extensions(&mut env);
+
         env.add_template("template", source)
             .map_err(|e| Error::TemplateError(e.to_string()))?;
 
@@ -85,5 +90,10 @@ impl TemplateProcessor {
 
         tmpl.render(ctx)
             .map_err(|e| Error::TemplateError(e.to_string()))
+    }
+
+    /// Sets extensions to minjinia
+    fn set_extensions(&self, env: &mut Environment) {
+        env.add_filter("tojson", minijinja::filters::tojson);
     }
 }
