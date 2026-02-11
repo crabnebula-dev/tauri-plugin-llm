@@ -74,12 +74,18 @@ pub enum Query {
     },
 }
 
-/// represents the result of a tool call
+/// Represents a parsed tool call extracted from model output.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ToolCall {
     id: String,
     name: String,
     arguments: serde_json::Value,
+}
+
+impl ToolCall {
+    pub fn new(id: String, name: String, arguments: serde_json::Value) -> Self {
+        Self { id, name, arguments }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -1,6 +1,8 @@
 //! LLM Inference
+pub mod backend;
 pub mod local;
 mod mock;
+pub mod tool_call;
 
 use crate::error::Error;
 use crate::runtime::local::LocalRuntime;

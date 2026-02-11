@@ -66,7 +66,7 @@ impl TemplateProcessor {
     }
 
     fn render_jinja_template(&self, source: &str, input: &str) -> Result<String, Error> {
-        let mut ctx: serde_json::Value =
+        let ctx: serde_json::Value =
             serde_json::from_str(input).map_err(|e| Error::TemplateError(e.to_string()))?;
 
         // CRITICAL: Set add_generation_prompt to true for instruct models

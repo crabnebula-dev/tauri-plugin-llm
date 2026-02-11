@@ -1,6 +1,9 @@
 use std::vec;
 
-use tauri_plugin_llm::{runtime::LLMRuntime, Error, LLMRuntimeConfig, Query, QueryMessage};
+use tauri_plugin_llm::{
+    runtime::LLMRuntime, Error, GenerationSeed, LLMRuntimeConfig, Query, QueryMessage,
+    SamplingConfig,
+};
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
 
 #[allow(dead_code)]
@@ -15,12 +18,13 @@ async fn test_runtime_local_qwen3_safetensors_toolcall() -> Result<(), Error> {
 }
 
 #[tokio::test]
-#[ignore = "Load the Qwen3 model first, then run the test manually."]
+#[ignore = "Load the Llama3 model first, then run the test manually."]
 async fn test_runtime_local_llama3_safetensors_toolcall() -> Result<(), Error> {
     test_runtime_toolcall("tests/fixtures/test_runtime_llama3.config.json").await
 }
 
 async fn test_runtime_toolcall(model_config: &str) -> Result<(), Error> {
+    enable_logging();
     let config = LLMRuntimeConfig::from_path(model_config)?;
     let mut runtime = LLMRuntime::from_config(config.clone())?;
 
@@ -65,8 +69,8 @@ async fn test_runtime_toolcall(model_config: &str) -> Result<(), Error> {
         stream: true,
         model: None,
         penalty: None,
-        seed: None,
-        sampling_config: None,
+        seed: Some(GenerationSeed::Fixed(42)),
+        sampling_config: Some(SamplingConfig::ArgMax),
         chunk_size: None,
         timestamp: None,
     });
@@ -74,13 +78,21 @@ async fn test_runtime_toolcall(model_config: &str) -> Result<(), Error> {
     assert!(result.is_ok(), "{result:?}");
 
     let mut result = vec![];
+    let mut tool_call = None;
     tracing::debug!("Assembling message");
 
     while let Ok(message) = runtime.recv_stream() {
         assert!(matches!(message, Query::Chunk { .. } | Query::End { .. }));
 
         match message {
-            Query::Chunk { data, .. } => result.extend(data),
+            Query::Chunk { data, kind, .. } => match kind {
+                tauri_plugin_llm::QueryChunkType::ToolCall => {
+                    tool_call = Some(
+                        String::from_utf8(data).map_err(|e| Error::StreamError(e.to_string()))?,
+                    )
+                }
+                _ => result.extend(data),
+            },
             _ => break,
         }
     }
@@ -89,9 +101,15 @@ async fn test_runtime_toolcall(model_config: &str) -> Result<(), Error> {
 
     assert!(result_str.is_ok());
 
-    let s = result_str.unwrap();
+    if let Some(tool_call) = tool_call.clone() {
+        let toolcall_json: serde_json::Value =
+            serde_json::from_str(&tool_call).map_err(|e| Error::JsonSerdeError(e))?;
 
-    tracing::debug!("{s}");
+        tracing::debug!("{:#?}", toolcall_json);
+    }
+
+    tracing::debug!("Full result: {result_str:?}");
+    assert!(tool_call.is_some());
 
     Ok(())
 }
