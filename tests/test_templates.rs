@@ -2,7 +2,6 @@ use std::fs::File;
 use tauri_plugin_llm::{TemplateProcessor, TokenizerConfig};
 
 #[test]
-#[ignore = "This test would fail, because minijinja does not support the full function set of jinja2"]
 fn test_raw_jinja_template() {
     let chat_template_file_contents = File::open("tests/fixtures/test_jinja_template.json")
         .expect("Failed to read chat template file");

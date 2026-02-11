@@ -24,7 +24,7 @@ pub enum Error {
     #[error("Unexpected Message Variant")]
     UnexpectedMessage,
 
-    #[error("Error Loading File ({0})")]
+    #[error("Error Loading File ({0}), ({1})")]
     LoadingFile(String, String),
 
     #[error("Error Encoding Message ({0})")]

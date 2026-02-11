@@ -85,7 +85,7 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
         messages: vec![
             QueryMessage {
                 role: "system".to_string(),
-                content: "You are a helpful assistant. Answer questions concisely.".to_string()
+                content: "You are a helpful assistant. Answer questions concisely.".to_string(),
             },
             QueryMessage {
                 role: "user".to_string(),
@@ -100,9 +100,9 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
         think: false,
         stream: true,
         model: None,
-        penalty: Some(1.5),  // Stronger repetition penalty
+        penalty: Some(1.5), // Stronger repetition penalty
         seed: None,
-        sampling_config: Some(tauri_plugin_llm::SamplingConfig::ArgMax),  // Greedy sampling
+        sampling_config: Some(tauri_plugin_llm::SamplingConfig::ArgMax), // Greedy sampling
         chunk_size: None,
         timestamp: None,
     });
@@ -431,4 +431,12 @@ proptest! {
         }
 
     }
+}
+
+#[test]
+fn test_option_none() {
+    let mut tools: Option<Vec<u8>> = Some(vec![]);
+
+    let tools_inner = tools.filter(|v| !v.is_empty());
+    assert!(tools_inner.is_none())
 }

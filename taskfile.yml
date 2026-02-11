@@ -37,6 +37,13 @@ tasks:
       - task: fetch
         vars: { MODEL: "Qwen/Qwen3-4B-Instruct-2507" }
 
+  fetch_gemma_3_4b_it:
+    silent: true
+    desc: Downloads 'google/gemma-3-4b-it' via HF API in container
+    cmds:
+      - task: fetch
+        vars: { MODEL: "google/gemma-3-4b-it" }
+
   fetch:
     silent: true
     desc: Downloads a model via HF API in container. Requires HF token!

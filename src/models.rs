@@ -9,7 +9,8 @@ use tokenizers::AddedToken;
 
 /// A query type.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
+// #[serde(tag = "type")] // we changed this to only see the values
+#[serde(untagged)]
 pub enum Query {
     Prompt {
         messages: Vec<QueryMessage>,
@@ -73,13 +74,23 @@ pub enum Query {
     },
 }
 
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// #[serde(default)]
-// pub struct QueryConfig {
-//     pub max_tokens: usize,
-//     pub temperature: Option<f32>,
-//     pub model: Option<String>,
-// }
+/// Represents a parsed tool call extracted from model output.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolCall {
+    id: String,
+    name: String,
+    arguments: serde_json::Value,
+}
+
+impl ToolCall {
+    pub fn new(id: String, name: String, arguments: serde_json::Value) -> Self {
+        Self {
+            id,
+            name,
+            arguments,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QueryMessage {
@@ -93,6 +104,7 @@ pub struct QueryMessage {
 pub enum QueryChunkType {
     String,
     Bytes,
+    ToolCall,
 }
 
 /// Metrics on actual token usage
@@ -233,5 +245,151 @@ impl LLMRuntimeConfig {
         S: AsRef<str>,
     {
         Ok(serde_json::from_str(content.as_ref())?)
+    }
+
+    /// Tries to derive a [`LLMRuntomeConfig`] by a package location
+    /// provided by hf_hub
+    pub fn from_hf_local_cache<S, P>(model: S, cache_dir: Option<P>) -> Result<Self, Error>
+    where
+        S: AsRef<str>,
+        P: AsRef<Path>,
+    {
+        let model_id = model.as_ref().to_owned();
+
+        // enable this feature flag to disable inclusion in production build
+        // to bypass model validation check. By passing Mock, no actual model
+        // will be loaded, but a mock runtime will be returned.
+        #[cfg(test)]
+        if model.as_ref().eq("Mock") {
+            return Ok(LLMRuntimeConfig {
+                name: model_id,
+                ..Default::default()
+            });
+        }
+
+        Self::validate_model_name(&model_id)?;
+
+        let cache = cache_dir.map_or_else(hf_hub::Cache::default, |path| {
+            hf_hub::Cache::new(path.as_ref().into())
+        });
+        let cache_dir = cache.path().clone();
+        let cache_repo = cache.model(model_id.clone());
+        let tokenizer_file = cache_repo.get("tokenizer.json");
+        let tokenizer_config_file = cache_repo.get("tokenizer_config.json");
+        let model_config_file = cache_repo.get("config.json");
+        let model_index_file = cache_repo.get("model.safetensors.index.json");
+        let model_file = cache_repo.get("model.safetensors");
+        // let template_file = cache_repo.get("chat_template.jinja");
+
+        // Defense in depth: verify all resolved paths are within the cache directory.
+        // This guards against symlink attacks or future changes in hf_hub's path logic.
+        let resolved_files: Vec<&Option<std::path::PathBuf>> = vec![
+            &tokenizer_file,
+            &tokenizer_config_file,
+            &model_config_file,
+            &model_index_file,
+            &model_file,
+        ];
+        for path in resolved_files.into_iter().flatten() {
+            Self::ensure_within_cache(path, &cache_dir)?;
+        }
+
+        // For sharded models: if the index file exists but a single model file doesn't,
+        // use the parent directory of the index file as model_dir
+        let model_dir = if model_file.is_none() {
+            model_index_file
+                .as_ref()
+                .and_then(|index_path| index_path.parent().map(|p| p.to_path_buf()))
+        } else {
+            None
+        };
+
+        if let Some(ref dir) = model_dir {
+            Self::ensure_within_cache(dir, &cache_dir)?;
+        }
+
+        // Require at minimum a tokenizer and model weights (either single file or sharded dir)
+        if tokenizer_file.is_none() || (model_file.is_none() && model_dir.is_none()) {
+            return Err(Error::MissingConfigLLM(
+               format!("Required model files not found in local cache for '{model_id}': tokenizer {tokenizer_file:?}, model_file {model_file:?}, model_dir {model_dir:?} \
+               Ensure the model has been downloaded first.")
+            ));
+        }
+
+        Ok(LLMRuntimeConfig {
+            name: model_id,
+            tokenizer_file,
+            tokenizer_config_file,
+            model_config_file,
+            model_index_file,
+            model_file,
+            model_dir,
+            template_file: None,
+        })
+    }
+
+    /// Verifies that a resolved path is within the expected cache directory.
+    ///
+    /// Uses path canonicalization to resolve symlinks and `..` segments, then
+    /// checks that the result is still a descendant of `cache_dir`. This is a
+    /// defense-in-depth measure — even if `validate_model_name` is bypassed or
+    /// `hf_hub` changes its internal path construction, files outside the cache
+    /// cannot be reached.
+    fn ensure_within_cache(path: &Path, cache_dir: &Path) -> Result<(), Error> {
+        let canonical = path.canonicalize()?;
+        let cache_canonical = cache_dir.canonicalize()?;
+        if !canonical.starts_with(&cache_canonical) {
+            return Err(Error::MissingConfigLLM(format!(
+                "Resolved path '{}' escapes the cache directory '{}'",
+                canonical.display(),
+                cache_canonical.display()
+            )));
+        }
+        Ok(())
+    }
+
+    pub fn validate_model_name(name: &str) -> Result<(), Error> {
+        let parts: Vec<&str> = name.split('/').collect();
+        if parts.len() != 2 {
+            return Err(Error::MissingConfigLLM(format!(
+                "Model name must be in 'org/model' format, got: '{name}'"
+            )));
+        }
+
+        let is_valid_segment = |s: &str| -> bool {
+            !s.is_empty()
+                && s.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
+                && !s.contains("..")
+        };
+
+        if !is_valid_segment(parts[0]) || !is_valid_segment(parts[1]) {
+            return Err(Error::MissingConfigLLM(
+                "Model name contains invalid characters. Only alphanumeric, hyphens, underscores, and dots are allowed."
+                    .to_string(),
+            ));
+        }
+
+        let Some((segment1, segment2)) = name.split_once('/') else {
+            return Err(Error::MissingConfigLLM(format!(
+                "Model name must be in 'org/model' format, got: '{name}'"
+            )));
+        };
+
+        for s in [segment1, segment2] {
+            if s.is_empty()
+                || !s
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c))
+                || s.contains("..")
+            {
+                return Err(Error::MissingConfigLLM(
+                    "Model name contains invalid characters. Only alphanumeric, hyphens, underscores, and dots are allowed."
+                        .to_string(),
+                ));
+            }
+        }
+
+        Ok(())
     }
 }

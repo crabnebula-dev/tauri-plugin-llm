@@ -12,3 +12,4 @@ ffi/libs/
 .venv/
 .pnpm-store/
 TODO.md
+.env
