@@ -74,6 +74,14 @@ pub enum Query {
     },
 }
 
+/// represents the result of a tool call
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolCall {
+    id: String,
+    name: String,
+    arguments: serde_json::Value,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QueryMessage {
     pub role: String,
