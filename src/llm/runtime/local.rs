@@ -23,6 +23,7 @@ use super::backend::{self, ModelBackend};
 /// delegated to the [`ModelBackend`] trait. This struct handles the
 /// model-agnostic parts: tokenization, template rendering, sampling,
 /// chunk streaming, and tool call post-processing.
+#[derive(Default)]
 pub struct LocalRuntime {
     pub(crate) device: Option<Device>,
     pub(crate) tokenizer: Option<Tokenizer>,
@@ -30,19 +31,6 @@ pub struct LocalRuntime {
     pub(crate) template: Option<String>,
     pub(crate) template_proc: Option<TemplateProcessor>,
     pub(crate) eos_tokens: Vec<String>,
-}
-
-impl Default for LocalRuntime {
-    fn default() -> Self {
-        Self {
-            device: None,
-            tokenizer: None,
-            backend: None,
-            template: None,
-            template_proc: None,
-            eos_tokens: Vec::new(),
-        }
-    }
 }
 
 impl LocalRuntime {

@@ -11,21 +11,24 @@ fn enable_logging() {
     let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
     Registry::default().with(verbose).init();
 }
-#[tokio::test]
+#[test]
 #[ignore = "Load the Qwen3 model first, then run the test manually."]
-async fn test_runtime_local_qwen3_safetensors_toolcall() -> Result<(), Error> {
-    test_runtime_toolcall("tests/fixtures/test_runtime_qwen3.config.json").await
+fn test_runtime_local_qwen3_safetensors_toolcall() -> Result<(), Error> {
+    test_runtime_toolcall("Qwen/Qwen3-4B-Instruct-2507")
 }
 
-#[tokio::test]
+#[test]
 #[ignore = "Load the Llama3 model first, then run the test manually."]
-async fn test_runtime_local_llama3_safetensors_toolcall() -> Result<(), Error> {
-    test_runtime_toolcall("tests/fixtures/test_runtime_llama3.config.json").await
+fn test_runtime_local_llama3_safetensors_toolcall() -> Result<(), Error> {
+    test_runtime_toolcall("meta-llama/Llama-3.2-3B-Instruct")
 }
 
-async fn test_runtime_toolcall(model_config: &str) -> Result<(), Error> {
+fn test_runtime_toolcall(model_config: &str) -> Result<(), Error> {
     enable_logging();
-    let config = LLMRuntimeConfig::from_path(model_config)?;
+    dotenv::dotenv().ok();
+    let hf_cache_dir = dotenv::var("HF_CACHE_DIR").ok();
+
+    let config = LLMRuntimeConfig::from_hf_local_cache(model_config, hf_cache_dir)?;
     let mut runtime = LLMRuntime::from_config(config.clone())?;
 
     runtime.run_stream()?;
