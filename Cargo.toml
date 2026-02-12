@@ -12,7 +12,7 @@ exclude             = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
 members = ["examples/tauri-app/src-tauri"]
 
 [dependencies]
-tauri               = {version = "2.9.4" }
+tauri               = {version = "2.9.4", default-features = false }
 serde               = {version = "1.0" }
 thiserror           = {version = "2" }
 anyhow              = {version = "1.0" }
