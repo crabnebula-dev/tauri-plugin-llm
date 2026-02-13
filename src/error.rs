@@ -53,6 +53,9 @@ pub enum Error {
 
     #[error("No active runtime present")]
     MissingActiveRuntime,
+
+    #[error("Model not supported: ({0})")]
+    UnsupportedModelType(String),
 }
 
 impl Serialize for Error {
