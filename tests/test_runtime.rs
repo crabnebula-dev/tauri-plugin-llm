@@ -432,11 +432,3 @@ proptest! {
 
     }
 }
-
-#[test]
-fn test_option_none() {
-    let mut tools: Option<Vec<u8>> = Some(vec![]);
-
-    let tools_inner = tools.filter(|v| !v.is_empty());
-    assert!(tools_inner.is_none())
-}

@@ -17,10 +17,7 @@ pub struct Qwen3Backend {
 
 impl Qwen3Backend {
     /// Load Qwen3 weights from sharded safetensors files.
-    pub fn from_safetensors(
-        vb: VarBuilder,
-        model_config_file: &PathBuf,
-    ) -> Result<Self, Error> {
+    pub fn from_safetensors(vb: VarBuilder, model_config_file: &PathBuf) -> Result<Self, Error> {
         let mut config_file = File::open(model_config_file)?;
         let qwen3_config: Qwen3Config = serde_json::from_reader(&mut config_file)?;
 
@@ -44,7 +41,7 @@ impl ModelBackend for Qwen3Backend {
     }
 
     fn clear_kv_cache(&mut self) {
-        // qwen3::Model::clear_kv_cache is private in candle_transformers
+        self.model.clear_kv_cache();
     }
 
     fn tool_call_parser(&self) -> Option<&dyn ToolCallParser> {

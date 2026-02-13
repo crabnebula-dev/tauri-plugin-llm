@@ -42,7 +42,7 @@ tasks:
     desc: Downloads 'google/gemma-3-4b-it' via HF API in container
     cmds:
       - task: fetch
-        vars: { MODEL: "google/gemma-3-4b-it" }
+        vars: { MODEL: "google/gemma-3-1b-it" }
 
   fetch:
     silent: true
