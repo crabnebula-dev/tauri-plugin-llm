@@ -20,6 +20,37 @@ pub trait ToolCallParser: Send + Sync {
 ///
 /// Note: Llama uses `"parameters"` (not `"arguments"`).
 /// Only single tool calls are supported.
+pub struct GemmaToolCallParser;
+
+impl ToolCallParser for GemmaToolCallParser {
+    // TODO check for effective impl for gemma. this is the llama copy
+    fn parse(&self, output: &str) -> Option<Vec<ToolCall>> {
+        let trimmed = output.trim();
+
+        // Find the first JSON object that starts with {"name"
+        let start = trimmed.find(r#"{"name""#)?;
+        let json_str = &trimmed[start..];
+
+        // Parse the JSON — serde will stop at the end of the first valid object
+        // but we need to find the matching closing brace
+        let parsed: serde_json::Value = find_first_json_object(json_str)?;
+
+        let name = parsed.get("name")?.as_str()?.to_string();
+        let arguments = parsed.get("parameters")?.clone();
+
+        Some(vec![ToolCall::new("call_0".to_string(), name, arguments)])
+    }
+}
+
+/// Llama 3.2 tool call parser.
+///
+/// The chat template instructs the model to respond with:
+/// ```text
+/// {"name": "function_name", "parameters": {"arg": "value"}}
+/// ```
+///
+/// Note: Llama uses `"parameters"` (not `"arguments"`).
+/// Only single tool calls are supported.
 pub struct LlamaToolCallParser;
 
 impl ToolCallParser for LlamaToolCallParser {
