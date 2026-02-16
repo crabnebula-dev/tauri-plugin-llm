@@ -1,18 +1,12 @@
+use crate::error::Error;
+use crate::llm::backend::{extract_last_token_logits, ModelBackend};
+use crate::llm::tool_call::{GemmaToolCallParser, ToolCallParser};
+use candle_core::Tensor;
+use candle_nn::VarBuilder;
+use candle_transformers::models::gemma3::{self as gemma3_model, Config as Gemma3Config};
+use serde_json::Value;
 use std::fs::File;
 use std::path::PathBuf;
-
-use candle_core::Tensor;
-use candle_nn::{Activation, VarBuilder};
-
-use candle_transformers::models::gemma3::{self as gemma3_model, Config as Gemma3Config};
-use serde_json::{Number, Value};
-// use candle_transformers::models::qwen3::{self as qwen3_model, Config as Qwen3Config};
-
-use crate::error::Error;
-use crate::llm::backend;
-use crate::llm::tool_call::{GemmaToolCallParser, Qwen3ToolCallParser, ToolCallParser};
-
-use super::{extract_last_token_logits, ModelBackend};
 
 pub struct Gemma3Backend {
     model: gemma3_model::Model,
@@ -28,9 +22,7 @@ impl Gemma3Backend {
     ) -> Result<Self, Error> {
         let mut config_file = File::open(model_config_file)?;
         tracing::debug!("Deserialize Gemma3Config: {model_config_file:?}");
-        let mut json_value: Value = serde_json::from_reader(&mut config_file)?;
-
-        if let Some(obj) = json_value.as_object_mut() {}
+        let json_value: Value = serde_json::from_reader(&mut config_file)?;
 
         let gemma3_config: Gemma3Config = match serde_json::from_value(json_value) {
             Ok(inner) => inner,

@@ -1,6 +1,5 @@
 //! Generic LocalRuntime that can load models in different weight formats.
 
-use std::cell::RefCell;
 use std::fs::File;
 use std::sync::Arc;
 
