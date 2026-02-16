@@ -8,7 +8,7 @@ use tauri_plugin_llm_macros::hf_test;
 #[hf_test(
     model = "google/gemma-3-1b-it",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
+    ignore = "Disable ignore by setting HF_CACHE_DIR in .env or environment, or use the hf_hub default"
 )]
 fn test_runtime_local_gemma3_safetensors_toolcall(config: LLMRuntimeConfig) {
     let tool_call = serde_json::json!({
@@ -47,7 +47,7 @@ fn test_runtime_local_gemma3_safetensors_toolcall(config: LLMRuntimeConfig) {
 #[hf_test(
     model = "Qwen/Qwen3-4B-Instruct-2507",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
+    ignore = "Disable ignore by setting HF_CACHE_DIR in .env or environment, or use the hf_hub default"
 )]
 fn test_runtime_local_qwen3_safetensors_toolcall(config: LLMRuntimeConfig) {
     test_runtime_toolcall(config, None)
@@ -56,7 +56,7 @@ fn test_runtime_local_qwen3_safetensors_toolcall(config: LLMRuntimeConfig) {
 #[hf_test(
     model = "meta-llama/Llama-3.2-3B-Instruct",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
+    ignore = "Disable ignore by setting HF_CACHE_DIR in .env or environment, or use the hf_hub default"
 )]
 fn test_runtime_local_llama3_safetensors_toolcall(config: LLMRuntimeConfig) {
     test_runtime_toolcall(config, None)
@@ -67,7 +67,6 @@ fn test_runtime_toolcall(
     content: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut runtime = LLMRuntime::from_config(config)?;
-
     runtime.run_stream()?;
 
     let result = runtime.send_stream(Query::Prompt {

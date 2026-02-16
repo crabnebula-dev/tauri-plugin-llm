@@ -1,19 +1,15 @@
 mod common;
 
-use std::vec;
-
 use proptest::prelude::*;
+use std::vec;
 use tauri_plugin_llm::{
     runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryMessage,
 };
 use tauri_plugin_llm_macros::hf_test;
 
-use crate::common::enable_logging;
-
 #[hf_test(
     model = "Qwen/Qwen3-4B-Instruct-2507",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
 )]
 fn test_runtime_local_qwen3_safetensors(config: LLMRuntimeConfig) {
     let mut runtime = LLMRuntime::from_config(config)?;
@@ -72,7 +68,6 @@ fn test_runtime_local_qwen3_safetensors(config: LLMRuntimeConfig) {
 #[hf_test(
     model = "meta-llama/Llama-3.2-3B-Instruct",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
 )]
 fn test_runtime_llama_3_2_3b_instruct(config: LLMRuntimeConfig) {
     // enable_logging();
@@ -238,10 +233,8 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
 #[hf_test(
     model = "Qwen/Qwen3-4B-Instruct-2507",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
 )]
 fn test_runtime_qwen3_streaming(config: LLMRuntimeConfig) {
-    // enable_logging();
     let mut runtime = LLMRuntime::from_config(config)?;
 
     runtime.run_stream()?;

@@ -87,7 +87,6 @@ fn test_deserialize_default() {
 #[hf_test(
     model = "meta-llama/Llama-3.2-3B-Instruct",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
 )]
 fn test_load_llama32_config_from_hf_cache(config: LLMRuntimeConfig) {
     assert!(config.tokenizer_file.is_some());
@@ -99,7 +98,6 @@ fn test_load_llama32_config_from_hf_cache(config: LLMRuntimeConfig) {
 #[hf_test(
     model = "Qwen/Qwen3-4B-Instruct-2507",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
 )]
 fn test_load_qwen3_config_from_hf_cache(config: LLMRuntimeConfig) {
     assert!(config.tokenizer_file.is_some());
@@ -110,7 +108,6 @@ fn test_load_qwen3_config_from_hf_cache(config: LLMRuntimeConfig) {
 #[hf_test(
     model = "google/gemma-3-4b-it",
     cleanup = false,
-    cache_dir = "/Volumes/MLM/huggingface"
 )]
 fn test_load_gemma3_4b_from_hf_cache(config: LLMRuntimeConfig) {
     assert!(config.tokenizer_file.is_some());

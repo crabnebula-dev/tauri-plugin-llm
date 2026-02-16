@@ -65,5 +65,4 @@ tauri-plugin-llm-macros     = { path = "macros" }
 default             = []
 cuda                = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 mcpurify            = []
-
 tauri-plugin-llm    = []

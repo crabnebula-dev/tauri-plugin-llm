@@ -8,11 +8,10 @@ use syn::{
 /// Parsed arguments for the `#[hf_test]` attribute.
 ///
 /// Expected format:
-///   `#[hf_test(model = "org/model", cleanup = false, cache_dir = "/path/to/cache", ignore = "reason")]`
+///   `#[hf_test(model = "org/model", cleanup = false, ignore = "reason")]`
 struct HfTestArgs {
     model: String,
     cleanup: bool,
-    cache_dir: Option<String>,
     ignore: Option<String>,
 }
 
@@ -20,7 +19,6 @@ impl Parse for HfTestArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut model = None;
         let mut cleanup = None;
-        let mut cache_dir = None;
         let mut ignore = None;
 
         while !input.is_empty() {
@@ -33,9 +31,6 @@ impl Parse for HfTestArgs {
             } else if key == "cleanup" {
                 let value: LitBool = input.parse()?;
                 cleanup = Some(value.value());
-            } else if key == "cache_dir" {
-                let value: LitStr = input.parse()?;
-                cache_dir = Some(value.value());
             } else if key == "ignore" {
                 let value: LitStr = input.parse()?;
                 ignore = Some(value.value());
@@ -43,7 +38,7 @@ impl Parse for HfTestArgs {
                 return Err(syn::Error::new(
                     key.span(),
                     format!(
-                        "unknown argument `{key}`, expected `model`, `cleanup`, `cache_dir`, or `ignore`"
+                        "unknown argument `{key}`, expected `model`, `cleanup`, or `ignore`"
                     ),
                 ));
             }
@@ -56,7 +51,6 @@ impl Parse for HfTestArgs {
         Ok(HfTestArgs {
             model: model.ok_or_else(|| input.error("missing required argument `model`"))?,
             cleanup: cleanup.unwrap_or(false),
-            cache_dir,
             ignore,
         })
     }
@@ -68,21 +62,20 @@ impl Parse for HfTestArgs {
 ///
 /// - `model` — HuggingFace model ID (e.g. `"google/gemma-3-1b-it"`) (required)
 /// - `cleanup` — whether to remove the model from disk after the test (optional, defaults to `false`)
-/// - `cache_dir` — path where the HF cache stores/downloads models (optional)
 /// - `ignore` — reason string to ignore this test (optional, generates `#[ignore = "reason"]`)
 ///
 /// # Cache Directory Resolution
 ///
 /// The cache directory is resolved in the following order:
-/// 1. If `cache_dir` parameter is provided, use it
-/// 2. Else if `HF_TEST_CACHE_DIR` environment variable is set, use it
-/// 3. Else use `hf_hub` defaults (typically `~/.cache/huggingface/hub`)
+/// 1. Try loading from `.env` file using dotenv (`HF_CACHE_DIR`)
+/// 2. If not in `.env`, try reading from environment variable (`HF_CACHE_DIR`)
+/// 3. If neither exists, use `hf_hub` defaults (typically `~/.cache/huggingface/hub`)
 ///
 /// # Usage
 ///
 /// ```ignore
-/// // Explicit cache directory
-/// #[hf_test(model = "google/gemma-3-1b-it", cleanup = false, cache_dir = "/Volumes/MLM/huggingface")]
+/// // Basic usage - cache dir from .env or environment
+/// #[hf_test(model = "google/gemma-3-1b-it")]
 /// fn test_gemma3(config: LLMRuntimeConfig) {
 ///     let mut runtime = LLMRuntime::from_config(config)?;
 ///     runtime.run_stream()?;
@@ -97,19 +90,24 @@ impl Parse for HfTestArgs {
 ///     Ok(())
 /// }
 ///
-/// // Use environment variable for cache_dir (export HF_TEST_CACHE_DIR="/path/to/cache")
-/// #[hf_test(model = "google/gemma-3-1b-it")]
-/// fn test_with_env_cache(config: LLMRuntimeConfig) {
+/// // With cleanup enabled
+/// #[hf_test(model = "google/gemma-3-1b-it", cleanup = true)]
+/// fn test_with_cleanup(config: LLMRuntimeConfig) {
 ///     // ...
 ///     Ok(())
 /// }
+/// ```
 ///
-/// // Use hf_hub defaults (no cache_dir or env var)
-/// #[hf_test(model = "google/gemma-3-1b-it")]
-/// fn test_with_defaults(config: LLMRuntimeConfig) {
-///     // Uses ~/.cache/huggingface/hub
-///     Ok(())
-/// }
+/// # Environment Setup
+///
+/// Create a `.env` file in your project root:
+/// ```env
+/// HF_CACHE_DIR=/Volumes/MLM/huggingface
+/// ```
+///
+/// Or set the environment variable:
+/// ```bash
+/// export HF_CACHE_DIR=/Volumes/MLM/huggingface
 /// ```
 ///
 /// The function parameter (e.g. `config`) receives the loaded `LLMRuntimeConfig`.
@@ -160,26 +158,18 @@ pub fn hf_test(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    // Handle cache_dir: use provided value, environment variable, or hf_hub defaults (None)
-    let cache_dir_init = if let Some(cache_dir) = &args.cache_dir {
-        quote! {
-            let __hf_cache_dir_opt = std::option::Option::Some(std::path::PathBuf::from(#cache_dir));
-        }
-    } else {
-        quote! {
-            let __hf_cache_dir_opt = std::env::var("HF_TEST_CACHE_DIR")
-                .ok()
-                .map(std::path::PathBuf::from);
-        }
-    };
-
     let output = quote! {
         #[test]
         #ignore_attr
         #(#fn_attrs)*
         #fn_vis fn #fn_name() -> std::result::Result<(), Box<dyn std::error::Error>> {
+            // Load .env file if it exists (using dotenv)
+            let _ = dotenv::dotenv();
 
-            #cache_dir_init
+            // Try to get cache directory from environment (after loading .env)
+            let __hf_cache_dir_opt = std::env::var("HF_CACHE_DIR")
+                .ok()
+                .map(std::path::PathBuf::from);
 
             // Only ensure download if we have an explicit cache directory
             if let Some(ref cache_dir) = __hf_cache_dir_opt {
