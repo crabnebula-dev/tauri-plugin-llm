@@ -8,11 +8,12 @@ use syn::{
 /// Parsed arguments for the `#[hf_test]` attribute.
 ///
 /// Expected format:
-///   `#[hf_test(model = "org/model", cleanup = false, cache_dir = "/path/to/cache")]`
+///   `#[hf_test(model = "org/model", cleanup = false, cache_dir = "/path/to/cache", ignore = "reason")]`
 struct HfTestArgs {
     model: String,
     cleanup: bool,
-    cache_dir: String,
+    cache_dir: Option<String>,
+    ignore: Option<String>,
 }
 
 impl Parse for HfTestArgs {
@@ -20,6 +21,7 @@ impl Parse for HfTestArgs {
         let mut model = None;
         let mut cleanup = None;
         let mut cache_dir = None;
+        let mut ignore = None;
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -32,15 +34,16 @@ impl Parse for HfTestArgs {
                 let value: LitBool = input.parse()?;
                 cleanup = Some(value.value());
             } else if key == "cache_dir" {
-
-                
                 let value: LitStr = input.parse()?;
                 cache_dir = Some(value.value());
+            } else if key == "ignore" {
+                let value: LitStr = input.parse()?;
+                ignore = Some(value.value());
             } else {
                 return Err(syn::Error::new(
                     key.span(),
                     format!(
-                        "unknown argument `{key}`, expected `model`, `cleanup`, or `cache_dir`"
+                        "unknown argument `{key}`, expected `model`, `cleanup`, `cache_dir`, or `ignore`"
                     ),
                 ));
             }
@@ -52,9 +55,9 @@ impl Parse for HfTestArgs {
 
         Ok(HfTestArgs {
             model: model.ok_or_else(|| input.error("missing required argument `model`"))?,
-            cleanup: cleanup.ok_or_else(|| input.error("missing required argument `cleanup`"))?,
-            cache_dir: cache_dir
-                .ok_or_else(|| input.error("missing required argument `cache_dir`"))?,
+            cleanup: cleanup.unwrap_or(false),
+            cache_dir,
+            ignore,
         })
     }
 }
@@ -63,18 +66,48 @@ impl Parse for HfTestArgs {
 ///
 /// # Arguments
 ///
-/// - `model` — HuggingFace model ID (e.g. `"google/gemma-3-1b-it"`)
-/// - `cleanup` — whether to remove the model from disk after the test
-/// - `cache_dir` — path where the HF cache stores/downloads models
+/// - `model` — HuggingFace model ID (e.g. `"google/gemma-3-1b-it"`) (required)
+/// - `cleanup` — whether to remove the model from disk after the test (optional, defaults to `false`)
+/// - `cache_dir` — path where the HF cache stores/downloads models (optional)
+/// - `ignore` — reason string to ignore this test (optional, generates `#[ignore = "reason"]`)
+///
+/// # Cache Directory Resolution
+///
+/// The cache directory is resolved in the following order:
+/// 1. If `cache_dir` parameter is provided, use it
+/// 2. Else if `HF_TEST_CACHE_DIR` environment variable is set, use it
+/// 3. Else use `hf_hub` defaults (typically `~/.cache/huggingface/hub`)
 ///
 /// # Usage
 ///
 /// ```ignore
+/// // Explicit cache directory
 /// #[hf_test(model = "google/gemma-3-1b-it", cleanup = false, cache_dir = "/Volumes/MLM/huggingface")]
 /// fn test_gemma3(config: LLMRuntimeConfig) {
 ///     let mut runtime = LLMRuntime::from_config(config)?;
 ///     runtime.run_stream()?;
 ///     // ...
+///     Ok(())
+/// }
+///
+/// // Ignore a test with a reason
+/// #[hf_test(model = "google/gemma-3-1b-it", ignore = "Model too large for CI")]
+/// fn test_large_model(config: LLMRuntimeConfig) {
+///     // ...
+///     Ok(())
+/// }
+///
+/// // Use environment variable for cache_dir (export HF_TEST_CACHE_DIR="/path/to/cache")
+/// #[hf_test(model = "google/gemma-3-1b-it")]
+/// fn test_with_env_cache(config: LLMRuntimeConfig) {
+///     // ...
+///     Ok(())
+/// }
+///
+/// // Use hf_hub defaults (no cache_dir or env var)
+/// #[hf_test(model = "google/gemma-3-1b-it")]
+/// fn test_with_defaults(config: LLMRuntimeConfig) {
+///     // Uses ~/.cache/huggingface/hub
 ///     Ok(())
 /// }
 /// ```
@@ -88,7 +121,6 @@ pub fn hf_test(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let model_id = &args.model;
     let cleanup = args.cleanup;
-    let cache_dir = &args.cache_dir;
 
     // Extract the config parameter name from the function signature.
     // The function must have exactly one parameter: the config binding.
@@ -121,25 +153,55 @@ pub fn hf_test(attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_attrs = &input_fn.attrs;
     let fn_vis = &input_fn.vis;
 
+    // Generate #[ignore] attribute if requested
+    let ignore_attr = if let Some(reason) = &args.ignore {
+        quote! { #[ignore = #reason] }
+    } else {
+        quote! {}
+    };
+
+    // Handle cache_dir: use provided value, environment variable, or hf_hub defaults (None)
+    let cache_dir_init = if let Some(cache_dir) = &args.cache_dir {
+        quote! {
+            let __hf_cache_dir_opt = std::option::Option::Some(std::path::PathBuf::from(#cache_dir));
+        }
+    } else {
+        quote! {
+            let __hf_cache_dir_opt = std::env::var("HF_TEST_CACHE_DIR")
+                .ok()
+                .map(std::path::PathBuf::from);
+        }
+    };
+
     let output = quote! {
         #[test]
+        #ignore_attr
         #(#fn_attrs)*
         #fn_vis fn #fn_name() -> std::result::Result<(), Box<dyn std::error::Error>> {
             common::enable_logging();
 
-            let __hf_cache_dir = std::path::PathBuf::from(#cache_dir);
-            common::ensure_model_downloaded(#model_id, &__hf_cache_dir)?;
+            #cache_dir_init
+
+            // Only ensure download if we have an explicit cache directory
+            if let Some(ref cache_dir) = __hf_cache_dir_opt {
+                common::ensure_model_downloaded(#model_id, cache_dir)?;
+            }
 
             let #config_ident = tauri_plugin_llm::LLMRuntimeConfig::from_hf_local_cache(
                 #model_id,
-                std::option::Option::Some(&__hf_cache_dir),
+                __hf_cache_dir_opt.as_ref(),
             )?;
 
-            let __hf_guard = common::HfModelGuard::new(
-                #model_id,
-                __hf_cache_dir,
-                #cleanup,
-            );
+            // Only set up cleanup guard if we have a cache_dir and cleanup is enabled
+            let __hf_guard = if #cleanup {
+                __hf_cache_dir_opt.map(|cache_dir| common::HfModelGuard::new(
+                    #model_id,
+                    cache_dir,
+                    true,
+                ))
+            } else {
+                std::option::Option::None
+            };
 
             #fn_body
         }

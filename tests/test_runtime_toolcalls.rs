@@ -5,7 +5,6 @@ use tauri_plugin_llm::{
 };
 use tauri_plugin_llm_macros::hf_test;
 
-// TODO: set cache_dir via env
 #[hf_test(
     model = "google/gemma-3-1b-it",
     cleanup = false,
