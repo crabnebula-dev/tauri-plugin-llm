@@ -9,7 +9,7 @@ links               = "tauri-plugin-llm"
 exclude             = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
 
 [workspace]
-members = ["examples/tauri-app/src-tauri"]
+members = ["examples/tauri-app/src-tauri", "macros"]
 
 [dependencies]
 tauri               = {version = "2.9.4", default-features = false }
@@ -56,9 +56,10 @@ candle-transformers = { git = "https://github.com/huggingface/candle.git", featu
 tauri-plugin = { version = "2.5.2", features = ["build"] }
 
 [dev-dependencies]
-proptest                = { version = "1.9.0" }
-tauri-plugin-automation = { version = "0.1.1"}
-dotenv                  = { version = "0.15"}
+proptest                    = { version = "1.9.0" }
+tauri-plugin-automation     = { version = "0.1.1"}
+dotenv                      = { version = "0.15"}
+tauri-plugin-llm-macros     = { path = "macros" }
 
 [features]
 default             = []

@@ -11,8 +11,10 @@ use std::path::PathBuf;
 
 use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
+use tokenizers::Model;
 
 use crate::error::Error;
+use crate::llm::backend::qwen3::Qwen3Backend;
 use crate::loaders::IndexFile;
 
 use super::tool_call::ToolCallParser;
@@ -270,4 +272,42 @@ pub fn create_backend_by_model_file(
     }
 
     Err(Error::UnsupportedModelType(model_name.to_string()))
+}
+
+pub enum Backend {
+    Qwen(Box<dyn ModelBackend>),
+    QwenV2(Box<dyn ModelBackend>),
+    QwenV3(Box<dyn ModelBackend>),
+    Llama(Box<dyn ModelBackend>),
+    Llama2(Box<dyn ModelBackend>),
+    Llama3(Box<dyn ModelBackend>),
+    Gemma(Box<dyn ModelBackend>),
+    Gemma2(Box<dyn ModelBackend>),
+    Gemma3(Box<dyn ModelBackend>),
+}
+
+#[derive(Default)]
+struct MockBackend;
+
+impl ModelBackend for MockBackend {
+    fn forward(&mut self, input: &Tensor, index: usize) -> Result<Tensor, Error> {
+        todo!()
+    }
+
+    fn clear_kv_cache(&mut self) {
+        todo!()
+    }
+
+    fn tool_call_parser(&self) -> Option<&dyn ToolCallParser> {
+        todo!()
+    }
+}
+
+fn unfold() {
+    let mut backend = Backend::QwenV3(Box::new(MockBackend::default()));
+
+    match backend {
+        Backend::QwenV3(ref mut inner) | Backend::Gemma(ref mut inner) => inner.clear_kv_cache(),
+        _ => {}
+    }
 }

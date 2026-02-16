@@ -6,7 +6,7 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::llama::{self as llama_model, Llama, LlamaConfig};
 
 use crate::error::Error;
-use crate::runtime::tool_call::{LlamaToolCallParser, ToolCallParser};
+use crate::llm::tool_call::{LlamaToolCallParser, ToolCallParser};
 
 use super::{extract_last_token_logits, ModelBackend};
 
@@ -29,8 +29,7 @@ impl LlamaBackend {
         let llama_config: LlamaConfig = serde_json::from_reader(&mut config_file)?;
         let config = llama_config.into_config(false);
 
-        let model =
-            Llama::load(vb, &config).map_err(|e| Error::ExecutionError(e.to_string()))?;
+        let model = Llama::load(vb, &config).map_err(|e| Error::ExecutionError(e.to_string()))?;
         let cache = llama_model::Cache::new(true, candle_core::DType::BF16, &config, device)
             .map_err(|e| Error::ExecutionError(e.to_string()))?;
 
@@ -54,13 +53,9 @@ impl ModelBackend for LlamaBackend {
     }
 
     fn clear_kv_cache(&mut self) {
-        self.cache = llama_model::Cache::new(
-            true,
-            candle_core::DType::BF16,
-            &self.config,
-            &self.device,
-        )
-        .expect("Failed to recreate cache");
+        self.cache =
+            llama_model::Cache::new(true, candle_core::DType::BF16, &self.config, &self.device)
+                .expect("Failed to recreate cache");
     }
 
     fn tool_call_parser(&self) -> Option<&dyn ToolCallParser> {

@@ -9,8 +9,8 @@ use serde_json::{Number, Value};
 // use candle_transformers::models::qwen3::{self as qwen3_model, Config as Qwen3Config};
 
 use crate::error::Error;
-use crate::runtime::backend;
-use crate::runtime::tool_call::{GemmaToolCallParser, Qwen3ToolCallParser, ToolCallParser};
+use crate::llm::backend;
+use crate::llm::tool_call::{GemmaToolCallParser, Qwen3ToolCallParser, ToolCallParser};
 
 use super::{extract_last_token_logits, ModelBackend};
 

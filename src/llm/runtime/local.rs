@@ -16,7 +16,7 @@ use candle_transformers::generation::{LogitsProcessor, Sampling};
 use rand::Rng;
 use tokenizers::Tokenizer;
 
-use super::backend::{self, ModelBackend};
+use crate::llm::backend::{self, ModelBackend};
 
 /// A generic local runtime that can load models in different formats.
 ///
@@ -144,17 +144,25 @@ impl LLMRuntimeModel for LocalRuntime {
             }
 
             if ids.is_empty() {
-                tracing::warn!("No eos_token_id in config.json, falling back to tokenizer_config.json");
+                tracing::warn!(
+                    "No eos_token_id in config.json, falling back to tokenizer_config.json"
+                );
                 if let Some(eos_str) = tokenizer_config_json
                     .as_ref()
                     .and_then(|tc| tc.eos_token.as_ref())
                 {
                     // Deferred lookup: we'll resolve this string to an ID after loading the tokenizer
                     // For now, store it temporarily and resolve below
-                    tracing::info!("Will resolve EOS token string '{eos_str}' from tokenizer vocab");
+                    tracing::info!(
+                        "Will resolve EOS token string '{eos_str}' from tokenizer vocab"
+                    );
                 }
             } else {
-                tracing::info!("Loaded {} EOS token ID(s) from config.json: {:?}", ids.len(), ids);
+                tracing::info!(
+                    "Loaded {} EOS token ID(s) from config.json: {:?}",
+                    ids.len(),
+                    ids
+                );
             }
 
             ids

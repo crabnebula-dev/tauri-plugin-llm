@@ -1,18 +1,17 @@
+mod common;
+
 use tauri_plugin_llm::{
-    runtime::LLMRuntime, Error, GenerationSeed, LLMRuntimeConfig, Query, QueryMessage,
-    SamplingConfig,
+    runtime::LLMRuntime, GenerationSeed, LLMRuntimeConfig, Query, QueryMessage, SamplingConfig,
 };
-use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
+use tauri_plugin_llm_macros::hf_test;
 
-#[allow(dead_code)]
-fn enable_logging() {
-    let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
-    Registry::default().with(verbose).init();
-}
-
-#[test]
-// #[ignore = "Load the Gemma3 model first, then run the test manually."]
-fn test_runtime_local_gemma3_safetensors_toolcall() -> Result<(), Error> {
+// TODO: set cache_dir via env
+#[hf_test(
+    model = "google/gemma-3-1b-it",
+    cleanup = false,
+    cache_dir = "/Volumes/MLM/huggingface"
+)]
+fn test_runtime_local_gemma3_safetensors_toolcall(config: LLMRuntimeConfig) {
     let tool_call = serde_json::json!({
         "type" : "function",
         "function" : {
@@ -43,28 +42,32 @@ fn test_runtime_local_gemma3_safetensors_toolcall() -> Result<(), Error> {
     ", prelude, tool_call
     );
 
-    test_runtime_toolcall("google/gemma-3-1b-it", Some(&prompt))
+    test_runtime_toolcall(config, Some(&prompt))
 }
 
-#[test]
-#[ignore = "Load the Qwen3 model first, then run the test manually."]
-fn test_runtime_local_qwen3_safetensors_toolcall() -> Result<(), Error> {
-    test_runtime_toolcall("Qwen/Qwen3-4B-Instruct-2507", None)
+#[hf_test(
+    model = "Qwen/Qwen3-4B-Instruct-2507",
+    cleanup = false,
+    cache_dir = "/Volumes/MLM/huggingface"
+)]
+fn test_runtime_local_qwen3_safetensors_toolcall(config: LLMRuntimeConfig) {
+    test_runtime_toolcall(config, None)
 }
 
-#[test]
-#[ignore = "Load the Llama3 model first, then run the test manually."]
-fn test_runtime_local_llama3_safetensors_toolcall() -> Result<(), Error> {
-    test_runtime_toolcall("meta-llama/Llama-3.2-3B-Instruct", None)
+#[hf_test(
+    model = "meta-llama/Llama-3.2-3B-Instruct",
+    cleanup = false,
+    cache_dir = "/Volumes/MLM/huggingface"
+)]
+fn test_runtime_local_llama3_safetensors_toolcall(config: LLMRuntimeConfig) {
+    test_runtime_toolcall(config, None)
 }
 
-fn test_runtime_toolcall(model_config: &str, content: Option<&str>) -> Result<(), Error> {
-    enable_logging();
-    dotenv::dotenv().ok();
-    let hf_cache_dir = dotenv::var("HF_CACHE_DIR").ok();
-
-    let config = LLMRuntimeConfig::from_hf_local_cache(model_config, hf_cache_dir)?;
-    let mut runtime = LLMRuntime::from_config(config.clone())?;
+fn test_runtime_toolcall(
+    config: LLMRuntimeConfig,
+    content: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut runtime = LLMRuntime::from_config(config)?;
 
     runtime.run_stream()?;
 
@@ -125,9 +128,7 @@ fn test_runtime_toolcall(model_config: &str, content: Option<&str>) -> Result<()
         match message {
             Query::Chunk { data, kind, .. } => match kind {
                 tauri_plugin_llm::QueryChunkType::ToolCall => {
-                    tool_call = Some(
-                        String::from_utf8(data).map_err(|e| Error::StreamError(e.to_string()))?,
-                    )
+                    tool_call = Some(String::from_utf8(data)?)
                 }
                 _ => result.extend(data),
             },
@@ -135,19 +136,14 @@ fn test_runtime_toolcall(model_config: &str, content: Option<&str>) -> Result<()
         }
     }
 
-    let result_str = String::from_utf8(result);
-
-    assert!(result_str.is_ok());
+    let result_str = String::from_utf8(result)?;
 
     if let Some(tool_call) = tool_call.clone() {
-        let toolcall_json: serde_json::Value =
-            serde_json::from_str(&tool_call).map_err(|e| Error::JsonSerdeError(e))?;
-
+        let toolcall_json: serde_json::Value = serde_json::from_str(&tool_call)?;
         tracing::debug!("{:#?}", toolcall_json);
     }
 
     tracing::debug!("Full result: {result_str:?}");
-    // assert!(tool_call.is_some());
 
     Ok(())
 }

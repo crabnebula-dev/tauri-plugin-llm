@@ -6,7 +6,7 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::qwen3::{self as qwen3_model, Config as Qwen3Config};
 
 use crate::error::Error;
-use crate::runtime::tool_call::{Qwen3ToolCallParser, ToolCallParser};
+use crate::llm::tool_call::{Qwen3ToolCallParser, ToolCallParser};
 
 use super::{extract_last_token_logits, ModelBackend};
 

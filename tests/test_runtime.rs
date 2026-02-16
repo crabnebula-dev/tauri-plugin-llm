@@ -1,23 +1,19 @@
+mod common;
+
 use std::vec;
 
 use proptest::prelude::*;
 use tauri_plugin_llm::{
     runtime::LLMRuntime, Error, LLMRuntimeConfig, LLMService, Query, QueryMessage,
 };
-use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
+use tauri_plugin_llm_macros::hf_test;
 
-#[allow(dead_code)]
-fn enable_logging() {
-    let verbose = tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::DEBUG);
-    Registry::default().with(verbose).init();
-}
-
-#[tokio::test]
-#[ignore = "Load the Qwen3 model first, then run the test manually"]
-async fn test_runtime_local_qwen3_safetensors() -> Result<(), Error> {
-    enable_logging();
-
-    let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
+#[hf_test(
+    model = "Qwen/Qwen3-4B-Instruct-2507",
+    cleanup = false,
+    cache_dir = "/Volumes/MLM/huggingface"
+)]
+fn test_runtime_local_qwen3_safetensors(config: LLMRuntimeConfig) {
     let mut runtime = LLMRuntime::from_config(config)?;
 
     runtime.run_stream()?;
@@ -71,12 +67,12 @@ async fn test_runtime_local_qwen3_safetensors() -> Result<(), Error> {
     Ok(())
 }
 
-#[tokio::test]
-#[ignore = "Load the LLama3.2 model first, then run the test manually"]
-async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
-    enable_logging();
-
-    let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_llama3.config.json")?;
+#[hf_test(
+    model = "meta-llama/Llama-3.2-3B-Instruct",
+    cleanup = false,
+    cache_dir = "/Volumes/MLM/huggingface"
+)]
+fn test_runtime_llama_3_2_3b_instruct(config: LLMRuntimeConfig) {
     let mut runtime = LLMRuntime::from_config(config)?;
 
     runtime.run_stream()?;
@@ -100,9 +96,9 @@ async fn test_runtime_llama_3_2_3b_instruct() -> Result<(), Error> {
         think: false,
         stream: true,
         model: None,
-        penalty: Some(1.5), // Stronger repetition penalty
+        penalty: Some(1.5),
         seed: None,
-        sampling_config: Some(tauri_plugin_llm::SamplingConfig::ArgMax), // Greedy sampling
+        sampling_config: Some(tauri_plugin_llm::SamplingConfig::ArgMax),
         chunk_size: None,
         timestamp: None,
     });
@@ -236,10 +232,12 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
     Ok(())
 }
 
-#[tokio::test]
-#[ignore = "Load the Qwen3 model first, then run the test manually"]
-async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
-    let config = LLMRuntimeConfig::from_path("tests/fixtures/test_runtime_qwen3.config.json")?;
+#[hf_test(
+    model = "Qwen/Qwen3-4B-Instruct-2507",
+    cleanup = false,
+    cache_dir = "/Volumes/MLM/huggingface"
+)]
+fn test_runtime_qwen3_streaming(config: LLMRuntimeConfig) {
     let mut runtime = LLMRuntime::from_config(config)?;
 
     runtime.run_stream()?;
@@ -297,9 +295,9 @@ async fn test_runtime_qwen3_streaming() -> Result<(), Error> {
     Ok(())
 }
 
-#[tokio::test]
+#[test]
 #[ignore = "Run this test explicitly to avoid using real model weights"]
-async fn test_switching_runtimes() -> Result<(), Error> {
+fn test_switching_runtimes() -> Result<(), Error> {
     let runtime_config_paths = [
         "tests/fixtures/test_runtime_mock.json",
         "tests/fixtures/test_runtime_qwen3.config.json",
