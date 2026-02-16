@@ -125,8 +125,6 @@ impl Query {
     /// Applies [`Self`] with the given template and returns the rendered version as String
     pub fn apply_template(&self, template: &str, tp: &TemplateProcessor) -> Result<String, Error> {
         let json_context = serde_json::to_string(self)?;
-
-        tracing::debug!("Query as JSON: {}", json_context);
         tp.render(template, &json_context)
     }
 

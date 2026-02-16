@@ -269,6 +269,8 @@ impl LLMRuntime {
                                     let _ = response_tx.send(Query::Status {
                                         msg: error.to_string(),
                                     });
+
+                                    
                                     break;
                                 }
                             }

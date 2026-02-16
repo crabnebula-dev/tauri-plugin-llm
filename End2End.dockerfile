@@ -12,12 +12,8 @@ ENV CARGO_HOME="/usr/local/cargo"
 ENV RUSTUP_HOME="/usr/local/rustup"
 ENV PATH="/usr/local/cargo/bin:/opt/go/latest/:/root/.local/bin:$PATH"
 
-# Later versions of the tauri-LLM-plugin will not depend on Go.
-ENV GO_VERSION=1.25.5.linux
-
 RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y build-essential curl git pkg-config ca-certificates
-
+RUN apt-get install -y build-essential curl git pkg-config ca-certificates openssl libssl-dev
 RUN curl -fLs https://deb.nodesource.com/setup_20.x | bash -
 RUN curl -fLs 'https://dl.cloudsmith.io/public/task/task/setup.deb.sh' | bash
 RUN apt-get update
@@ -32,15 +28,6 @@ RUN apt-get install -y --no-install-recommends \
     nodejs \
     task \
     clang
-
-# -- install go
-
-RUN ARCH=$(dpkg --print-architecture) && curl -fLOsS "https://go.dev/dl/go${GO_VERSION}-${ARCH}.tar.gz" && \
-    mkdir -p /opt/go/${GO_VERSION}-${ARCH} && \
-    mkdir -p /opt/go/latest && \
-    tar -C /opt/go/${GO_VERSION}-${ARCH} -xzf go${GO_VERSION}-${ARCH}.tar.gz  && \
-    rm go${GO_VERSION}-${ARCH}.tar.gz && \
-    ln -s /opt/go/${GO_VERSION}-${ARCH}/go/bin/go /opt/go/latest/go
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN cargo install tauri-driver --locked

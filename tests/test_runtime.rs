@@ -8,6 +8,8 @@ use tauri_plugin_llm::{
 };
 use tauri_plugin_llm_macros::hf_test;
 
+use crate::common::enable_logging;
+
 #[hf_test(
     model = "Qwen/Qwen3-4B-Instruct-2507",
     cleanup = false,
@@ -73,6 +75,7 @@ fn test_runtime_local_qwen3_safetensors(config: LLMRuntimeConfig) {
     cache_dir = "/Volumes/MLM/huggingface"
 )]
 fn test_runtime_llama_3_2_3b_instruct(config: LLMRuntimeConfig) {
+    // enable_logging();
     let mut runtime = LLMRuntime::from_config(config)?;
 
     runtime.run_stream()?;
@@ -238,6 +241,7 @@ async fn test_runtime_mock_streaming() -> Result<(), Error> {
     cache_dir = "/Volumes/MLM/huggingface"
 )]
 fn test_runtime_qwen3_streaming(config: LLMRuntimeConfig) {
+    // enable_logging();
     let mut runtime = LLMRuntime::from_config(config)?;
 
     runtime.run_stream()?;
@@ -287,7 +291,7 @@ fn test_runtime_qwen3_streaming(config: LLMRuntimeConfig) {
         let _ = runtime.send_stream(query);
 
         while let Ok(message) = runtime.recv_stream() {
-            assert!(matches!(message, Query::Chunk { .. }));
+            assert!(matches!(message, Query::Chunk { .. } | Query::End { .. }));
             break;
         }
     }

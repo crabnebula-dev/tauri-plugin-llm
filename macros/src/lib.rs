@@ -178,7 +178,6 @@ pub fn hf_test(attr: TokenStream, item: TokenStream) -> TokenStream {
         #ignore_attr
         #(#fn_attrs)*
         #fn_vis fn #fn_name() -> std::result::Result<(), Box<dyn std::error::Error>> {
-            common::enable_logging();
 
             #cache_dir_init
 

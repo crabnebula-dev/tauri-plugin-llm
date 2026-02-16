@@ -79,7 +79,7 @@ pub fn create_backend_by_model_index_file(
             vb,
             model_config_file,
         )?));
-    } else if model_name.contains("Llama3") {
+    } else if model_name.contains("Llama") {
         tracing::info!("Loading Llama safetensors model");
         let vb = unsafe {
             VarBuilder::from_mmaped_safetensors(&paths, candle_core::DType::BF16, device)

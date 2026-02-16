@@ -293,7 +293,9 @@ impl LLMRuntimeModel for LocalRuntime {
         let usage = self.inference(q, response_tx.clone())?;
 
         tracing::debug!("LocalRuntime inference ended. Sending end termination");
+
         response_tx
+            .clone()
             .send(Query::End { usage })
             .map_err(|e| Error::StreamError(e.to_string()))?;
 
@@ -305,8 +307,6 @@ impl LLMRuntimeModel for LocalRuntime {
         message: Query,
         response_tx: Arc<std::sync::mpsc::Sender<Query>>,
     ) -> Result<Option<TokenUsage>, Error> {
-        tracing::debug!("LocalRuntime got message: {:?}", message);
-
         if let Query::Prompt {
             messages,
             tools: _,
