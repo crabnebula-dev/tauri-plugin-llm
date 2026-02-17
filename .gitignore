@@ -12,4 +12,5 @@ ffi/libs/
 .venv/
 .pnpm-store/
 TODO.md
+MEMORY.md
 .env

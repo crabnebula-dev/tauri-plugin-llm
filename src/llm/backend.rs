@@ -3,6 +3,7 @@
 //! Each supported model family implements [`ModelBackend`] to encapsulate
 //! model-specific forward pass, KV cache management, and weight loading.
 
+pub mod gemma;
 pub mod llama;
 pub mod qwen3;
 
@@ -58,7 +59,7 @@ pub fn extract_last_token_logits(logits: Tensor) -> Result<Tensor, Error> {
 ///
 /// Dispatches to the correct backend implementation by matching on `model_name`.
 /// Falls back to `LlamaBackend` for unknown models.
-pub fn create_backend(
+pub fn create_backend_by_model_index_file(
     model_name: &str,
     device: &Device,
     model_index_file: &PathBuf,
@@ -74,20 +75,65 @@ pub fn create_backend(
             VarBuilder::from_mmaped_safetensors(&paths, candle_core::DType::BF16, device)
                 .map_err(|e| Error::ExecutionError(e.to_string()))?
         };
-        Ok(Box::new(qwen3::Qwen3Backend::from_safetensors(
+        return Ok(Box::new(qwen3::Qwen3Backend::from_safetensors(
             vb,
             model_config_file,
-        )?))
-    } else {
+        )?));
+    } else if model_name.contains("Llama") {
         tracing::info!("Loading Llama safetensors model");
         let vb = unsafe {
             VarBuilder::from_mmaped_safetensors(&paths, candle_core::DType::BF16, device)
                 .map_err(|e| Error::ExecutionError(e.to_string()))?
         };
-        Ok(Box::new(llama::LlamaBackend::from_safetensors(
+        return Ok(Box::new(llama::LlamaBackend::from_safetensors(
             vb,
             model_config_file,
             device,
-        )?))
+        )?));
+    } else if model_name.contains("gemma") {
+        tracing::info!("Loading Gemma safetensors model");
+        let vb = unsafe {
+            VarBuilder::from_mmaped_safetensors(&paths, candle_core::DType::BF16, device)
+                .map_err(|e| Error::ExecutionError(e.to_string()))?
+        };
+        return Ok(Box::new(gemma::Gemma3Backend::from_safetensors(
+            vb,
+            model_config_file,
+            false,
+        )?));
     }
+
+    Err(Error::UnsupportedModelType(model_name.to_string()))
+}
+
+/// Creates the appropriate backend based on model name and a `model.safetensors` file.
+///
+/// Dispatches to the correct backend implementation by matching on `model_name`.
+/// Falls back to `LlamaBackend` for unknown models.
+pub fn create_backend_by_model_file(
+    model_name: &str,
+    device: &Device,
+    model_file: &PathBuf,
+    model_config_file: &PathBuf,
+) -> Result<Box<dyn ModelBackend>, Error> {
+    // let mut index_file = IndexFile::from_path(model_index_file)?;
+    // let paths = index_file.files(model_dir);
+
+    // we handle gemma only for now
+    if model_name.contains("gemma") {
+        tracing::info!("Loading Gemma safetensors model");
+
+        // load from single safetensor file
+        let vb = unsafe {
+            VarBuilder::from_mmaped_safetensors(&[model_file], candle_core::DType::BF16, device)
+                .map_err(|e| Error::ExecutionError(e.to_string()))?
+        };
+        return Ok(Box::new(gemma::Gemma3Backend::from_safetensors(
+            vb,
+            model_config_file,
+            false,
+        )?));
+    }
+
+    Err(Error::UnsupportedModelType(model_name.to_string()))
 }

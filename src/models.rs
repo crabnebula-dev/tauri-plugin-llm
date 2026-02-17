@@ -125,8 +125,6 @@ impl Query {
     /// Applies [`Self`] with the given template and returns the rendered version as String
     pub fn apply_template(&self, template: &str, tp: &TemplateProcessor) -> Result<String, Error> {
         let json_context = serde_json::to_string(self)?;
-
-        tracing::debug!("Query as JSON: {}", json_context);
         tp.render(template, &json_context)
     }
 
@@ -164,7 +162,7 @@ pub struct LLMRuntimeConfig {
     pub model_index_file: Option<PathBuf>,
 
     /// Path to `model.EXTENSION` (e.g. `.gguf`).
-    /// If present (and no `model_index_file`), the model format is inferred as GGUF.
+    /// If present (and no `model_index_file`), the model format is inferred as Safetensors.
     pub model_file: Option<PathBuf>,
 
     /// Path to model directory
@@ -206,7 +204,10 @@ pub struct TokenizerConfig {
     pub chat_template: Option<String>,
     pub clean_up_tokenization_spaces: bool,
     pub eos_token: Option<String>,
-    pub model_max_length: Option<usize>,
+
+    // TODO: this field is not being used, maybe we just skip the
+    // deserialization?
+    pub model_max_length: Option<u128>,
     pub tokenizer_class: Option<String>,
 
     pub added_tokens_decoder: Option<HashMap<String, AddedToken>>,
@@ -214,11 +215,22 @@ pub struct TokenizerConfig {
 
 impl LLMRuntimeConfig {
     /// Returns true if a `model_index_file` is present, indicating Safetensors format
-    pub fn is_safetensors(&self) -> bool {
+    pub fn is_safetensors_with_index_file(&self) -> bool {
         self.model_index_file
             .as_ref()
             .map(|p| !p.as_os_str().is_empty())
             .unwrap_or(false)
+    }
+
+    pub fn is_safetensors_inidividual_file(&self) -> bool {
+        self.model_file
+            .as_ref()
+            .filter(|inner| {
+                inner
+                    .file_name()
+                    .eq(&Some(std::ffi::OsStr::new("model.safetensors")))
+            })
+            .is_some()
     }
 
     /// Returns true if a `model_file` is present (and no index file), indicating GGUF format
@@ -314,6 +326,10 @@ impl LLMRuntimeConfig {
                format!("Required model files not found in local cache for '{model_id}': tokenizer {tokenizer_file:?}, model_file {model_file:?}, model_dir {model_dir:?} \
                Ensure the model has been downloaded first.")
             ));
+        }
+
+        if model_file.is_some() {
+            tracing::debug!("Model File for {} found {model_file:?}", model.as_ref())
         }
 
         Ok(LLMRuntimeConfig {

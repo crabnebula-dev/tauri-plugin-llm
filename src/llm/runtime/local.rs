@@ -15,7 +15,7 @@ use candle_transformers::generation::{LogitsProcessor, Sampling};
 use rand::Rng;
 use tokenizers::Tokenizer;
 
-use super::backend::{self, ModelBackend};
+use crate::llm::backend::{self, ModelBackend};
 
 /// A generic local runtime that can load models in different formats.
 ///
@@ -30,7 +30,7 @@ pub struct LocalRuntime {
     pub(crate) backend: Option<Box<dyn ModelBackend>>,
     pub(crate) template: Option<String>,
     pub(crate) template_proc: Option<TemplateProcessor>,
-    pub(crate) eos_tokens: Vec<String>,
+    pub(crate) eos_token_ids: Vec<u32>,
 }
 
 impl LocalRuntime {
@@ -97,21 +97,84 @@ impl LLMRuntimeModel for LocalRuntime {
         let tokenizer_config_json: Option<TokenizerConfig> =
             if let Some(t) = &config.tokenizer_config_file {
                 let mut file = File::open(t)?;
-                Some(serde_json::from_reader(&mut file)?)
+
+                tracing::debug!("Deserializing Tokenizer Config");
+
+                let tcj = match serde_json::from_reader(&mut file) {
+                    Ok(tokenizer_config_json_deser) => tokenizer_config_json_deser,
+                    Err(error) => {
+                        tracing::error!("Error deserialize tokenizer_config.json {error:?}");
+
+                        return Err(error.into());
+                    }
+                };
+                Some(tcj)
             } else {
                 None
             };
+        // Derive EOS token IDs from config.json (model config), which provides the
+        // authoritative list. The field can be a single integer or an array of integers.
+        // Falls back to tokenizer_config.json eos_token string lookup if config.json
+        // doesn't have the field.
+        self.eos_token_ids = {
+            let mut ids: Vec<u32> = Vec::new();
 
-        // Set EOS tokens from tokenizer_config.json, falling back to defaults
-        self.eos_tokens = if let Some(eos) = tokenizer_config_json
-            .as_ref()
-            .and_then(|tc| tc.eos_token.as_ref())
-        {
-            tracing::info!("Using EOS token from tokenizer_config: {eos}");
-            vec![eos.clone()]
+            if let Some(model_config_path) = &config.model_config_file {
+                let mut file = File::open(model_config_path)?;
+                let json_value: serde_json::Value = serde_json::from_reader(&mut file)?;
+
+                if let Some(eos) = json_value.get("eos_token_id") {
+                    match eos {
+                        serde_json::Value::Number(n) => {
+                            if let Some(id) = n.as_u64() {
+                                ids.push(id as u32);
+                            }
+                        }
+                        serde_json::Value::Array(arr) => {
+                            for item in arr {
+                                if let Some(id) = item.as_u64() {
+                                    ids.push(id as u32);
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            if ids.is_empty() {
+                tracing::warn!(
+                    "No eos_token_id in config.json, falling back to tokenizer_config.json"
+                );
+                if let Some(eos_str) = tokenizer_config_json
+                    .as_ref()
+                    .and_then(|tc| tc.eos_token.as_ref())
+                {
+                    // Deferred lookup: we'll resolve this string to an ID after loading the tokenizer
+                    // For now, store it temporarily and resolve below
+                    tracing::info!(
+                        "Will resolve EOS token string '{eos_str}' from tokenizer vocab"
+                    );
+                }
+            } else {
+                tracing::info!(
+                    "Loaded {} EOS token ID(s) from config.json: {:?}",
+                    ids.len(),
+                    ids
+                );
+            }
+
+            ids
+        };
+
+        // Stash the fallback eos_token string for resolution after tokenizer loads
+        let fallback_eos_token = if self.eos_token_ids.is_empty() {
+            tokenizer_config_json
+                .as_ref()
+                .and_then(|tc| tc.eos_token.clone())
+                .or_else(|| Some("</s>".to_string()))
         } else {
-            tracing::warn!("No EOS token in tokenizer_config, falling back to default");
-            vec!["</s>".to_string()]
+            None
         };
 
         // Load template
@@ -151,11 +214,26 @@ impl LLMRuntimeModel for LocalRuntime {
                 })?,
             );
 
+        // Resolve fallback EOS token string via tokenizer vocab if config.json had no eos_token_id
+        if let Some(eos_str) = fallback_eos_token {
+            let tokenizer = self.tokenizer.as_ref().unwrap();
+            if let Some(&id) = tokenizer.get_vocab(true).get(&eos_str) {
+                tracing::info!("Resolved fallback EOS token '{eos_str}' to ID {id}");
+                self.eos_token_ids.push(id);
+            } else {
+                tracing::warn!("Fallback EOS token '{eos_str}' not found in tokenizer vocab");
+            }
+        }
+
+        if self.eos_token_ids.is_empty() {
+            tracing::warn!("No EOS token IDs resolved — generation will only stop at max_tokens");
+        }
+
         // Load backend — infer format from config fields
         tracing::info!("Loading Model Backend");
         let device = self.device.as_ref().ok_or(Error::MissingDevice)?;
 
-        self.backend = Some(if config.is_safetensors() {
+        self.backend = Some(if config.is_safetensors_with_index_file() {
             let model_index = config
                 .model_index_file
                 .as_ref()
@@ -174,7 +252,27 @@ impl LLMRuntimeModel for LocalRuntime {
                     ))?;
 
             tracing::info!("Loading Safetensor Weights");
-            backend::create_backend(name, device, model_index, model_dir, model_config_file)?
+            backend::create_backend_by_model_index_file(
+                name,
+                device,
+                model_index,
+                model_dir,
+                model_config_file,
+            )?
+        } else if config.is_safetensors_inidividual_file() {
+            let model_file = config.model_file.as_ref().ok_or(Error::MissingConfigLLM(
+                "Safetensors file is missing".to_owned(),
+            ))?;
+
+            let model_config_file =
+                config
+                    .model_config_file
+                    .as_ref()
+                    .ok_or(Error::MissingConfigLLM(
+                        "Model config file is missing for Safetensors".to_owned(),
+                    ))?;
+
+            backend::create_backend_by_model_file(name, device, model_file, model_config_file)?
         } else {
             return Err(Error::ExecutionError(
                 "Cannot infer model format: neither model_index_file nor model_file is set"
@@ -195,7 +293,9 @@ impl LLMRuntimeModel for LocalRuntime {
         let usage = self.inference(q, response_tx.clone())?;
 
         tracing::debug!("LocalRuntime inference ended. Sending end termination");
+
         response_tx
+            .clone()
             .send(Query::End { usage })
             .map_err(|e| Error::StreamError(e.to_string()))?;
 
@@ -207,8 +307,6 @@ impl LLMRuntimeModel for LocalRuntime {
         message: Query,
         response_tx: Arc<std::sync::mpsc::Sender<Query>>,
     ) -> Result<Option<TokenUsage>, Error> {
-        tracing::debug!("LocalRuntime got message: {:?}", message);
-
         if let Query::Prompt {
             messages,
             tools: _,
@@ -292,16 +390,7 @@ impl LLMRuntimeModel for LocalRuntime {
 
             let mut all_tokens = vec![next_token];
 
-            // Get EOS token IDs
-            let eos_token_ids: Vec<u32> = self
-                .eos_tokens
-                .iter()
-                .filter_map(|eos| tokenizer.get_vocab(true).get(eos).copied())
-                .collect();
-
-            if eos_token_ids.is_empty() {
-                tracing::warn!("No EOS token IDs found in tokenizer vocabulary!");
-            }
+            let eos_token_ids = &self.eos_token_ids;
 
             let penalty = penalty.unwrap_or(1.1).max(0.1);
             let mut index = 0usize;

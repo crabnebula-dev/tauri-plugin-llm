@@ -1,6 +1,9 @@
+mod common;
+
 use proptest::prelude::*;
 use std::path::PathBuf;
 use tauri_plugin_llm::{LLMRuntimeConfig, Query};
+use tauri_plugin_llm_macros::hf_test;
 
 pub fn random() -> impl Strategy<Value = LLMRuntimeConfig> {
     (
@@ -81,30 +84,33 @@ fn test_deserialize_default() {
     assert!(result.is_ok(), "{:?}", result);
 }
 
-#[test]
-#[ignore = "Load the model first, then run the test manually."]
-fn test_load_llama32_config_from_hf_cache() -> anyhow::Result<()> {
-    test_load_model_from_hf_cache("meta-llama/Llama-3.2-3B-Instruct")
+#[hf_test(
+    model = "meta-llama/Llama-3.2-3B-Instruct",
+    cleanup = false,
+)]
+fn test_load_llama32_config_from_hf_cache(config: LLMRuntimeConfig) {
+    assert!(config.tokenizer_file.is_some());
+    assert!(config.model_config_file.is_some());
+    assert!(config.model_index_file.is_some() || config.model_file.is_some());
+    Ok(())
 }
 
-#[test]
-#[ignore = "Load the model first, then run the test manually."]
-fn test_load_qwen3_config_from_hf_cache() -> anyhow::Result<()> {
-    test_load_model_from_hf_cache("Qwen/Qwen3-4B-Instruct-2507")
+#[hf_test(
+    model = "Qwen/Qwen3-4B-Instruct-2507",
+    cleanup = false,
+)]
+fn test_load_qwen3_config_from_hf_cache(config: LLMRuntimeConfig) {
+    assert!(config.tokenizer_file.is_some());
+    assert!(config.model_config_file.is_some());
+    Ok(())
 }
 
-#[test]
-#[ignore = "Load the model first, then run the test manually."]
-fn test_load_gemma3_4b_from_hf_cache() -> anyhow::Result<()> {
-    test_load_model_from_hf_cache("google/gemma-3-4b-it")
-}
-
-fn test_load_model_from_hf_cache(model_name: &str) -> anyhow::Result<()> {
-    dotenv::dotenv()?;
-    let hf_cache_dir = dotenv::var("HF_CACHE_DIR").ok();
-
-    let config_result = LLMRuntimeConfig::from_hf_local_cache(model_name, hf_cache_dir);
-    assert!(config_result.is_ok(), "{:?}", config_result);
-
+#[hf_test(
+    model = "google/gemma-3-4b-it",
+    cleanup = false,
+)]
+fn test_load_gemma3_4b_from_hf_cache(config: LLMRuntimeConfig) {
+    assert!(config.tokenizer_file.is_some());
+    assert!(config.model_config_file.is_some());
     Ok(())
 }

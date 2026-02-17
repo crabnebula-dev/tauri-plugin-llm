@@ -7,8 +7,10 @@
 use crate::{runtime::LLMRuntime, Error, LLMRuntimeConfig};
 use std::{collections::HashMap, path::Path};
 
+pub mod backend;
 pub mod loaders;
 pub mod runtime;
+pub mod tool_call;
 
 /// LLMServices manages runtime instances
 pub struct LLMService {
