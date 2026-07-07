@@ -31,7 +31,7 @@ tracing-subscriber  = {version = "0.3.20", features = ["json"]}
 tracing-appender    = {version = "0.2.3"}
 
 # for LLM inference
-tokenizers          = { git = "https://github.com/huggingface/tokenizers", branch = "main" }
+tokenizers          = { version = "0.23.1" }
 
 # templating. 
 minijinja           = { version = "2.15.1", features = ["json"] }
