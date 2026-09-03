@@ -105,8 +105,8 @@ class LLMStreamListener {
      *     { role: "user", content: "Hello, how are you?" }
      *   ],
      *   tools: [],
-     *   config: { generate_num_samples: 500 },
-     *   chunk_size: 32
+     *   chunk_size: 32,
+     *   max_tokens: 500
      * });
      * ```
      */
@@ -162,12 +162,7 @@ class LLMStreamListener {
      * const listener = new LLMStreamListener();
      *
      * const newConfig = {
-     *   model_config: {
-     *     name: "Llama-3.2-3B-Custom",
-     *     sampling_config: "TopKThenTopP",
-     *     seed: { type: "Random" },
-     *     penalty: 1.1
-     *   },
+     *   name: "Llama-3.2-3B-Custom",
      *   tokenizer_file: "/path/to/tokenizer.json",
      *   model_file: "/path/to/model.gguf"
      * };

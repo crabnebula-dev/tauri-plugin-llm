@@ -1,3 +1,11 @@
 packages:
   - ./
   - examples/tauri-app
+allowBuilds:
+  edgedriver: true
+  esbuild: true
+  geckodriver: true
+overrides:
+  '@puppeteer/browsers@<3.0.0': ^3.0.0
+  deepmerge-ts@<8.0.0: ^8.0.0
+  serialize-javascript@>=5.0.0 <7.0.5: ^7.0.5
