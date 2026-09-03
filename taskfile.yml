@@ -1,7 +1,8 @@
 version: "3"
 
 env:
-  CONTAINER_RUNTIME: container
+  CONTAINER_RUNTIME: 
+    sh: command -v container && echo "container" || echo "podman"
   CONTAINER_IMAGE_TAG: container-tauri-plugin-llm
 
 tasks:
@@ -12,16 +13,16 @@ tasks:
       - task --list-all
 
   build_container:
-    silent: true
+    silent: false
     desc: Builds the container for Tauri tests
     cmds:
-      - container build -f End2End.dockerfile -t $CONTAINER_IMAGE_TAG .
+      - '$CONTAINER_RUNTIME build -f End2End.dockerfile -t $CONTAINER_IMAGE_TAG .'
 
   container:
     silent: true
     desc: Debugging task to enter the container
     cmds:
-      - $CONTAINER_RUNTIME run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash
+      - '$CONTAINER_RUNTIME --runtime crun run -ti --rm -v $(pwd):/testing --cpus 8 -m 16G $CONTAINER_IMAGE_TAG bash'
 
   fetch_llama3.2_instruct:
     silent: true

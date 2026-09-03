@@ -56,6 +56,9 @@ pub enum Error {
 
     #[error("Model not supported: ({0})")]
     UnsupportedModelType(String),
+
+    #[error("Error accessing the HuggingFace cache: ({0})")]
+    HuggingFace(#[from] hf_hub::HFError),
 }
 
 impl Serialize for Error {

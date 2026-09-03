@@ -10,7 +10,8 @@ ENV LC_ALL=en_US.UTF-8
 ENV DISPLAY=0
 ENV CARGO_HOME="/usr/local/cargo"
 ENV RUSTUP_HOME="/usr/local/rustup"
-ENV PATH="/usr/local/cargo/bin:/opt/go/latest/:/root/.local/bin:$PATH"
+ENV UV_INSTALL_DIR=/usr/local/bin
+ENV PATH="/usr/local/cargo/bin:/opt/go/latest/:/root/.local/bin:/usr/local/bin:$PATH"
 
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y build-essential curl git pkg-config ca-certificates openssl libssl-dev

@@ -12,7 +12,7 @@ use crate::{
 };
 use candle_core::{Device, Tensor};
 use candle_transformers::generation::{LogitsProcessor, Sampling};
-use rand::Rng;
+use rand::RngExt;
 use tokenizers::Tokenizer;
 
 use crate::llm::backend::{self, ModelBackend};
