@@ -22,12 +22,26 @@ pub fn ensure_model_downloaded(
     model_id: &str,
     cache_dir: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    use hf_hub::api::sync::ApiBuilder;
+    // hf-hub 1.x: a single `HFClient` replaces the 0.x `Cache`/`Api` pair.
+    // `local_files_only(true)` is a cache-only lookup, everything else may
+    // hit the network.
+    let client = hf_hub::HFClient::builder()
+        .cache_dir(cache_dir.to_path_buf())
+        .build_sync()?;
+    let (owner, name) = hf_hub::split_id(model_id);
+    let repo = client.model(owner, name);
+
+    let get = |filename: &str| repo.download_file().filename(filename).send();
+    let is_cached = |filename: &str| {
+        repo.download_file()
+            .filename(filename)
+            .local_files_only(true)
+            .send()
+            .is_ok()
+    };
 
     // Check if the model is already cached by looking for config.json
-    let cache = hf_hub::Cache::new(cache_dir.to_path_buf());
-    let cache_repo = cache.model(model_id.to_string());
-    if cache_repo.get("config.json").is_some() && cache_repo.get("tokenizer.json").is_some() {
+    if is_cached("config.json") && is_cached("tokenizer.json") {
         // Model appears to be cached already
         return Ok(());
     }
@@ -37,22 +51,17 @@ pub fn ensure_model_downloaded(
         cache_dir.display()
     );
 
-    let api = ApiBuilder::new()
-        .with_cache_dir(cache_dir.to_path_buf())
-        .build()?;
-    let repo = api.model(model_id.to_string());
-
     // Required files
-    repo.get("config.json")?;
-    repo.get("tokenizer.json")?;
+    get("config.json")?;
+    get("tokenizer.json")?;
 
     // Optional but useful
-    let _ = repo.get("tokenizer_config.json");
+    let _ = get("tokenizer_config.json");
 
     // Try single-file model first
-    if repo.get("model.safetensors").is_err() {
+    if get("model.safetensors").is_err() {
         // Sharded model: download the index and each shard
-        let index_path = repo.get("model.safetensors.index.json")?;
+        let index_path = get("model.safetensors.index.json")?;
         let index_content = std::fs::read_to_string(&index_path)?;
         let index: serde_json::Value = serde_json::from_str(&index_content)?;
 
@@ -64,7 +73,7 @@ pub fn ensure_model_downloaded(
 
             for shard in &shard_files {
                 eprintln!("  Downloading shard: {shard}");
-                repo.get(shard)?;
+                get(shard)?;
             }
         }
     }

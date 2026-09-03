@@ -281,17 +281,47 @@ impl LLMRuntimeConfig {
 
         Self::validate_model_name(&model_id)?;
 
-        let cache = cache_dir.map_or_else(hf_hub::Cache::default, |path| {
-            hf_hub::Cache::new(path.as_ref().into())
-        });
-        let cache_dir = cache.path().clone();
-        let cache_repo = cache.model(model_id.clone());
-        let tokenizer_file = cache_repo.get("tokenizer.json");
-        let tokenizer_config_file = cache_repo.get("tokenizer_config.json");
-        let model_config_file = cache_repo.get("config.json");
-        let model_index_file = cache_repo.get("model.safetensors.index.json");
-        let model_file = cache_repo.get("model.safetensors");
-        // let template_file = cache_repo.get("chat_template.jinja");
+        // hf-hub 1.x replaced the `Cache`/`CacheRepo` handles with `HFClient`.
+        // `cache_dir` mirrors the builder's own default so the containment
+        // checks below run against the directory the client actually uses.
+        let cache_dir = cache_dir
+            .map(|path| path.as_ref().to_path_buf())
+            .unwrap_or_else(hf_hub::resolve_cache_dir);
+
+        let client = hf_hub::HFClient::builder()
+            .cache_dir(cache_dir.clone())
+            .build_sync()?;
+
+        let (owner, name) = hf_hub::split_id(&model_id);
+        let cache_repo = client.model(owner, name);
+
+        // `local_files_only` is the 1.x replacement for `CacheRepo::get`: it
+        // resolves from the cache without ever hitting the network. Both "not
+        // cached" (`LocalEntryNotFound`) and "cached 404 marker, the file does
+        // not exist in the repo" (`EntryNotFound`) are expected outcomes here —
+        // several of these files are optional and the checks below decide what
+        // is actually required — so both map back to `None`, as `Cache::get`
+        // did in 0.x.
+        let get = |filename: &str| -> Result<Option<PathBuf>, Error> {
+            match cache_repo
+                .download_file()
+                .filename(filename)
+                .local_files_only(true)
+                .send()
+            {
+                Ok(path) => Ok(Some(path)),
+                Err(hf_hub::HFError::LocalEntryNotFound { .. })
+                | Err(hf_hub::HFError::EntryNotFound { .. }) => Ok(None),
+                Err(e) => Err(e.into()),
+            }
+        };
+
+        let tokenizer_file = get("tokenizer.json")?;
+        let tokenizer_config_file = get("tokenizer_config.json")?;
+        let model_config_file = get("config.json")?;
+        let model_index_file = get("model.safetensors.index.json")?;
+        let model_file = get("model.safetensors")?;
+        // let template_file = get("chat_template.jinja")?;
 
         // Defense in depth: verify all resolved paths are within the cache directory.
         // This guards against symlink attacks or future changes in hf_hub's path logic.
