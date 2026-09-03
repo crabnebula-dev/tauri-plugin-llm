@@ -12,7 +12,7 @@
     "test:macos": "wdio run wdio-macos.conf.js"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/plugin-os": "~2.3.2",
     "tauri-plugin-llm-api": "file:../../"
   },
