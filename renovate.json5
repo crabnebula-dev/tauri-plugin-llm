@@ -1,0 +1,7 @@
+// Per-repo Renovate config. Everything else comes from the shared org preset;
+// keys set here override it.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  schedule: ["before 6am on the first day of the month"],
+  extends: ["github>crabnebula-dev/dependency-tracking//config/renovate-preset.json5"],
+}
