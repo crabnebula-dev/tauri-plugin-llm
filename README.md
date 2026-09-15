@@ -12,7 +12,8 @@ This Tauri plugin allows loading and running inference on various large language
 
 ## Requirements
 
-- Rust >= 1.77
+- Rust >= 1.95
+- Tauri 3 (currently `3.0.0-alpha.0`)
 
 ## Install
 

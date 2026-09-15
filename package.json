@@ -22,7 +22,7 @@
     "pretest": "pnpm build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/api": "^3.0.0-alpha.0",
     "nunjucks": "^3.2.4"
   },
   "devDependencies": {

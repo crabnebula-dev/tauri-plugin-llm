@@ -7,12 +7,15 @@ pub fn run() {
         )
         .init();
 
-    let mut builder = tauri::Builder::default().plugin(tauri_plugin_os::init());
+    let mut builder = tauri::Builder::default()
+        .runtime(tauri_runtime_wry::Wry::default())
+        .plugin(tauri_plugin_os::init());
 
-    #[cfg(debug_assertions)]
-    {
-        builder = builder.plugin(tauri_plugin_automation::init());
-    }
+    // TODO: re-enable once tauri-plugin-automation supports tauri 3.
+    // #[cfg(debug_assertions)]
+    // {
+    //     builder = builder.plugin(tauri_plugin_automation::init());
+    // }
 
     #[cfg(target_os = "macos")]
     {

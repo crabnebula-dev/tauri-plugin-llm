@@ -47,32 +47,6 @@ Denies the add_configuration command without any pre-configured scope.
 <tr>
 <td>
 
-`llm:allow-health-check`
-
-</td>
-<td>
-
-Enables the health_check command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
-`llm:deny-health-check`
-
-</td>
-<td>
-
-Denies the health_check command without any pre-configured scope.
-
-</td>
-</tr>
-
-<tr>
-<td>
-
 `llm:allow-list-available-models`
 
 </td>

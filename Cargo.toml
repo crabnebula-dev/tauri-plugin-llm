@@ -4,7 +4,7 @@ version             = "0.1.0"
 authors             = ["Matthias Kandora<matthias@crabnebula.dev>", "Fabian-Lars Scheidt<fabianlars@crabnebula.dev>"]
 description         = "Load LLMs and makes them accessible as Tauri plugin"
 edition             = "2021"
-rust-version        = "1.89.0"
+rust-version        = "1.95.0"
 links               = "tauri-plugin-llm"
 exclude             = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
 
@@ -12,7 +12,7 @@ exclude             = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
 members = ["examples/tauri-app/src-tauri", "macros"]
 
 [dependencies]
-tauri               = {version = "2.9.4", default-features = false }
+tauri               = {version = "3.0.0-alpha.0", default-features = false }
 serde               = {version = "1.0" }
 thiserror           = {version = "2" }
 anyhow              = {version = "1.0" }
@@ -53,11 +53,10 @@ candle-nn           = { version = "0.11.0", features = ["metal"] }
 candle-transformers = { version = "0.11.0", features = ["metal"] }
 
 [build-dependencies]
-tauri-plugin = { version = "2.5.2", features = ["build"] }
+tauri-plugin = { version = "3.0.0-alpha.0", features = ["build"] }
 
 [dev-dependencies]
 proptest                    = { version = "1.9.0" }
-tauri-plugin-automation     = { version = "0.1.1"}
 dotenv                      = { version = "0.15"}
 tauri-plugin-llm-macros     = { path = "macros" }
 

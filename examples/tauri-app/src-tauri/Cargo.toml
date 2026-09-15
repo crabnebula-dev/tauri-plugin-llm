@@ -6,7 +6,7 @@ authors = ["you"]
 license = ""
 repository = ""
 edition = "2021"
-rust-version = "1.89.0"
+rust-version = "1.95.0"
 
 [lib]
 name = "tauri_app_lib"
@@ -15,15 +15,18 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "2.5.3", default-features = false, features = [] }
+tauri-build = { version = "3.0.0-alpha.0", default-features = false, features = [] }
 
 [dependencies]
-tauri = { version = "2.9.4", features = [] }
+tauri = { version = "3.0.0-alpha.0", features = [] }
+tauri-runtime-wry = "3.0.0-alpha.0"
 tauri-plugin-llm = { path = "../../../" }
-tauri-plugin-automation = "0.1"
+# tauri-plugin-automation only supports tauri ^2 and cannot coexist with tauri 3 (`links = "Tauri"`).
+# Re-enable once a tauri 3 compatible release is published.
+# tauri-plugin-automation = "0.1"
 serde = "1"
 serde_json = "1"
-tauri-plugin-os = "2"
+tauri-plugin-os = "3.0.0-alpha.0"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [features]
