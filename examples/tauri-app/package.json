@@ -14,7 +14,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/plugin-os": "~2.3.2",
-    "tauri-plugin-llm-api": "file:../../"
+    "tauri-plugin-llm-api": "../../"
   },
   "devDependencies": {
     "@crabnebula/tauri-driver": "^2.0.9",
